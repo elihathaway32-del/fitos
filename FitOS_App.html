@@ -143,6 +143,26 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .watch-demo-icon{background:#fff;border-radius:4px;width:28px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cue-box{margin:12px 16px;background:var(--s2);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.82rem;color:#ccc;line-height:1.6}
 .set-logger{padding:16px}
+/* AI Coach */
+.coach-fab{position:fixed;bottom:calc(var(--tab-h) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);border:none;cursor:pointer;z-index:300;box-shadow:0 4px 16px #1D9E7550;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:transform .2s}
+.coach-fab:active{transform:scale(0.92)}
+.coach-overlay{position:fixed;inset:0;background:#000c;z-index:600;display:flex;flex-direction:column}
+.coach-header{background:linear-gradient(135deg,#0a1a12,#111);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.coach-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.coach-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.coach-bubble{max-width:82%;padding:11px 14px;border-radius:16px;font-size:0.88rem;line-height:1.55}
+.coach-bubble.coach{background:var(--s2);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start}
+.coach-bubble.user{background:var(--green);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.coach-input-row{padding:12px 16px;background:var(--s1);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.coach-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:22px;padding:10px 16px;color:var(--text);font-size:0.9rem;outline:none}
+.coach-input:focus{border-color:var(--green)}
+.coach-send{background:var(--green);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.coach-typing{display:flex;gap:4px;align-items:center;padding:8px 14px}
+.coach-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:coach-bounce .9s infinite}
+.coach-dot:nth-child(2){animation-delay:.15s}
+.coach-dot:nth-child(3){animation-delay:.3s}
+@keyframes coach-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+/* AI Coach */
 /* Food log / scanner */
 .food-panel-overlay{position:fixed;inset:0;background:#000a;z-index:500;display:flex;align-items:flex-end;justify-content:center}
 .food-panel{background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;border-top:1px solid var(--border)}
@@ -1160,10 +1180,15 @@ function calcTDEE(){
   const tdee=Math.round(bmr*mult);
   const goal=(p.goal||'recomp').toLowerCase();
   let deficit=0;
-  if(goal.includes('fat')||goal.includes('cut')||goal.includes('lose')) deficit=-450;
-  else if(goal.includes('bulk')||goal.includes('build')||goal.includes('muscle')) deficit=+300;
+  // Recomp takes priority — it's not a pure bulk even if 'build' appears
+  if(goal.includes('recomp')) deficit=-150;
+  else if(goal.includes('fat')||goal.includes('cut')||goal.includes('lose')||goal.includes('weight')) deficit=-450;
+  else if(goal.includes('bulk')||goal.includes('mass')) deficit=+300;
+  else if(goal.includes('muscle')||goal.includes('build')) deficit=+150;
   else deficit=-100;
-  const targetCal=Math.max(1400,tdee+deficit);
+  // Apply manual calorie adjustment if set
+  const manualAdj=parseInt(localStorage.getItem('fitos_cal_adjust')||'0')||0;
+  const targetCal=Math.max(1400,tdee+deficit+manualAdj);
   const proteinG=Math.round(wt*2.0);
   const fatG=Math.round((targetCal*0.25)/9);
   const carbG=Math.max(50,Math.round((targetCal-(proteinG*4)-(fatG*9))/4));
@@ -1366,6 +1391,12 @@ let S={
   // Food log
   foodLog: loadJSON('fitos_foodlog',[]),
   showFoodPanel: false,
+
+  // AI Coach
+  showCoach: false,
+  coachMessages: loadJSON('fitos_coach_msgs',[]),
+  coachTyping: false,
+  coachInput: '',
   foodQuery: '',
   foodResults: [],
   foodSearching: false,
@@ -1492,6 +1523,18 @@ async function startStepTracking(){
 // ═══════════════════════════════════════════════════════════════════════════
 function render(){
   try{
+    var _fab=document.getElementById('coach-fab');
+    if(S.showIntake||S.showCheckin||S.showGleam){
+      if(_fab) _fab.style.display='none';
+    } else {
+      if(_fab) _fab.style.display='flex';
+    }
+    if(S.showCoach){
+      document.getElementById('screen').innerHTML=renderCoach();
+      document.getElementById('tab-bar').innerHTML='';
+      if(_fab) _fab.style.display='none';
+      return;
+    }
     if(S.showIntake){
       document.getElementById('screen').innerHTML=renderIntake();
       document.getElementById('tab-bar').innerHTML='';
@@ -1509,7 +1552,17 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    document.getElementById('screen').innerHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'');
+    document.getElementById('screen').innerHTML=mainHTML;
+    // Coach FAB — floating button always visible (not in intake/gleam/checkin)
+    var existFab=document.getElementById('coach-fab');
+    if(!existFab){
+      var fab=document.createElement('button');
+      fab.id='coach-fab';fab.className='coach-fab';
+      fab.innerHTML='🤖';fab.title='Ask your coach';
+      fab.onclick=function(){openCoach();};
+      document.body.appendChild(fab);
+    }
     if(S.tab==='train'&&S.trainScreen==='workout'){const _ex=curEx();setTimeout(()=>{const _c=document.getElementById('ex-anim-canvas');if(_c)startExerciseAnim(_ex.anim,_c);},60);}
   }catch(err){
     console.error('render error:',err);
@@ -2354,6 +2407,26 @@ ${hasProfile&&tdeeData?`
     <span>·</span>
     <span>${tdeeData.deficit<0?'Deficit':'Surplus'} <strong style="color:${tdeeData.deficit<0?'var(--amber)':'var(--green)'}">${Math.abs(tdeeData.deficit)} kcal</strong></span>
   </div>
+  \${(()=>{
+    var _adj=parseInt(localStorage.getItem('fitos_cal_adjust')||'0')||0;
+    var _isLoss=tdeeData.deficit<=0;
+    var _min=_isLoss?-300:0;
+    var _max=_isLoss?0:300;
+    var _col=_adj<0?'var(--amber)':_adj>0?'var(--green)':'var(--muted)';
+    var _sign=_adj>0?'+':'';
+    return '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<div style="font-size:0.72rem;color:var(--muted)">Manual adjustment</div>'+
+        '<div style="font-size:0.82rem;font-weight:700;color:'+_col+'">'+_sign+_adj+' kcal</div>'+
+      '</div>'+
+      '<input type="range" min="'+_min+'" max="'+_max+'" step="50" value="'+_adj+'" '+
+        'style="width:100%;accent-color:var(--green);cursor:pointer" '+
+        'oninput="localStorage.setItem(&quot;fitos_cal_adjust&quot;,this.value);render()"/>'+
+      '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted);margin-top:2px">'+
+        '<span>'+_min+' kcal</span><span>0</span><span>+'+_max+' kcal</span>'+
+      '</div>'+
+    '</div>';
+  })()}
 </div>`:''}
 
 <div style="padding:16px">
@@ -3426,6 +3499,132 @@ function saveDailyState(){
   localStorage.setItem('fitos_foodlog',JSON.stringify(S.foodLog));
   localStorage.setItem('fitos_meals',[...S.mealChecked].join(','));
 }
+
+function openCoach(){S.showCoach=true;render();setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},100);}
+function closeCoach(){S.showCoach=false;render();}
+
+function getCoachName(){return S.profile.coachName||'Coach Alex';}
+function getCoachEmoji(){return S.profile.coachGender==='female'?'👩':'🧑';}
+
+function buildCoachContext(){
+  var p=S.profile;
+  var t=calcTDEE?calcTDEE():{tdee:2400,targetCal:2000,proteinG:180};
+  var style=p.coachStyle||'mate';
+  var styleDesc=style==='drill'?'tough love, direct, no excuses, military PT energy':
+    style==='science'?'scientific, evidence-based, calm, precise, cite studies':
+    'casual Australian PT — warm, funny, real, encouraging but no BS';
+  var todayLog=S.foodLog?S.foodLog.filter(function(f){return f.date===todayStr();}):[];
+  var calToday=todayLog.reduce(function(a,f){return a+f.cal;},0);
+  var ex=null;try{ex=curEx&&curEx();}catch(e){}
+  return 'You are '+getCoachName()+', a personal trainer AI. Your style: '+styleDesc+'.\n'+
+    'ATHLETE PROFILE:\n'+
+    '- Name: '+(p.name||'Athlete')+', '+(p.age||'?')+'yo '+(p.gender||'male')+'\n'+
+    '- Weight: '+(p.weight||'?')+'kg | Height: '+(p.height||'?')+'cm\n'+
+    '- Goal: '+(p.goal||'body recomp')+' | Experience: '+(p.experience||'intermediate')+'\n'+
+    '- Training: '+(p.daysPerWeek||4)+' days/week | Gym type: '+(p.gymType||'commercial gym')+'\n'+
+    '- TDEE: '+t.tdee+' cal | Target: '+t.targetCal+' cal | Protein: '+t.proteinG+'g\n'+
+    (p.injuries&&p.injuries.length?'- Injuries/limitations: '+p.injuries.join(', ')+'\n':'')+
+    'TODAY:\n'+
+    '- Calories logged: '+calToday+' / '+t.targetCal+'\n'+
+    '- Week: '+(S.week||1)+' of 8-week block\n'+
+    (ex?'- Currently doing: '+ex.name+' | Cue: '+ex.cue+'\n':'')+
+    '\nBe concise (2-4 sentences unless they ask for detail). Use their name occasionally. Stay in character.';
+}
+
+async function sendCoachMessage(){
+  var input=document.getElementById('coach-input-field');
+  if(!input) return;
+  var msg=input.value.trim();
+  if(!msg) return;
+  input.value='';S.coachInput='';
+
+  // Add user message
+  S.coachMessages.push({role:'user',content:msg,ts:Date.now()});
+  S.coachTyping=true;
+  render();
+  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},50);
+
+  var apiKey=localStorage.getItem('fitos_claude_key')||'';
+  if(!apiKey){
+    S.coachTyping=false;
+    S.coachMessages.push({role:'assistant',content:'I need a Claude API key to chat with you! Tap ⚙️ in the top right and enter your key. Get one free at console.anthropic.com',ts:Date.now()});
+    saveCoachHistory();render();return;
+  }
+
+  try{
+    var msgs=S.coachMessages.slice(-10).map(function(m){return{role:m.role,content:m.content};});
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:buildCoachContext(),messages:msgs})
+    });
+    var data=await resp.json();
+    S.coachTyping=false;
+    if(data.content&&data.content[0]){
+      S.coachMessages.push({role:'assistant',content:data.content[0].text,ts:Date.now()});
+    } else if(data.error){
+      S.coachMessages.push({role:'assistant',content:'API error: '+data.error.message,ts:Date.now()});
+    }
+  }catch(err){
+    S.coachTyping=false;
+    S.coachMessages.push({role:'assistant',content:'Connection error. Check your internet and try again.',ts:Date.now()});
+  }
+  saveCoachHistory();render();
+  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},80);
+}
+
+function saveCoachHistory(){
+  // Keep last 40 messages
+  if(S.coachMessages.length>40) S.coachMessages=S.coachMessages.slice(-40);
+  try{localStorage.setItem('fitos_coach_msgs',JSON.stringify(S.coachMessages));}catch(e){}
+}
+
+function setApiKey(){
+  var key=prompt('Enter your Claude API key (from console.anthropic.com):\n\nStarts with sk-ant-... Stored only on your device.');
+  if(key&&key.trim()){
+    localStorage.setItem('fitos_claude_key',key.trim());
+    if(!S.coachMessages.length){
+      var greeting='Hey '+( S.profile.name||'champ')+'! '+getCoachName()+' here. Ready to help you crush your goals. Ask me anything — form checks, meal ideas, how to push through a plateau, anything.';
+      S.coachMessages.push({role:'assistant',content:greeting,ts:Date.now()});
+      saveCoachHistory();
+    }
+    render();
+  }
+}
+
+function renderCoach(){
+  var name=getCoachName();
+  var emoji=getCoachEmoji();
+  var hasKey=!!localStorage.getItem('fitos_claude_key');
+  var msgs=S.coachMessages;
+  if(!msgs.length&&hasKey){
+    msgs=[{role:'assistant',content:'Hey '+(S.profile.name||'champ')+'! '+name+' here. What do you need?',ts:Date.now()}];
+  }
+  return '<div class="coach-overlay">'+
+    '<div class="coach-header">'+
+      '<div class="coach-avatar">'+emoji+'</div>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:1rem;font-weight:700">'+name+'</div>'+
+        '<div style="font-size:0.72rem;color:var(--green)">Your AI Personal Trainer</div>'+
+      '</div>'+
+      (!hasKey?'<button onclick="setApiKey()" style="background:var(--amber);border:none;border-radius:10px;color:#000;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer">⚙️ Set API Key</button>':'<button onclick="setApiKey()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:6px 10px;font-size:0.72rem;cursor:pointer">⚙️</button>')+
+      '<button onclick="closeCoach()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 10px;font-size:0.85rem;cursor:pointer;margin-left:6px">✕</button>'+
+    '</div>'+
+    '<div class="coach-messages" id="coach-msgs">'+
+      (!hasKey?'<div class="coach-bubble coach" style="border-color:var(--amber)40">👋 I\'m <strong>'+name+'</strong>, your AI PT! To activate me, tap <strong>⚙️ Set API Key</strong> above.<br><br>Get a free key at <strong>console.anthropic.com</strong> — it takes 2 minutes and costs pennies per chat.</div>':'')+
+      msgs.map(function(m){
+        return '<div class="coach-bubble '+(m.role==='user'?'user':'coach')+'">'+m.content+'</div>';
+      }).join('')+
+      (S.coachTyping?'<div class="coach-bubble coach"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div>':'')+
+    '</div>'+
+    '<div class="coach-input-row">'+
+      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask '+name+' anything..." '+
+        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"/>'+
+      '<button class="coach-send" onclick="sendCoachMessage()">➤</button>'+
+    '</div>'+
+  '</div>';
+}
+
 
 initApp();
 </script>
