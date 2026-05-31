@@ -1508,7 +1508,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    document.getElementById('screen').innerHTML=(screens[S.tab]||renderToday)();
+    document.getElementById('screen').innerHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'');
     if(S.tab==='train'&&S.trainScreen==='workout'){const _ex=curEx();setTimeout(()=>{const _c=document.getElementById('ex-anim-canvas');if(_c)startExerciseAnim(_ex.anim,_c);},60);}
   }catch(err){
     console.error('render error:',err);
