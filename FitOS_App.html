@@ -1409,7 +1409,13 @@ checkDayReset();
 // ═══════════════════════════════════════════════════════════════════════════
 // SAVE HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-function saveProfile(){localStorage.setItem('fitos_profile',JSON.stringify(S.profile));}
+function saveProfile(){
+  try{localStorage.setItem('fitos_profile',JSON.stringify(S.profile));}
+  catch(e){
+    try{var slim=Object.assign({},S.profile,{photoFront:null,photoBack:null,photoSide:null});
+    localStorage.setItem('fitos_profile',JSON.stringify(slim));}catch(e2){}
+  }
+}
 function saveGym(){localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));}
 function saveHabits(){
   localStorage.setItem('fitos_habit_date',S.habitDate);
@@ -1484,31 +1490,35 @@ async function startStepTracking(){
 // RENDER ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 function render(){
-  if(S.showIntake){
-    document.getElementById('screen').innerHTML=renderIntake();
-    document.getElementById('tab-bar').innerHTML='';
-    return;
+  try{
+    if(S.showIntake){
+      document.getElementById('screen').innerHTML=renderIntake();
+      document.getElementById('tab-bar').innerHTML='';
+      return;
+    }
+    if(S.showCheckin){
+      document.getElementById('screen').innerHTML=renderCheckin();
+      document.getElementById('tab-bar').innerHTML='';
+      return;
+    }
+    if(S.showGleam){
+      document.getElementById('screen').innerHTML=renderGleam();
+      document.getElementById('tab-bar').innerHTML='';
+      return;
+    }
+    document.getElementById('tab-bar').innerHTML=renderTabBar();
+    const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
+    document.getElementById('screen').innerHTML=(screens[S.tab]||renderToday)();
+    if(S.tab==='train'&&S.trainScreen==='workout'){const _ex=curEx();setTimeout(()=>{const _c=document.getElementById('ex-anim-canvas');if(_c)startExerciseAnim(_ex.anim,_c);},60);}
+  }catch(err){
+    console.error('render error:',err);
+    // Safe fallback — never leave the user with a broken screen
+    try{
+      var el=document.getElementById('screen');
+      if(el) el.innerHTML='<div style="padding:30px 20px;text-align:center"><div style="font-size:2rem;margin-bottom:12px">⚠️</div><div style="color:#fff;font-weight:700;margin-bottom:8px">Something went wrong</div><div style="color:#888;font-size:0.85rem;margin-bottom:20px">'+err.message+'</div><button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px 24px;font-size:1rem;font-weight:700;cursor:pointer">Reload App</button></div>';
+      document.getElementById('tab-bar').innerHTML='';
+    }catch(e2){}
   }
-  if(S.showCheckin){
-    document.getElementById('screen').innerHTML=renderCheckin();
-    document.getElementById('tab-bar').innerHTML='';
-    return;
-  }
-  if(S.showGleam){
-    document.getElementById('screen').innerHTML=renderGleam();
-    document.getElementById('tab-bar').innerHTML='';
-    return;
-  }
-  document.getElementById('tab-bar').innerHTML=renderTabBar();
-  const screens={
-    today:renderToday,
-    train:renderTrain,
-    eat:renderEat,
-    shop:renderShop,
-    habits:renderHabits
-  };
-  document.getElementById('screen').innerHTML=(screens[S.tab]||renderToday)();
-  if(S.tab==='train'&&S.trainScreen==='workout'){const _ex=curEx();setTimeout(()=>{const _c=document.getElementById('ex-anim-canvas');if(_c)startExerciseAnim(_ex.anim,_c);},60);}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1532,9 +1542,32 @@ const INTAKE_STEPS=['About You','Your Story','Your Goal','Experience','Training 
 
 function setPhoto(field,file){
   if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{S.profile[field]=e.target.result;render();};
-  r.readAsDataURL(file);
+  // Try canvas compression first (reduces file to ~50KB), fallback to FileReader
+  function saveViaReader(){
+    var fr=new FileReader();
+    fr.onload=function(e){S.profile[field]=e.target.result;render();};
+    fr.onerror=function(){render();}; // fail silently — photo optional
+    fr.readAsDataURL(file);
+  }
+  try{
+    var img=new Image();
+    var url=URL.createObjectURL(file);
+    img.onerror=function(){URL.revokeObjectURL(url);saveViaReader();};
+    img.onload=function(){
+      try{
+        var MAX=400;
+        var ratio=Math.min(MAX/img.width,MAX/img.height,1);
+        var canvas=document.createElement('canvas');
+        canvas.width=Math.round(img.width*ratio);
+        canvas.height=Math.round(img.height*ratio);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        S.profile[field]=canvas.toDataURL('image/jpeg',0.7);
+        URL.revokeObjectURL(url);
+        render();
+      }catch(e){URL.revokeObjectURL(url);saveViaReader();}
+    };
+    img.src=url;
+  }catch(e){saveViaReader();}
 }
 
 function renderIntake(){
@@ -2664,7 +2697,7 @@ function renderFoodPanel(){
         <button class="food-scan-btn" onclick="doFoodSearch()">🔍 Search</button>
       </div>
       <div style="padding:0 16px 8px;display:flex;gap:8px">
-        <button onclick="startBarcodeInput()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:0.82rem;font-weight:600;cursor:pointer;flex:1">📷 Scan Barcode</button>
+        <button onclick="startBarcodeInput()" style="background:var(--green);border:none;border-radius:10px;padding:10px 14px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;flex:1">📷 Scan Barcode</button>
         <button onclick="doFoodSearch('popular')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:0.82rem;font-weight:600;cursor:pointer;flex:1">⭐ Common Foods</button>
       </div>
       <div class="food-results-scroll">
@@ -2771,8 +2804,60 @@ async function doFoodSearch(type){
 function selectFood(food){S.pendingFood={...food,servingQty:100};render();}
 
 function startBarcodeInput(){
-  var code=prompt('Enter barcode number from packaging:');
-  if(code&&code.trim()){S.foodQuery=code.trim();doFoodSearch();}
+  // Real camera barcode scanner
+  if(!('BarcodeDetector' in window)){
+    // Fallback for older browsers — manual entry
+    var code=prompt('Camera scanning not supported on this browser.\nEnter barcode number:');
+    if(code&&code.trim()){S.foodQuery=code.trim();doFoodSearch();}
+    return;
+  }
+  // Build scanner overlay
+  var overlay=document.createElement('div');
+  overlay.id='barcode-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center';
+  overlay.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:700;margin-bottom:16px;letter-spacing:.05em">SCAN BARCODE</div>'+
+    '<div style="position:relative;width:280px;height:280px;border-radius:16px;overflow:hidden;background:#111">'+
+      '<video id="bc-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>'+
+      '<div style="position:absolute;inset:0;border:3px solid #1D9E75;border-radius:16px;pointer-events:none"></div>'+
+      '<div id="bc-status" style="position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#1D9E75;font-size:0.78rem;font-weight:600">Searching...</div>'+
+    '</div>'+
+    '<button id="bc-cancel" style="margin-top:24px;background:none;border:1px solid #555;border-radius:12px;color:#fff;padding:12px 28px;font-size:0.95rem;cursor:pointer">Cancel</button>';
+  document.body.appendChild(overlay);
+  var stream=null;
+  var detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
+  var scanning=true;
+  function stopScanner(){
+    scanning=false;
+    if(stream) stream.getTracks().forEach(function(t){t.stop();});
+    if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+  document.getElementById('bc-cancel').onclick=stopScanner;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false})
+    .then(function(s){
+      stream=s;
+      var video=document.getElementById('bc-video');
+      video.srcObject=s;
+      video.play();
+      function scan(){
+        if(!scanning) return;
+        detector.detect(video).then(function(barcodes){
+          if(barcodes.length>0){
+            var code=barcodes[0].rawValue;
+            stopScanner();
+            S.foodQuery=code;
+            doFoodSearch();
+          } else {
+            if(scanning) requestAnimationFrame(scan);
+          }
+        }).catch(function(){if(scanning) requestAnimationFrame(scan);});
+      }
+      video.onloadedmetadata=function(){scan();};
+    })
+    .catch(function(err){
+      stopScanner();
+      var code=prompt('Camera access denied.\nEnter barcode number manually:');
+      if(code&&code.trim()){S.foodQuery=code.trim();doFoodSearch();}
+    });
 }
 
 function confirmAddFood(){
@@ -3046,7 +3131,7 @@ function renderGleam(){
       '<div style="font-size:1.2rem;font-weight:800;color:var(--green);margin-bottom:6px">AI PT Activated</div>'+
       '<div style="font-size:0.82rem;color:#ddd;line-height:1.6">$19.99 AUD/month &middot; Cancel anytime.<br>Results guaranteed.</div>'+
     '</div>'+
-    '<button class="btn btn-green" style="width:100%;max-width:320px;padding:16px;font-size:1.05rem" onclick="S.showGleam=false;saveProfile();render()">Start Training &#x2192;</button>'
+    '<button class="btn btn-green" style="width:100%;max-width:320px;padding:16px;font-size:1.05rem" onclick="closeGleam()">Start Training &#x2192;</button>'
   )+
 
   '</div>';
@@ -3220,19 +3305,6 @@ function tickRest(){
     render();
   }
 }
-function onMotion(e){
-  var acc=e.accelerationIncludingGravity;
-  if(!acc) return;
-  var mag=Math.sqrt(Math.pow(acc.x||0,2)+Math.pow(acc.y||0,2)+Math.pow(acc.z||0,2));
-  if(!S._lastMag) S._lastMag=mag;
-  if(Math.abs(mag-S._lastMag)>8){
-    S.stepsToday++;
-    localStorage.setItem('fitos_steps',S.stepsToday);
-    var el=document.getElementById('step-val');if(el) el.textContent=S.stepsToday.toLocaleString();
-    var bar=document.getElementById('step-bar');if(bar) bar.style.width=pct(S.stepsToday,S.stepsGoal)+'%';
-  }
-  S._lastMag=mag;
-}
 
 // ─── EAT ─────────────────────────────────────────────────────────────────
 
@@ -3257,13 +3329,7 @@ function selectAllEquipment(){
   S.profile.equipment=['barbells','dumbbells','cables','machines','hacksquat','smith','legpress','pendulum','sled','kettlebells','bands','pullup','trx','ghd','trapbar'];
   render();
 }
-function toggleMeal(id){
-  if(S.mealChecked.has(id)) S.mealChecked.delete(id);
-  else S.mealChecked.add(id);
-  localStorage.setItem('fitos_meals',[...S.mealChecked].join(','));
-  localStorage.setItem('fitos_foodlog',JSON.stringify(S.foodLog));
-  render();
-}
+function toggleMeal(id){S.expandedMeal=S.expandedMeal===id?null:id;render();}
 function logWater(idx){
   S.waterDone=idx<S.waterDone?idx:idx+1;
   localStorage.setItem('fitos_water',S.waterDone);
@@ -3289,30 +3355,15 @@ function toggleHabit(id){
 function stepUp(){S.stepsToday+=500;localStorage.setItem('fitos_steps',S.stepsToday);render();}
 
 // ─── CHECKIN ─────────────────────────────────────────────────────────────
-function openCheckin(){S.showCheckin=true;S.checkinDispatch='';render();}
-function closeCheckin(){S.showCheckin=false;render();}
-function setCheckinPhoto(field,file){
-  if(!file)return;
-  var r=new FileReader();
-  r.onload=function(e){S.checkin[field]=e.target.result;render();};
-  r.readAsDataURL(file);
-}
-function copyCheckinDispatch(){
-  var el=document.getElementById('dispatch-checkin');
-  if(!el)return;
-  navigator.clipboard.writeText(el.textContent)
-    .then(function(){alert('Dispatch copied! Paste into Claude.ai for your week review.');})
-    .catch(function(){});
-}
 
 // ─── INTAKE WIZARD ───────────────────────────────────────────────────────
 function wizNext(){
   if(S.intakeStep<INTAKE_STEPS.length-1){S.intakeStep++;render();}
   else{
-    saveProfile();
-    localStorage.setItem('fitos_steps_goal',S.stepsGoal);
+    try{saveProfile();}catch(e){}
+    try{localStorage.setItem('fitos_steps_goal',S.stepsGoal);}catch(e){}
     S.showIntake=false;
-    generateAndSaveBlock(); // Build personalised training block from profile
+    try{generateAndSaveBlock();}catch(e){}
     var bf=parseFloat(S.profile.bodyFatPct);
     var gender=S.profile.gender;
     if(bf>0){
@@ -3353,6 +3404,18 @@ function initApp(){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 }
+function closeGleam(){S.showGleam=false;try{saveProfile();}catch(e){}render();}
+
+function checkMeal(id){
+  if(S.mealChecked.has(id)) S.mealChecked.delete(id);
+  else S.mealChecked.add(id);
+  saveMeal(); render();
+}
+function saveDailyState(){
+  localStorage.setItem('fitos_foodlog',JSON.stringify(S.foodLog));
+  localStorage.setItem('fitos_meals',[...S.mealChecked].join(','));
+}
+
 initApp();
 </script>
 </body>
