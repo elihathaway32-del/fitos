@@ -2805,64 +2805,69 @@ async function doFoodSearch(type){
 function selectFood(food){S.pendingFood={...food,servingQty:100};render();}
 
 function startBarcodeInput(){
-  // Launch camera scanner — loads ZXing dynamically for iOS/cross-browser support
+  // Use html5-qrcode — works on iOS Safari + Android Chrome
   function launchScanner(){
+    // Build fullscreen overlay
     var overlay=document.createElement('div');
     overlay.id='barcode-overlay';
-    overlay.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px';
+    overlay.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0';
     overlay.innerHTML=
-      '<div style="color:#fff;font-size:1rem;font-weight:700;margin-bottom:16px;letter-spacing:.05em">📷 SCAN BARCODE</div>'+
-      '<div style="position:relative;width:100%;max-width:320px;height:280px;border-radius:16px;overflow:hidden;background:#111">'+
-        '<video id="bc-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>'+
-        '<div style="position:absolute;inset:0;pointer-events:none">'+
-          '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:220px;height:140px;border:3px solid #1D9E75;border-radius:12px"></div>'+
-        '</div>'+
-        '<div id="bc-status" style="position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#1D9E75;font-size:0.78rem;font-weight:600;background:#0008;padding:4px">Point at barcode...</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:12px;margin-top:20px">'+
-        '<button id="bc-cancel" style="background:none;border:2px solid #555;border-radius:12px;color:#fff;padding:12px 24px;font-size:0.95rem;cursor:pointer">Cancel</button>'+
-        '<button id="bc-manual" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:12px 20px;font-size:0.85rem;font-weight:700;cursor:pointer">Type Number</button>'+
+      '<div style="color:#fff;font-size:1rem;font-weight:700;padding:16px;letter-spacing:.05em;text-align:center">📷 Point at a barcode</div>'+
+      '<div id="qr-reader" style="width:100%;max-width:400px;flex:1;max-height:60vh"></div>'+
+      '<div id="bc-status" style="color:#1D9E75;font-size:0.82rem;padding:10px;text-align:center">Searching for barcode...</div>'+
+      '<div style="display:flex;gap:12px;padding:16px;width:100%;max-width:400px">'+
+        '<button id="bc-cancel" style="flex:1;background:none;border:2px solid #555;border-radius:12px;color:#fff;padding:14px;font-size:0.95rem;cursor:pointer">Cancel</button>'+
+        '<button id="bc-manual" style="flex:1;background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px;font-size:0.9rem;font-weight:700;cursor:pointer">Type Number</button>'+
       '</div>';
     document.body.appendChild(overlay);
-    var stream=null;
-    var codeReader=null;
-    function stopScanner(){
-      if(codeReader){try{codeReader.reset();}catch(e){}}
-      if(stream) stream.getTracks().forEach(function(t){t.stop();});
+
+    var scanner=null;
+    function stopAll(){
+      if(scanner){try{scanner.stop().catch(function(){});}catch(e){}}
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     }
-    document.getElementById('bc-cancel').onclick=stopScanner;
+    document.getElementById('bc-cancel').onclick=stopAll;
     document.getElementById('bc-manual').onclick=function(){
-      stopScanner();
-      showManualEntry();
+      stopAll();
+      var num=prompt('Enter barcode number:');
+      if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
     };
+
     try{
-      codeReader=new ZXingBrowser.BrowserMultiFormatReader();
-      codeReader.decodeFromVideoDevice(null,'bc-video',function(result,err){
-        if(result){
-          stopScanner();
-          S.foodQuery=result.getText();
+      scanner=new Html5Qrcode('qr-reader');
+      scanner.start(
+        {facingMode:'environment'},
+        {fps:10,qrbox:{width:250,height:150},aspectRatio:1.0},
+        function(code){
+          stopAll();
+          S.foodQuery=code;
           doFoodSearch();
-        }
+        },
+        function(err){}  // ignore per-frame errors
+      ).catch(function(err){
+        stopAll();
+        var num=prompt('Camera access denied. Enter barcode number:');
+        if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
       });
     }catch(e){
-      stopScanner();
-      showManualEntry();
+      stopAll();
+      var num2=prompt('Scanner error. Enter barcode number:');
+      if(num2&&num2.trim()){S.foodQuery=num2.trim();doFoodSearch();}
     }
   }
-  function showManualEntry(){
-    var num=prompt('Enter barcode number from the product packaging:');
-    if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
-  }
-  // Load ZXing dynamically if not already present
-  if(typeof ZXingBrowser!=='undefined'){
+
+  // Load html5-qrcode dynamically on first use
+  if(typeof Html5Qrcode!=='undefined'){
     launchScanner();
   } else {
-    var s=document.createElement('script');
-    s.src='https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js';
-    s.onload=function(){launchScanner();};
-    s.onerror=function(){showManualEntry();};
-    document.head.appendChild(s);
+    var scr=document.createElement('script');
+    scr.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    scr.onload=function(){launchScanner();};
+    scr.onerror=function(){
+      var num=prompt('Enter barcode number from the product:');
+      if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
+    };
+    document.head.appendChild(scr);
   }
 }
 
