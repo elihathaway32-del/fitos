@@ -1,8 +1,9 @@
 // FitOS Service Worker — offline-first caching
-const CACHE = 'fitos-v1';
+const CACHE = 'fitos-v4';
 const ASSETS = [
-  '/FitOS_App.html',
-  '/manifest.json'
+  '/fitos/',
+  '/fitos/index.html',
+  '/fitos/manifest.json'
 ];
 
 self.addEventListener('install', e => {
