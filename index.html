@@ -171,7 +171,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .food-search-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:0.95rem}
 .food-search-input:focus{outline:none;border-color:var(--green)}
 .food-scan-btn{background:var(--green);border:none;border-radius:12px;padding:12px 14px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap}
-.food-results-scroll{overflow-y:auto;flex:1;padding:0 16px 80px}
+.food-results-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:0 16px 80px}
 .food-result-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
 .food-result-item:active{background:var(--s2)}
 .food-result-name{font-size:0.88rem;font-weight:600;margin-bottom:2px}
@@ -2758,7 +2758,7 @@ function renderFoodPanel(){
     <div class="food-panel">
       <div class="food-panel-header">
         <div style="font-size:1rem;font-weight:700">${pending?pending.name:'Log Food'}</div>
-        <button onclick="closeFoodPanel()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);cursor:pointer;font-size:0.85rem">${pending?'← Back':'✕ Close'}</button>
+        <button onclick="${pending?'S.pendingFood=null;render()':'closeFoodPanel()'}" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);cursor:pointer;font-size:0.85rem">${pending?'← Back':'✕ Close'}</button>
       </div>
 
       ${!pending?`
@@ -2775,7 +2775,7 @@ function renderFoodPanel(){
       <div class="food-results-scroll">
         ${S.foodSearching?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
         ${!S.foodSearching&&results.length===0&&S.foodQuery?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>':''}
-        ${results.map((r,i)=>`<div class="food-result-item" onclick="selectFood(${i})">
+        ${results.map((r,i)=>`<button class="food-result-item" onclick="selectFood(${i})" style="width:100%;text-align:left;background:var(--s1);color:var(--text);border:1px solid var(--border)">
           <div class="food-result-name">${r.name}</div>
           ${r.brand?`<div class="food-result-brand">${r.brand}</div>`:''}
           <div class="food-result-macros">
@@ -2785,7 +2785,7 @@ function renderFoodPanel(){
             <span style="color:var(--red)">F:${r.f}g</span>
             <span style="color:var(--muted)">per 100g</span>
           </div>
-        </div>`).join('')}
+        </button>`).join('')}
       </div>`
 
       :`<div class="food-results-scroll" style="padding-top:16px">
@@ -2806,7 +2806,7 @@ function renderFoodPanel(){
           </div>
         </div>
         <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to Today's Log</button>
-        <button onclick="S.pendingFood=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">Cancel</button>
+        <button onclick="S.pendingFood=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">← Back to results</button>
       </div>`}
     </div>
   </div>`;
