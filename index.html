@@ -764,7 +764,9 @@ function buildBlock(p){
     var dayKey=String.fromCharCode(65+idx);
     var exercises=[];
     var dayUsed=new Set(used);
-    var exCount=style==='beginner'?Math.min(4,tmpl.pat.length):tmpl.pat.length;
+    var sessionMins=parseInt(p.sessionLength)||60;
+    var maxEx=sessionMins<=30?3:sessionMins<=45?4:sessionMins<=60?5:sessionMins<=75?6:tmpl.pat.length;
+    var exCount=Math.min(maxEx,style==='beginner'?Math.min(4,tmpl.pat.length):tmpl.pat.length);
     tmpl.pat.slice(0,exCount).forEach(function(pat){
       var ex=pickEx(available,pat,dayUsed);
       if(!ex) return;
@@ -2134,7 +2136,7 @@ function renderTrainHome(){
 </div>
 <div style="padding:16px">
 <div class="card-title">Select Day</div>
-<div class="day-grid">${['A','B','C','D'].map(d=>`
+<div class="day-grid">${Object.keys(WK).filter(k=>/^[A-F]$/.test(k)).sort().map(d=>`
   <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')">
     <div class="day-letter" style="color:${WK[d].color}">Day ${d}</div>
     <div class="day-name">${WK[d].name}</div>
@@ -2279,7 +2281,8 @@ function renderRest(){
 
 function renderCooldown(){
   const day=WK[S.day];
-  const isLower=S.day==='B'||S.day==='D';
+  const _tag=(WK[S.day]?.tag||'').toLowerCase();const _nm=(WK[S.day]?.name||'').toLowerCase();
+  const isLower=_tag.includes('quad')||_tag.includes('leg')||_tag.includes('lower')||_tag.includes('glute')||_tag.includes('ham')||_tag.includes('posterior')||_nm.includes('leg')||_nm.includes('lower')||_nm.includes('posterior');
   const items=isLower?COOLDOWN.lower:COOLDOWN.upper;
   const checked=S.cooldownChecked.size;
   const total=items.length;
@@ -2772,7 +2775,7 @@ function renderFoodPanel(){
       <div class="food-results-scroll">
         ${S.foodSearching?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
         ${!S.foodSearching&&results.length===0&&S.foodQuery?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>':''}
-        ${results.map(r=>`<div class="food-result-item" onclick="selectFood(${JSON.stringify(r).replace(/'/g,'&#39;')})">
+        ${results.map((r,i)=>`<div class="food-result-item" onclick="selectFood(${i})">
           <div class="food-result-name">${r.name}</div>
           ${r.brand?`<div class="food-result-brand">${r.brand}</div>`:''}
           <div class="food-result-macros">
@@ -2870,7 +2873,7 @@ async function doFoodSearch(type){
   S.foodSearching=false;render();
 }
 
-function selectFood(food){S.pendingFood={...food,servingQty:100};render();}
+function selectFood(idx){var food=S.foodResults[idx];if(!food)return;S.pendingFood={...food,servingQty:100};render();}
 
 function startBarcodeInput(){
   // Use html5-qrcode — works on iOS Safari + Android Chrome
@@ -3284,6 +3287,12 @@ function toggleCooldown(id){
   render();
 }
 
+function toggleRestDay(id){
+  if(S.restDayChecked.has(id)) S.restDayChecked.delete(id);
+  else S.restDayChecked.add(id);
+  render();
+}
+
 function copyDispatch(){
   var txt=document.getElementById('dispatch-text');
   if(!txt) return;
@@ -3363,6 +3372,7 @@ function completeWorkout(){
 function startRest(secs){
   if(S.restInterval) clearInterval(S.restInterval);
   S.restLeft=secs||90;S.restTotal=secs||90;
+  S.trainScreen='rest';
   S.restInterval=setInterval(tickRest,1000);
 }
 function stopRest(){clearInterval(S.restInterval);S.restInterval=null;S.restLeft=0;render();}
@@ -3374,6 +3384,7 @@ function tickRest(){
   if(bar) bar.style.width=pct(S.restLeft,S.restTotal)+'%';
   if(S.restLeft<=0){
     clearInterval(S.restInterval);S.restInterval=null;
+    S.trainScreen='workout';
     try{
       var a=new AudioContext();var o=a.createOscillator();var g=a.createGain();
       o.connect(g);g.connect(a.destination);
