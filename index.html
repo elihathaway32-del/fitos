@@ -2805,21 +2805,29 @@ function renderFoodPanel(){
       <div style="padding:0 16px 8px;display:flex;gap:8px">
         <button onclick="startBarcodeInput()" style="background:var(--green);border:none;border-radius:10px;padding:12px 14px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;flex:2">📷 Scan Barcode</button>
         <button onclick="doFoodSearch('popular')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;flex:1">⭐ Common</button>
+        <button onclick="doFoodSearch('restaurants')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;flex:1">🍟 Restaurants</button>
       </div>
       <div class="food-results-scroll">
         ${S.foodSearching?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
         ${!S.foodSearching&&results.length===0&&S.foodQuery?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>':''}
-        ${results.map((r,i)=>`<button class="food-result-item" onclick="selectFood(${i})" style="width:100%;text-align:left;background:var(--s1);color:var(--text);border:1px solid var(--border)">
-          <div class="food-result-name">${r.name}</div>
+        ${results.map((r,i)=>{
+          const sg=r.servingG;
+          const dc=sg?Math.round(r.cal*sg/100):r.cal;
+          const dp=sg?Math.round(r.p*sg/100):r.p;
+          const dcc=sg?Math.round(r.c*sg/100):r.c;
+          const df=sg?Math.round(r.f*sg/100):r.f;
+          const lbl=sg?'per serving':'per 100g';
+          return `<button class="food-result-item" onclick="selectFood(${i})" style="width:100%;text-align:left;background:var(--s1);color:var(--text);border:1px solid var(--border)">
+          <div class="food-result-name">${r.au?'🇦🇺 ':''}${r.name}</div>
           ${r.brand?`<div class="food-result-brand">${r.brand}</div>`:''}
           <div class="food-result-macros">
-            <span style="color:var(--green)">⚡ ${r.cal} cal</span>
-            <span style="color:var(--blue)">P:${r.p}g</span>
-            <span style="color:var(--amber)">C:${r.c}g</span>
-            <span style="color:var(--red)">F:${r.f}g</span>
-            <span style="color:var(--muted)">per 100g</span>
+            <span style="color:var(--green)">⚡ ${dc} cal</span>
+            <span style="color:var(--blue)">P:${dp}g</span>
+            <span style="color:var(--amber)">C:${dcc}g</span>
+            <span style="color:var(--red)">F:${df}g</span>
+            <span style="color:var(--muted)">${lbl}</span>
           </div>
-        </button>`).join('')}
+        </button>`;}).join('')}
       </div>`
 
       :`<div class="food-results-scroll" style="padding-top:16px">
@@ -2851,6 +2859,235 @@ function renderFoodPanel(){
       </div>`}
     </div>
   </div>`;
+}
+
+function openFoodPanel(){S.showFoodPanel=true;S.pendingFood=null;S.foodResults=[];S.foodQuery='';render();}
+function closeFoodPanel(){S.showFoodPanel=false;S.pendingFood=null;S.foodResults=[];render();}
+
+const AU_RESTAURANT_DB=[
+  {name:'Chicken Burrito',brand:'Guzman y Gomez',cal:163.0,p:9.8,c:18.3,f:4.8,fiber:1.3,sugars:0.9,sodium:261,sat_fat:1.5,servingG:460,au:true},
+  {name:'Chicken Burrito Bowl',brand:'Guzman y Gomez',cal:158.1,p:10.5,c:18.1,f:5.3,fiber:1.2,sugars:0.9,sodium:267,sat_fat:1.5,servingG:430,au:true},
+  {name:'Steak Burrito Bowl',brand:'Guzman y Gomez',cal:163.8,p:12.5,c:15.0,f:5.5,fiber:1.2,sugars:0.8,sodium:275,sat_fat:1.5,servingG:400,au:true},
+  {name:'Barramundi Burrito Bowl',brand:'Guzman y Gomez',cal:155.2,p:9.5,c:14.5,f:6.2,fiber:1.2,sugars:0.8,sodium:262,sat_fat:1.2,servingG:400,au:true},
+  {name:'Mini Chicken Burrito Bowl',brand:'Guzman y Gomez',cal:150.0,p:8.9,c:17.9,f:5.0,fiber:1.1,sugars:0.9,sodium:250,sat_fat:1.4,servingG:280,au:true},
+  {name:'Chicken Taco',brand:'Guzman y Gomez',cal:169.2,p:11.5,c:16.9,f:6.2,fiber:1.5,sugars:0.8,sodium:323,sat_fat:1.9,servingG:130,au:true},
+  {name:'Steak Taco',brand:'Guzman y Gomez',cal:176.9,p:12.3,c:16.9,f:6.9,fiber:1.5,sugars:0.8,sodium:331,sat_fat:2.3,servingG:130,au:true},
+  {name:'Pulled Pork Burrito Bowl',brand:'Guzman y Gomez',cal:160.0,p:9.5,c:18.8,f:5.0,fiber:1.2,sugars:1.2,sodium:262,sat_fat:1.5,servingG:400,au:true},
+  {name:'Chicken Nachos',brand:'Guzman y Gomez',cal:155.2,p:6.9,c:16.4,f:6.2,fiber:1.4,sugars:1.0,sodium:310,sat_fat:2.1,servingG:580,au:true},
+  {name:'Chips',brand:'Guzman y Gomez',cal:211.1,p:2.8,c:28.9,f:9.4,fiber:2.2,sugars:0.6,sodium:233,sat_fat:1.1,servingG:180,au:true},
+  {name:'Chicken Bowl No Rice No Cheese',brand:'Guzman y Gomez',cal:110.8,p:12.8,c:10.0,f:1.6,fiber:1.6,sugars:0.8,sodium:288,sat_fat:0.4,servingG:250,au:true},
+  {name:'Spicy Chicken Burrito Bowl',brand:'Guzman y Gomez',cal:159.3,p:10.5,c:18.1,f:5.6,fiber:1.2,sugars:0.9,sodium:279,sat_fat:1.6,servingG:430,au:true},
+  {name:'Whopper',brand:'Hungry Jack\'s',cal:217.2,p:11.0,c:16.2,f:12.4,fiber:0.7,sugars:2.8,sodium:283,sat_fat:4.1,servingG:290,au:true},
+  {name:'Whopper Jr',brand:'Hungry Jack\'s',cal:205.7,p:10.3,c:20.0,f:10.3,fiber:0.6,sugars:3.4,sodium:286,sat_fat:4.0,servingG:175,au:true},
+  {name:'Double Whopper',brand:'Hungry Jack\'s',cal:232.0,p:13.9,c:12.8,f:14.9,fiber:0.5,sugars:2.1,sodium:280,sat_fat:5.3,servingG:375,au:true},
+  {name:'Cheeseburger',brand:'Hungry Jack\'s',cal:238.5,p:11.5,c:24.6,f:10.8,fiber:0.8,sugars:4.6,sodium:477,sat_fat:4.6,servingG:130,au:true},
+  {name:'Double Cheeseburger',brand:'Hungry Jack\'s',cal:248.6,p:14.1,c:17.8,f:12.4,fiber:0.5,sugars:3.2,sodium:443,sat_fat:5.9,servingG:185,au:true},
+  {name:'Bacon Deluxe',brand:'Hungry Jack\'s',cal:229.0,p:11.3,c:15.8,f:13.5,fiber:0.6,sugars:2.6,sodium:355,sat_fat:4.8,servingG:310,au:true},
+  {name:'Crispy Chicken Burger',brand:'Hungry Jack\'s',cal:227.9,p:11.2,c:23.7,f:10.2,fiber:0.9,sugars:2.8,sodium:372,sat_fat:1.9,servingG:215,au:true},
+  {name:'Chicken Royale',brand:'Hungry Jack\'s',cal:234.0,p:11.1,c:23.4,f:10.6,fiber:0.9,sugars:3.0,sodium:383,sat_fat:2.1,servingG:235,au:true},
+  {name:'Bacon & Egg Muffin',brand:'Hungry Jack\'s',cal:206.1,p:10.3,c:20.0,f:9.7,fiber:0.6,sugars:1.8,sodium:473,sat_fat:3.6,servingG:165,au:true},
+  {name:'Chips Small',brand:'Hungry Jack\'s',cal:255.6,p:3.3,c:34.4,f:12.2,fiber:2.2,sugars:0.0,sodium:200,sat_fat:2.2,servingG:90,au:true},
+  {name:'Chips Medium',brand:'Hungry Jack\'s',cal:261.5,p:3.1,c:34.6,f:12.3,fiber:2.3,sugars:0.0,sodium:204,sat_fat:2.3,servingG:130,au:true},
+  {name:'Chips Large',brand:'Hungry Jack\'s',cal:257.1,p:2.9,c:33.7,f:12.0,fiber:2.3,sugars:0.0,sodium:200,sat_fat:2.3,servingG:175,au:true},
+  {name:'Onion Rings Medium',brand:'Hungry Jack\'s',cal:269.6,p:3.5,c:33.0,f:13.9,fiber:1.7,sugars:1.7,sodium:391,sat_fat:2.6,servingG:115,au:true},
+  {name:'Chocolate Shake Medium',brand:'Hungry Jack\'s',cal:117.8,p:2.7,c:17.8,f:3.8,fiber:0.0,sugars:16.0,sodium:71,sat_fat:2.4,servingG:450,au:true},
+  {name:'Big Mac',brand:'McDonald\'s',cal:237.4,p:12.1,c:19.6,f:12.1,fiber:0.9,sugars:3.7,sodium:383,sat_fat:4.7,servingG:214,au:true},
+  {name:'Quarter Pounder',brand:'McDonald\'s',cal:238.1,p:14.3,c:18.1,f:11.9,fiber:1.0,sugars:3.3,sodium:371,sat_fat:5.2,servingG:210,au:true},
+  {name:'Double Quarter Pounder',brand:'McDonald\'s',cal:238.7,p:16.1,c:12.9,f:13.5,fiber:0.6,sugars:2.3,sodium:339,sat_fat:5.8,servingG:310,au:true},
+  {name:'McChicken',brand:'McDonald\'s',cal:230.6,p:10.6,c:24.1,f:10.6,fiber:1.2,sugars:2.4,sodium:400,sat_fat:1.8,servingG:170,au:true},
+  {name:'McChicken Deluxe',brand:'McDonald\'s',cal:235.6,p:12.4,c:20.4,f:11.6,fiber:0.9,sugars:2.2,sodium:356,sat_fat:2.2,servingG:225,au:true},
+  {name:'Fillet-O-Fish',brand:'McDonald\'s',cal:238.8,p:10.3,c:24.2,f:11.5,fiber:0.6,sugars:3.0,sodium:412,sat_fat:2.4,servingG:165,au:true},
+  {name:'Cheeseburger',brand:'McDonald\'s',cal:242.3,p:12.2,c:26.8,f:9.8,fiber:0.8,sugars:5.7,sodium:553,sat_fat:4.9,servingG:123,au:true},
+  {name:'Chicken McNuggets 6pc',brand:'McDonald\'s',cal:266.7,p:15.2,c:17.1,f:15.2,fiber:1.0,sugars:0.0,sodium:467,sat_fat:2.9,servingG:105,au:true},
+  {name:'Chicken McNuggets 10pc',brand:'McDonald\'s',cal:266.9,p:15.4,c:17.1,f:15.4,fiber:0.6,sugars:0.0,sodium:469,sat_fat:2.9,servingG:175,au:true},
+  {name:'Small Fries',brand:'McDonald\'s',cal:287.5,p:3.8,c:37.5,f:13.8,fiber:2.5,sugars:0.0,sodium:238,sat_fat:2.5,servingG:80,au:true},
+  {name:'Medium Fries',brand:'McDonald\'s',cal:290.6,p:3.4,c:37.6,f:13.7,fiber:2.6,sugars:0.0,sodium:239,sat_fat:1.7,servingG:117,au:true},
+  {name:'Large Fries',brand:'McDonald\'s',cal:292.2,p:3.2,c:37.7,f:13.6,fiber:2.6,sugars:0.0,sodium:240,sat_fat:1.9,servingG:154,au:true},
+  {name:'Egg McMuffin',brand:'McDonald\'s',cal:205.1,p:12.3,c:19.6,f:8.7,fiber:0.7,sugars:2.2,sodium:493,sat_fat:2.9,servingG:138,au:true},
+  {name:'Sausage McMuffin',brand:'McDonald\'s',cal:234.6,p:10.5,c:16.7,f:13.0,fiber:0.6,sugars:1.9,sodium:475,sat_fat:4.9,servingG:162,au:true},
+  {name:'Hotcakes 3pc',brand:'McDonald\'s',cal:180.0,p:4.5,c:30.0,f:4.5,fiber:1.0,sugars:7.0,sodium:290,sat_fat:1.0,servingG:200,au:true},
+  {name:'Soft Serve Cone',brand:'McDonald\'s',cal:127.3,p:3.6,c:20.0,f:3.6,fiber:0.0,sugars:16.4,sodium:73,sat_fat:2.3,servingG:110,au:true},
+  {name:'McFlurry Oreo Regular',brand:'McDonald\'s',cal:148.0,p:4.0,c:22.0,f:4.8,fiber:0.0,sugars:17.2,sodium:88,sat_fat:2.8,servingG:250,au:true},
+  {name:'Original Recipe Piece',brand:'KFC',cal:207.7,p:15.4,c:6.9,f:13.8,fiber:0.0,sugars:0.0,sodium:477,sat_fat:3.1,servingG:130,au:true},
+  {name:'Wicked Wing',brand:'KFC',cal:200.0,p:12.3,c:10.8,f:12.3,fiber:0.0,sugars:0.0,sodium:431,sat_fat:3.1,servingG:65,au:true},
+  {name:'Zinger Burger',brand:'KFC',cal:227.9,p:11.1,c:24.0,f:10.1,fiber:1.0,sugars:1.9,sodium:433,sat_fat:1.9,servingG:208,au:true},
+  {name:'Zinger Stacker',brand:'KFC',cal:231.6,p:12.6,c:18.2,f:11.6,fiber:0.7,sugars:1.4,sodium:421,sat_fat:2.8,servingG:285,au:true},
+  {name:'Twister Wrap',brand:'KFC',cal:200.0,p:11.2,c:21.9,f:7.4,fiber:0.9,sugars:1.4,sodium:363,sat_fat:1.4,servingG:215,au:true},
+  {name:'Popcorn Chicken Regular',brand:'KFC',cal:262.1,p:14.5,c:16.6,f:15.2,fiber:0.0,sugars:0.0,sodium:538,sat_fat:2.8,servingG:145,au:true},
+  {name:'Corn & Butter Cob',brand:'KFC',cal:121.7,p:3.5,c:21.7,f:2.6,fiber:1.7,sugars:4.3,sodium:148,sat_fat:0.9,servingG:115,au:true},
+  {name:'Coleslaw Individual',brand:'KFC',cal:125.0,p:0.8,c:10.0,f:9.2,fiber:0.8,sugars:7.5,sodium:167,sat_fat:1.2,servingG:120,au:true},
+  {name:'Chips Individual',brand:'KFC',cal:280.0,p:4.0,c:37.6,f:12.8,fiber:2.4,sugars:0.0,sodium:296,sat_fat:1.6,servingG:125,au:true},
+  {name:'Gravy Individual',brand:'KFC',cal:66.7,p:2.2,c:7.8,f:3.3,fiber:0.0,sugars:0.0,sodium:311,sat_fat:1.1,servingG:90,au:true},
+  {name:'6in Chicken Teriyaki',brand:'Subway',cal:130.8,p:10.1,c:19.4,f:2.1,fiber:1.3,sugars:3.4,sodium:329,sat_fat:0.4,servingG:237,au:true},
+  {name:'6in Turkey Breast',brand:'Subway',cal:124.4,p:8.9,c:19.6,f:1.8,fiber:1.3,sugars:2.2,sodium:364,sat_fat:0.4,servingG:225,au:true},
+  {name:'6in Ham',brand:'Subway',cal:122.7,p:8.2,c:20.0,f:1.8,fiber:1.4,sugars:2.3,sodium:405,sat_fat:0.5,servingG:220,au:true},
+  {name:'6in Veggie Delite',brand:'Subway',cal:102.6,p:4.6,c:20.0,f:1.0,fiber:2.1,sugars:2.6,sodium:246,sat_fat:0.3,servingG:195,au:true},
+  {name:'6in Meatball Marinara',brand:'Subway',cal:164.3,p:7.9,c:20.0,f:5.7,fiber:1.4,sugars:3.2,sodium:393,sat_fat:1.8,servingG:280,au:true},
+  {name:'6in Italian BMT',brand:'Subway',cal:162.5,p:9.2,c:18.3,f:5.8,fiber:1.2,sugars:2.1,sodium:500,sat_fat:2.1,servingG:240,au:true},
+  {name:'6in Tuna',brand:'Subway',cal:148.9,p:8.5,c:18.7,f:4.7,fiber:1.3,sugars:2.1,sodium:294,sat_fat:0.9,servingG:235,au:true},
+  {name:'6in Steak and Cheese',brand:'Subway',cal:155.1,p:11.0,c:18.4,f:4.5,fiber:1.2,sugars:2.0,sodium:376,sat_fat:1.2,servingG:245,au:true},
+  {name:'Footlong Chicken Teriyaki',brand:'Subway',cal:130.8,p:10.1,c:19.4,f:2.1,fiber:1.3,sugars:3.4,sodium:329,sat_fat:0.4,servingG:474,au:true},
+  {name:'Footlong Meatball Marinara',brand:'Subway',cal:164.3,p:7.9,c:20.0,f:5.7,fiber:1.4,sugars:3.2,sodium:393,sat_fat:1.8,servingG:560,au:true},
+  {name:'Mango Magic Original',brand:'Boost Juice',cal:53.8,p:1.1,c:11.7,f:0.3,fiber:0.5,sugars:10.8,sodium:12,sat_fat:0.2,servingG:650,au:true},
+  {name:'Original Berry Crush Original',brand:'Boost Juice',cal:46.2,p:0.9,c:9.8,f:0.3,fiber:0.6,sugars:8.9,sodium:12,sat_fat:0.2,servingG:650,au:true},
+  {name:'Banana Buzz Original',brand:'Boost Juice',cal:58.5,p:1.5,c:11.2,f:1.1,fiber:0.5,sugars:8.5,sodium:15,sat_fat:0.6,servingG:650,au:true},
+  {name:'King William Chocolate Original',brand:'Boost Juice',cal:104.6,p:2.6,c:15.4,f:3.4,fiber:0.6,sugars:13.5,sodium:35,sat_fat:2.2,servingG:650,au:true},
+  {name:'Mango Tango Twist Original',brand:'Boost Juice',cal:49.2,p:0.8,c:11.1,f:0.2,fiber:0.5,sugars:10.2,sodium:12,sat_fat:0.1,servingG:650,au:true},
+  {name:'Watermelon Crush Original',brand:'Boost Juice',cal:38.5,p:0.6,c:8.5,f:0.2,fiber:0.3,sugars:7.7,sodium:9,sat_fat:0.0,servingG:650,au:true},
+  {name:'Quarter Chicken Breast',brand:'Nando\'s',cal:184.2,p:20.0,c:2.1,f:10.5,fiber:0.0,sugars:1.1,sodium:316,sat_fat:2.6,servingG:190,au:true},
+  {name:'Quarter Chicken Leg',brand:'Nando\'s',cal:195.3,p:14.9,c:1.9,f:14.0,fiber:0.0,sugars:0.9,sodium:335,sat_fat:3.7,servingG:215,au:true},
+  {name:'Half Chicken',brand:'Nando\'s',cal:190.1,p:17.3,c:2.0,f:12.3,fiber:0.0,sugars:1.0,sodium:326,sat_fat:3.2,servingG:405,au:true},
+  {name:'Chicken Pita',brand:'Nando\'s',cal:173.1,p:11.5,c:20.0,f:4.6,fiber:1.2,sugars:1.5,sodium:300,sat_fat:1.2,servingG:260,au:true},
+  {name:'Chicken Wrap',brand:'Nando\'s',cal:171.4,p:10.0,c:17.9,f:5.7,fiber:1.1,sugars:1.4,sodium:293,sat_fat:1.4,servingG:280,au:true},
+  {name:'Spicy Rice Regular',brand:'Nando\'s',cal:140.0,p:2.5,c:26.0,f:3.0,fiber:1.0,sugars:1.5,sodium:240,sat_fat:0.5,servingG:200,au:true},
+  {name:'Chips Regular',brand:'Nando\'s',cal:185.0,p:2.5,c:27.0,f:7.5,fiber:2.0,sugars:0.5,sodium:190,sat_fat:1.0,servingG:200,au:true},
+  {name:'Coleslaw Regular',brand:'Nando\'s',cal:120.0,p:1.3,c:9.3,f:8.7,fiber:1.3,sugars:7.3,sodium:147,sat_fat:1.3,servingG:150,au:true},
+  {name:'Garlic Bread',brand:'Nando\'s',cal:209.1,p:4.5,c:27.3,f:9.1,fiber:0.9,sugars:1.8,sodium:345,sat_fat:4.5,servingG:110,au:true},
+  {name:'Margherita Slice Traditional',brand:'Domino\'s',cal:190.0,p:9.0,c:24.0,f:7.0,fiber:1.0,sugars:2.0,sodium:380,sat_fat:3.5,servingG:100,au:true},
+  {name:'Hawaiian Slice Traditional',brand:'Domino\'s',cal:190.5,p:9.5,c:23.8,f:6.7,fiber:1.0,sugars:3.8,sodium:381,sat_fat:3.3,servingG:105,au:true},
+  {name:'BBQ Meat Lovers Slice Traditional',brand:'Domino\'s',cal:226.1,p:11.3,c:22.6,f:10.4,fiber:0.9,sugars:2.6,sodium:452,sat_fat:4.3,servingG:115,au:true},
+  {name:'Pepperoni Slice Traditional',brand:'Domino\'s',cal:204.8,p:9.5,c:22.9,f:8.6,fiber:1.0,sugars:1.9,sodium:410,sat_fat:3.8,servingG:105,au:true},
+  {name:'Chicken Avocado Slice Traditional',brand:'Domino\'s',cal:186.4,p:10.0,c:21.8,f:7.3,fiber:0.9,sugars:1.8,sodium:355,sat_fat:2.7,servingG:110,au:true},
+  {name:'Garlic Bread Piece',brand:'Domino\'s',cal:218.2,p:5.5,c:29.1,f:9.1,fiber:1.8,sugars:1.8,sodium:400,sat_fat:3.6,servingG:55,au:true},
+  {name:'Simply Grilld Beef Burger',brand:'Grill\'d',cal:218.2,p:12.7,c:17.3,f:10.9,fiber:1.4,sugars:2.7,sodium:355,sat_fat:4.5,servingG:220,au:true},
+  {name:'Mighty Melbourne Burger',brand:'Grill\'d',cal:224.1,p:13.1,c:14.5,f:11.7,fiber:1.0,sugars:2.4,sodium:362,sat_fat:4.8,servingG:290,au:true},
+  {name:'Free Range Chicken Burger',brand:'Grill\'d',cal:209.5,p:15.2,c:17.1,f:8.6,fiber:1.4,sugars:2.4,sodium:343,sat_fat:1.9,servingG:210,au:true},
+  {name:'Veggie Deluxe Burger',brand:'Grill\'d',cal:178.7,p:6.8,c:20.4,f:7.7,fiber:2.1,sugars:3.4,sodium:289,sat_fat:1.7,servingG:235,au:true},
+  {name:'Sweet Potato Fries Regular',brand:'Grill\'d',cal:170.6,p:2.4,c:27.1,f:5.9,fiber:2.4,sugars:2.4,sodium:188,sat_fat:0.6,servingG:170,au:true},
+  {name:'Seasoned Fries Regular',brand:'Grill\'d',cal:187.9,p:2.4,c:25.5,f:8.5,fiber:1.8,sugars:0.6,sodium:224,sat_fat:1.2,servingG:165,au:true},
+  {name:'Bondi Burger',brand:'Oporto',cal:213.0,p:10.9,c:21.7,f:9.1,fiber:0.9,sugars:2.6,sodium:378,sat_fat:2.2,servingG:230,au:true},
+  {name:'Crispy Chicken Roll',brand:'Oporto',cal:176.7,p:10.2,c:21.4,f:5.1,fiber:0.9,sugars:2.3,sodium:326,sat_fat:0.9,servingG:215,au:true},
+  {name:'Flame Grilled Quarter Chicken',brand:'Oporto',cal:154.3,p:17.1,c:2.9,f:8.6,fiber:0.0,sugars:1.1,sodium:320,sat_fat:2.3,servingG:175,au:true},
+  {name:'Chips Regular',brand:'Oporto',cal:246.2,p:3.1,c:33.8,f:10.8,fiber:2.3,sugars:0.0,sodium:277,sat_fat:1.5,servingG:130,au:true},
+  {name:'Spicy Chicken Strips 3pc',brand:'Oporto',cal:200.0,p:12.9,c:14.2,f:10.3,fiber:0.6,sugars:0.6,sodium:439,sat_fat:1.9,servingG:155,au:true},
+  {name:'Quarter Chicken',brand:'Red Rooster',cal:194.4,p:16.7,c:4.4,f:12.2,fiber:0.0,sugars:0.6,sodium:344,sat_fat:3.3,servingG:180,au:true},
+  {name:'Chicken Roll',brand:'Red Rooster',cal:195.3,p:10.2,c:22.3,f:7.4,fiber:0.9,sugars:2.3,sodium:363,sat_fat:1.9,servingG:215,au:true},
+  {name:'Chips Regular',brand:'Red Rooster',cal:275.0,p:3.3,c:36.7,f:12.5,fiber:2.5,sugars:0.0,sodium:267,sat_fat:1.7,servingG:120,au:true},
+  {name:'Original Schnitzel',brand:'Schnitz',cal:196.2,p:13.8,c:13.1,f:10.0,fiber:0.8,sugars:0.4,sodium:315,sat_fat:2.3,servingG:260,au:true},
+  {name:'Parmy Schnitzel',brand:'Schnitz',cal:212.5,p:12.5,c:12.5,f:11.9,fiber:0.6,sugars:0.9,sodium:375,sat_fat:3.8,servingG:320,au:true},
+  {name:'Flat White Full Cream',brand:'Cafe',cal:65.0,p:4.0,c:5.0,f:3.0,fiber:0.0,sugars:5.0,sodium:50,sat_fat:2.0,servingG:200,au:true},
+  {name:'Cappuccino Full Cream',brand:'Cafe',cal:63.2,p:3.7,c:5.3,f:3.2,fiber:0.0,sugars:4.7,sodium:47,sat_fat:2.1,servingG:190,au:true},
+  {name:'Latte Full Cream',brand:'Cafe',cal:62.5,p:3.8,c:5.0,f:2.9,fiber:0.0,sugars:5.0,sodium:46,sat_fat:1.9,servingG:240,au:true},
+  {name:'Long Black',brand:'Cafe',cal:2.1,p:0.0,c:0.4,f:0.0,fiber:0.0,sugars:0.0,sodium:2,sat_fat:0.0,servingG:240,au:true},
+  {name:'Banana Bread Slice',brand:'Cafe',cal:269.2,p:3.8,c:41.5,f:9.2,fiber:1.5,sugars:21.5,sodium:231,sat_fat:2.3,servingG:130,au:true},
+  {name:'Smashed Avo Toast',brand:'Cafe',cal:172.7,p:3.6,c:17.3,f:10.0,fiber:2.7,sugars:0.9,sodium:236,sat_fat:1.8,servingG:220,au:true},
+  {name:'Classic Milk Tea Regular',brand:'Chatime',cal:60.0,p:1.0,c:11.0,f:1.4,fiber:0.0,sugars:10.0,sodium:16,sat_fat:0.8,servingG:500,au:true},
+  {name:'Taro Milk Tea Regular',brand:'Chatime',cal:70.0,p:1.0,c:13.0,f:1.6,fiber:0.2,sugars:11.6,sodium:17,sat_fat:0.9,servingG:500,au:true},
+  {name:'Brown Sugar Fresh Milk Regular',brand:'Chatime',cal:76.0,p:1.8,c:11.6,f:2.4,fiber:0.0,sugars:10.4,sodium:24,sat_fat:1.4,servingG:500,au:true},
+  {name:'Salmon Nigiri 2pc',brand:'Sushi',cal:147.4,p:10.5,c:23.2,f:2.1,fiber:0.0,sugars:0.0,sodium:295,sat_fat:0.5,servingG:95,au:true},
+  {name:'Tuna Nigiri 2pc',brand:'Sushi',cal:144.4,p:13.3,c:24.4,f:1.1,fiber:0.0,sugars:0.0,sodium:289,sat_fat:0.2,servingG:90,au:true},
+  {name:'California Roll 6pc',brand:'Sushi',cal:137.5,p:5.0,c:22.5,f:3.1,fiber:1.2,sugars:1.2,sodium:262,sat_fat:0.6,servingG:160,au:true},
+  {name:'Avocado Roll 6pc',brand:'Sushi',cal:128.6,p:2.1,c:24.3,f:3.6,fiber:1.4,sugars:0.7,sodium:143,sat_fat:0.6,servingG:140,au:true},
+  {name:'Edamame',brand:'Sushi',cal:122.0,p:11.0,c:9.0,f:5.0,fiber:5.0,sugars:0.0,sodium:63,sat_fat:0.7,servingG:100,au:true}
+];
+
+async function doFoodSearch(type){
+  if(type==='popular'){
+    S.foodResults=[
+      {name:'Chicken Breast (cooked)',brand:'Generic',cal:165,p:31,c:0,f:4,fiber:0,sugars:0,sodium:74,sat_fat:1.1},
+      {name:'White Rice (cooked)',brand:'Generic',cal:130,p:3,c:28,f:0,fiber:0.4,sugars:0,sodium:1,sat_fat:0.1},
+      {name:'Rolled Oats (dry)',brand:'Generic',cal:375,p:13,c:62,f:7,fiber:10,sugars:1,sodium:2,sat_fat:1.4},
+      {name:'Eggs (whole)',brand:'Generic',cal:143,p:13,c:1,f:10,fiber:0,sugars:0,sodium:142,sat_fat:3.3},
+      {name:'Greek Yoghurt (full fat)',brand:'Generic',cal:97,p:9,c:4,f:5,fiber:0,sugars:4,sodium:36,sat_fat:3.5},
+      {name:'Banana',brand:'Generic',cal:89,p:1,c:23,f:0,fiber:2.6,sugars:12,sodium:1,sat_fat:0.1},
+      {name:'Almonds (raw)',brand:'Generic',cal:579,p:21,c:22,f:50,fiber:12.5,sugars:4.4,sodium:1,sat_fat:3.7},
+      {name:'Sweet Potato (cooked)',brand:'Generic',cal:90,p:2,c:21,f:0,fiber:3,sugars:4.2,sodium:55,sat_fat:0},
+      {name:'Salmon (cooked)',brand:'Generic',cal:208,p:28,c:0,f:10,fiber:0,sugars:0,sodium:59,sat_fat:1.9},
+      {name:'Beef Mince 90% lean (cooked)',brand:'Generic',cal:215,p:26,c:0,f:12,fiber:0,sugars:0,sodium:67,sat_fat:5},
+      {name:'Broccoli (steamed)',brand:'Generic',cal:35,p:3,c:7,f:0,fiber:2.6,sugars:1.7,sodium:33,sat_fat:0},
+      {name:'Whey Protein Powder',brand:'Generic',cal:380,p:76,c:8,f:6,fiber:1,sugars:3,sodium:150,sat_fat:1},
+      {name:'Sourdough Bread',brand:'Generic',cal:274,p:9,c:52,f:3,fiber:2.4,sugars:2,sodium:470,sat_fat:0.5},
+      {name:'Cottage Cheese (low fat)',brand:'Generic',cal:72,p:12,c:3,f:1,fiber:0,sugars:3,sodium:350,sat_fat:0.5},
+      {name:'Tuna in Spring Water',brand:'Generic',cal:109,p:25,c:0,f:1,fiber:0,sugars:0,sodium:340,sat_fat:0.3},
+      {name:'Avocado',brand:'Generic',cal:160,p:2,c:9,f:15,fiber:7,sugars:0.7,sodium:7,sat_fat:2.1},
+      {name:'Peanut Butter (natural)',brand:'Generic',cal:588,p:25,c:20,f:50,fiber:6,sugars:9,sodium:365,sat_fat:9},
+      {name:'Full Cream Milk',brand:'Generic',cal:61,p:3.2,c:4.8,f:3.4,fiber:0,sugars:4.8,sodium:44,sat_fat:2.1},
+      {name:'Brown Rice (cooked)',brand:'Generic',cal:112,p:2.6,c:23,f:0.9,fiber:1.8,sugars:0,sodium:5,sat_fat:0.2},
+      {name:'Pasta (cooked)',brand:'Generic',cal:131,p:5,c:25,f:1,fiber:1.8,sugars:0.6,sodium:1,sat_fat:0.2},
+    ];
+    render();return;
+  }
+  if(type==='restaurants'){
+    S.foodResults=AU_RESTAURANT_DB.slice();
+    render();return;
+  }
+  const q=S.foodQuery.trim();
+  if(!q)return;
+  S.foodSearching=true;render();
+
+  // Layer 1 — AU Restaurant DB (fuzzy match, instant, no API call)
+  const qLow=q.toLowerCase().replace(/[^a-z0-9 ]/g,' ');
+  const qWords=qLow.split(' ').filter(w=>w.length>1);
+  if(qWords.length>0){
+    const auMatches=AU_RESTAURANT_DB.filter(item=>{
+      const hay=(item.name+' '+item.brand).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
+      return qWords.some(w=>hay.includes(w));
+    });
+    if(auMatches.length>0){
+      S.foodResults=auMatches.slice(0,10);
+      S.foodSearching=false;render();return;
+    }
+  }
+
+  // Barcode check (all digits 8-14 chars)
+  if(/^\d{8,14}$/.test(q)){
+    try{
+      let found=false;
+      for(const base of['https://au.openfoodfacts.org','https://world.openfoodfacts.org']){
+        if(found)break;
+        try{
+          const r=await fetch(base+'/api/v2/product/'+q+'.json');
+          const d=await r.json();
+          if(d.status===1&&d.product){
+            const pr=d.product;const n=pr.nutriments;
+            S.foodResults=[{
+              name:pr.product_name||pr.abbreviated_product_name||'Unknown Product',
+              brand:pr.brands||'',
+              cal:Math.round(n['energy-kcal_100g']||0),
+              p:Math.round(n['proteins_100g']||0),
+              c:Math.round(n['carbohydrates_100g']||0),
+              f:Math.round(n['fat_100g']||0),
+              fiber:Math.round((n['fiber_100g']||0)*10)/10,
+              sugars:Math.round((n['sugars_100g']||0)*10)/10,
+              sodium:Math.round((n['sodium_100g']||0)*1000),
+              sat_fat:Math.round((n['saturated-fat_100g']||0)*10)/10
+            }];
+            found=true;
+          }
+        }catch(e){}
+      }
+      if(!found)S.foodResults=[];
+    }catch{S.foodResults=[];}
+    S.foodSearching=false;render();return;
+  }
+
+  // Layer 2 & 3 — Open Food Facts (AU endpoint first, world fallback)
+  try{
+    const parseProducts=prods=>prods
+      .filter(p=>p.product_name&&p.nutriments&&p.nutriments['energy-kcal_100g'])
+      .slice(0,6).map(p=>({
+        name:p.product_name,brand:p.brands||'',
+        cal:Math.round(p.nutriments['energy-kcal_100g']||0),
+        p:Math.round(p.nutriments['proteins_100g']||0),
+        c:Math.round(p.nutriments['carbohydrates_100g']||0),
+        f:Math.round(p.nutriments['fat_100g']||0),
+        fiber:Math.round((p.nutriments['fiber_100g']||0)*10)/10,
+        sugars:Math.round((p.nutriments['sugars_100g']||0)*10)/10,
+        sodium:Math.round((p.nutriments['sodium_100g']||0)*1000),
+        sat_fat:Math.round((p.nutriments['saturated-fat_100g']||0)*10)/10
+      }));
+    const qs='&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments';
+    // AU endpoint first
+    const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
+    const d1=await r1.json();
+    const auProds=parseProducts(d1.products||[]);
+    if(auProds.length>=2){S.foodResults=auProds;S.foodSearching=false;render();return;}
+    // World fallback
+    const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
+    const d2=await r2.json();
+    S.foodResults=parseProducts(d2.products||[]);
+  }catch{S.foodResults=[];}
+  S.foodSearching=false;render();
 }
 
 function openFoodPanel(){S.showFoodPanel=true;S.pendingFood=null;S.foodResults=[];S.foodQuery='';render();}
@@ -2922,7 +3159,7 @@ async function doFoodSearch(type){
   S.foodSearching=false;render();
 }
 
-function selectFood(idx){var food=S.foodResults[idx];if(!food)return;S.pendingFood={...food,servingQty:100};render();}
+function selectFood(idx){var food=S.foodResults[idx];if(!food)return;S.pendingFood={...food,servingQty:food.servingG||100};render();}
 
 function updateFoodQty(val){
   var qty=parseInt(val)||100;
