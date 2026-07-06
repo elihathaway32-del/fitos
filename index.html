@@ -1402,6 +1402,7 @@ let S={
   foodSearching: false,
   pendingFood: null,
   expandedRecipe: null,
+  showSettings: false,
 
   // Shop tab
   shopTicked: new Set(loadJSON('fitos_shop_ticked',[])),
@@ -1546,7 +1547,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -2024,7 +2025,7 @@ function renderToday(){
     <div class="today-greeting">${greeting}</div>
     <div class="today-name">${userName()}</div>
     <div class="today-sub">${now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
-    <button onclick="resetApp()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--muted);font-size:0.72rem;padding:5px 9px;cursor:pointer" title="Reset / Switch user">⚙ Reset</button>
+    <button onclick="S.showSettings=true;render()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--muted);font-size:0.72rem;padding:5px 9px;cursor:pointer" title="Settings">⚙ Settings</button>
   </div>
 
   <!-- Streak -->
@@ -2401,7 +2402,7 @@ ${hasProfile&&tdeeData?`
     <span>·</span>
     <span>${tdeeData.deficit<0?'Deficit':'Surplus'} <strong style="color:${tdeeData.deficit<0?'var(--amber)':'var(--green)'}">${Math.abs(tdeeData.deficit)} kcal</strong></span>
   </div>
-  \${(()=>{
+  ${(()=>{
     var _adj=parseInt(localStorage.getItem('fitos_cal_adjust')||'0')||0;
     var _isLoss=tdeeData.deficit<=0;
     var _min=_isLoss?-300:0;
@@ -3347,6 +3348,7 @@ function finishAndSave(){completeWorkout();}
 function nextEx(){
   var exs=WK[S.day].exercises;
   if(S.exIdx<exs.length-1){S.exIdx++;S.editingSet=null;render();window.scrollTo(0,0);}
+  else{S.trainScreen='cooldown';render();window.scrollTo(0,0);}
 }
 function prevEx(){if(S.exIdx>0){S.exIdx--;S.editingSet=null;render();window.scrollTo(0,0);}}
 function completeWorkout(){
@@ -3392,6 +3394,81 @@ function resetApp(){
   var keys=Object.keys(localStorage).filter(k=>k.startsWith('fitos'));
   keys.forEach(k=>localStorage.removeItem(k));
   location.reload();
+}
+
+function backupData(){
+  var data={};
+  Object.keys(localStorage).filter(k=>k.startsWith('fitos')).forEach(k=>{data[k]=localStorage.getItem(k);});
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  var d=new Date();
+  a.href=url;
+  a.download='FitOS_backup_'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('Backup saved! Keep this file safe — use it to restore anytime.');
+}
+
+function restoreData(){
+  var input=document.createElement('input');
+  input.type='file';
+  input.accept='.json';
+  input.onchange=function(e){
+    var file=e.target.files[0];
+    if(!file) return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var data=JSON.parse(ev.target.result);
+        var count=0;
+        Object.keys(data).forEach(k=>{
+          if(k.startsWith('fitos')){localStorage.setItem(k,data[k]);count++;}
+        });
+        alert('Restored '+count+' data keys. Reloading now...');
+        location.reload();
+      }catch(err){
+        alert('Could not read backup file. Make sure it is a valid FitOS backup JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
+}
+
+function renderSettings(){
+  return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;render()}">'+
+    '<div class="food-panel" style="max-height:60vh">'+
+      '<div class="food-panel-header">'+
+        '<span style="font-weight:700;font-size:1rem">⚙ Settings</span>'+
+        '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
+      '</div>'+
+      '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
+
+        '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
+          '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Data Backup</div>'+
+          '<button onclick="backupData()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px">'+
+            '⬇ Download Backup</button>'+
+          '<button onclick="restoreData()" style="width:100%;background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:0.95rem;font-weight:600;cursor:pointer">'+
+            '⬆ Restore from Backup</button>'+
+          '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.5">Save your profile, workouts, meals and progress. Restore anytime if you reset or switch devices.</div>'+
+        '</div>'+
+
+        '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
+          '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Danger Zone</div>'+
+          '<button onclick="S.showSettings=false;resetApp()" style="width:100%;background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);border-radius:10px;padding:13px;color:#ff6b6b;font-size:0.95rem;font-weight:600;cursor:pointer">'+
+            '🗑 Reset All Data</button>'+
+          '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Clears everything and restarts the setup wizard. Cannot be undone.</div>'+
+        '</div>'+
+
+      '</div>'+
+    '</div>'+
+  '</div>';
 }
 
 function toggleArr(field,val){

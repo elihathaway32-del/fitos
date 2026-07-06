@@ -1,15 +1,9 @@
-// FitOS Service Worker — offline-first caching
-const CACHE = 'fitos-v4';
-const ASSETS = [
-  '/fitos/',
-  '/fitos/index.html',
-  '/fitos/manifest.json'
-];
+// FitOS Service Worker — network-first for HTML, cache fallback for offline
+const CACHE = 'fitos-v5';
+const SHELL = ['/fitos/manifest.json'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
   self.skipWaiting();
 });
 
@@ -23,7 +17,22 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
+  const url = new URL(e.request.url);
+  // Network-first for HTML pages — always gets fresh app code
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // Cache-first for everything else (manifest, icons)
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request))
+    );
+  }
 });
