@@ -213,11 +213,23 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .upcoming-ex:last-child{border:none}
 .ex-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
 .bottom-actions{position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px}
-.rest-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - var(--tab-h));padding:24px;text-align:center}
-.rest-circle{width:190px;height:190px;border-radius:50%;border:3px solid var(--s3);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:20px auto;position:relative}
-.rest-circle svg{position:absolute;top:-2px;left:-2px;width:198px;height:198px;transform:rotate(-90deg)}
-.rest-time{font-size:3.2rem;font-weight:700;line-height:1}
-.rest-label{font-size:0.8rem;color:var(--muted);margin-top:4px}
+.rest-sheet-overlay{position:fixed;inset:0;z-index:900;pointer-events:none}
+.rest-sheet{position:fixed;bottom:var(--tab-h);left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 20px 20px;z-index:901;pointer-events:all;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.rest-drag-handle{width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;cursor:pointer}
+.rest-sheet-inner{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.rest-ring-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
+.rest-ring-wrap svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.rest-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rest-time{font-size:1.7rem;font-weight:800;line-height:1;color:#fff}
+.rest-label{font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-top:1px}
+.rest-info{flex:1;min-width:0}
+.rest-info-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.35);margin-bottom:4px}
+.rest-info-name{font-size:1rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rest-info-sub{font-size:0.75rem;color:rgba(255,255,255,0.45);margin-top:3px}
+.rest-actions{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+.rest-btn-extend{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 6px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:background .15s}
+.rest-btn-skip{background:linear-gradient(135deg,var(--green),#0fa868);border:none;border-radius:12px;padding:11px 6px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(29,158,117,0.35)}
 .next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
 .dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
 .phase-screen{padding:16px}
@@ -1405,6 +1417,7 @@ let S={
   pendingFood: null,
   expandedRecipe: null,
   showSettings: false,
+  showRestSheet: false,
 
   // Shop tab
   shopTicked: new Set(loadJSON('fitos_shop_ticked',[])),
@@ -1549,7 +1562,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -2123,7 +2136,7 @@ function renderToday(){
 function renderTrain(){
   const screens={
     home:renderTrainHome,warmup:renderWarmup,workout:renderWorkout,
-    rest:renderRest,cooldown:renderCooldown,complete:renderComplete,
+    cooldown:renderCooldown,complete:renderComplete,
     restday:renderRestDay
   };
   return(screens[S.trainScreen]||renderTrainHome)();
@@ -2262,22 +2275,43 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">Last session — ${
 </div>`;
 }
 
-function renderRest(){
+function renderRestSheet(){
   const next=S.exIdx<totalEx()-1?WK[S.day].exercises[S.exIdx+1]:null;
-  const circ=Math.PI*2*91;
-  const dashOff=circ*(1-S.restLeft/S.restTotal);
-  return`<div class="rest-screen">
-  <div style="font-size:1rem;font-weight:500;color:var(--muted)">Rest Period</div>
-  <div class="rest-circle">
-    <svg viewBox="0 0 198 198"><circle cx="99" cy="99" r="91" stroke="var(--s3)" stroke-width="8" fill="none"/><circle id="rest-circ" cx="99" cy="99" r="91" stroke="var(--green)" stroke-width="4" stroke-dasharray="${circ}" stroke-dashoffset="${dashOff}" fill="none" stroke-linecap="round"/></svg>
-    <div class="rest-time" id="rest-display">${S.restLeft}</div>
-    <div class="rest-label">seconds</div>
+  const r=38;const circ=Math.PI*2*r;
+  const dashOff=circ*(1-S.restLeft/Math.max(S.restTotal,1));
+  const pct=Math.round(S.restLeft/Math.max(S.restTotal,1)*100);
+  const colour=pct>50?'#1D9E75':pct>25?'#f5a623':'#ff5e57';
+  return`<div class="rest-sheet-overlay">
+  <div class="rest-sheet">
+    <div class="rest-drag-handle" onclick="skipRest()"></div>
+    <div class="rest-sheet-inner">
+      <div class="rest-ring-wrap">
+        <svg viewBox="0 0 84 84" width="84" height="84">
+          <circle cx="42" cy="42" r="${r}" stroke="rgba(255,255,255,0.07)" stroke-width="5" fill="none"/>
+          <circle id="rest-circ" cx="42" cy="42" r="${r}" stroke="${colour}" stroke-width="5"
+            stroke-dasharray="${circ}" stroke-dashoffset="${dashOff}"
+            fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="rest-ring-center">
+          <div class="rest-time" id="rest-display">${S.restLeft}</div>
+          <div class="rest-label">sec</div>
+        </div>
+      </div>
+      <div class="rest-info">
+        <div class="rest-info-label">${next?'Next up':'Last one'}</div>
+        <div class="rest-info-name">${next?next.name:'💪 Finish strong'}</div>
+        ${next?`<div class="rest-info-sub">${next.sets}×${next.lo}${next.lo!==next.hi?'–'+next.hi:''} · ${next.rest}s rest</div>`:''}
+      </div>
+    </div>
+    <div class="rest-actions">
+      <button class="rest-btn-extend" onclick="extendRest(30)">+30s</button>
+      <button class="rest-btn-skip" onclick="skipRest()">Skip Rest →</button>
+      <button class="rest-btn-extend" onclick="extendRest(60)">+60s</button>
+    </div>
   </div>
-  ${next?`<div class="next-up"><div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px">Next exercise</div><div style="font-size:1rem;font-weight:600">${next.name}</div><div style="font-size:0.75rem;color:var(--muted);margin-top:3px">${next.sets}×${next.lo}${next.lo!==next.hi?'–'+next.hi:''} · ${next.rest}s rest</div></div>`
-  :`<div class="next-up"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Next up</div><div style="font-size:1rem;font-weight:600">💪 Finish strong!</div></div>`}
-  <button class="btn btn-outline" onclick="skipRest()" style="max-width:280px;margin-top:8px">Skip Rest</button>
 </div>`;
 }
+function renderRest(){return'';}
 
 function renderCooldown(){
   const day=WK[S.day];
@@ -3394,7 +3428,8 @@ function saveLog(){
 function endWorkout(){
   if(confirm('Finish workout early? Your logged sets will be saved.')){completeWorkout();}
 }
-function skipRest(){stopRest();render();}
+function skipRest(){stopRest();}
+function extendRest(secs){S.restLeft+=secs;S.restTotal+=secs;render();}
 function selectWeek(w){S.week=w;render();}
 function finishAndSave(){completeWorkout();}
 function nextEx(){
@@ -3415,19 +3450,20 @@ function completeWorkout(){
 function startRest(secs){
   if(S.restInterval) clearInterval(S.restInterval);
   S.restLeft=secs||90;S.restTotal=secs||90;
-  S.trainScreen='rest';
+  S.showRestSheet=true;
+  render();
   S.restInterval=setInterval(tickRest,1000);
 }
-function stopRest(){clearInterval(S.restInterval);S.restInterval=null;S.restLeft=0;render();}
+function stopRest(){clearInterval(S.restInterval);S.restInterval=null;S.restLeft=0;S.showRestSheet=false;render();}
 function tickRest(){
   S.restLeft--;
-  var el=document.getElementById('rest-left');
-  var bar=document.getElementById('rest-bar');
+  var el=document.getElementById('rest-display');
+  var circ2=document.getElementById('rest-circ');
   if(el) el.textContent=S.restLeft;
-  if(bar) bar.style.width=pct(S.restLeft,S.restTotal)+'%';
+  if(circ2){var c=Math.PI*2*38;circ2.setAttribute('stroke-dashoffset',c*(1-S.restLeft/Math.max(S.restTotal,1)));var pct2=S.restLeft/Math.max(S.restTotal,1);circ2.setAttribute('stroke',pct2>0.5?'#1D9E75':pct2>0.25?'#f5a623':'#ff5e57');}
   if(S.restLeft<=0){
     clearInterval(S.restInterval);S.restInterval=null;
-    S.trainScreen='workout';
+    S.showRestSheet=false;
     try{
       var a=new AudioContext();var o=a.createOscillator();var g=a.createGain();
       o.connect(g);g.connect(a.destination);
