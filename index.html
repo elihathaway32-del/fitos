@@ -1351,12 +1351,21 @@ function loadJSON(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb;}catc
 // Reset daily data if it's a new day
 function checkDayReset(){
   const today=todayStr();
+  if(S.habitDate&&S.habitDate!==today){
+    // Snapshot the day before resetting it
+    var dayLog=S.foodLog.filter(function(f){return f.date===S.habitDate;});
+    var snapCal=dayLog.reduce(function(a,f){return a+(f.cal||0);},0);
+    var snapProt=dayLog.reduce(function(a,f){return a+(f.p||0);},0);
+    S.snapshots[S.habitDate]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,cal:snapCal,protein:snapProt};
+    localStorage.setItem('fitos_snapshots',JSON.stringify(S.snapshots));
+  }
   if(S.habitDate!==today){
     S.habitDate=today;
     S.waterDone=0;
     S.habitsChecked=new Set();
     S.stepsToday=0;
     S.mealChecked=new Set();
+    S.viewDate=today;
     saveHabits();
   }
 }
@@ -1418,6 +1427,8 @@ let S={
   expandedRecipe: null,
   showSettings: false,
   showRestSheet: false,
+  viewDate: todayStr(),
+  snapshots: loadJSON('fitos_snapshots',{}),
 
   // Shop tab
   shopTicked: new Set(loadJSON('fitos_shop_ticked',[])),
@@ -1473,6 +1484,16 @@ function saveHabits(){
   localStorage.setItem('fitos_steps_goal',S.stepsGoal);
   localStorage.setItem('fitos_streak',S.streak);
   localStorage.setItem('fitos_last_active',S.lastActiveDate);
+  // Keep today's snapshot current so history is accurate
+  var td=todayStr();
+  var dayLog=S.foodLog.filter(function(f){return f.date===td;});
+  var snapCal=dayLog.reduce(function(a,f){return a+(f.cal||0);},0);
+  var snapProt=dayLog.reduce(function(a,f){return a+(f.p||0);},0);
+  var eaten=MEALS.filter(function(m){return S.mealChecked.has(m.id);});
+  snapCal+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.cal;},0);},0);
+  snapProt+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.p;},0);},0);
+  S.snapshots[td]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,cal:snapCal,protein:snapProt};
+  localStorage.setItem('fitos_snapshots',JSON.stringify(S.snapshots));
 }
 function saveShop(){localStorage.setItem('fitos_shop_ticked',JSON.stringify([...S.shopTicked]));}
 function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([...S.mealChecked]));}
@@ -2022,26 +2043,69 @@ function renderWeightTrend(){
   '</div>';
 }
 
+function getDateData(dateStr){
+  var isT=dateStr===todayStr();
+  var log=S.foodLog.filter(function(f){return f.date===dateStr;});
+  var eaten=S.mealChecked&&isT?MEALS.filter(function(m){return S.mealChecked.has(m.id);}):[];
+  var cal=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.cal;},0);},0)+log.reduce(function(a,f){return a+(f.cal||0);},0);
+  var protein=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.p;},0);},0)+log.reduce(function(a,f){return a+(f.p||0);},0);
+  var carbs=log.reduce(function(a,f){return a+(f.c||0);},0);
+  var fat=log.reduce(function(a,f){return a+(f.f||0);},0);
+  var workout=S.gymHistory.find(function(h){return new Date(h.date).toDateString()===dateStr;});
+  if(isT){return{cal:cal,protein:protein,carbs:carbs,fat:fat,water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,workout:workout,live:true};}
+  var snap=S.snapshots[dateStr]||{};
+  return{cal:snap.cal||cal,protein:snap.protein||protein,carbs:carbs,fat:fat,water:snap.water||0,steps:snap.steps||0,habitsCount:snap.habitsCount||0,workout:workout,live:false};
+}
+function navDate(dir){
+  var d=new Date(S.viewDate);
+  d.setDate(d.getDate()+dir);
+  if(d>new Date()) return;
+  S.viewDate=d.toDateString();
+  render();
+}
+function viewDateLabel(dateStr){
+  if(dateStr===todayStr()) return'Today';
+  var yest=new Date(Date.now()-864e5).toDateString();
+  if(dateStr===yest) return'Yesterday';
+  return new Date(dateStr).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+}
 function renderToday(){
   const now=new Date();
   const hour=now.getHours();
   const greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
-  // Calorie total from checked meals
-  const calEaten=MEALS.filter(m=>S.mealChecked.has(m.id)).reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.cal,0),0);
-  const protEaten=MEALS.filter(m=>S.mealChecked.has(m.id)).reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.p,0),0);
+  const vd=S.viewDate||todayStr();
+  const isToday=vd===todayStr();
+  const data=getDateData(vd);
+  const calEaten=data.cal;
+  const protEaten=data.protein;
   const T=getTargets();
-  const stepPct=pct(S.stepsToday,S.stepsGoal);
-  const waterPct=pct(S.waterDone,T.water);
-  const todayWorkout=S.gymHistory.find(h=>new Date(h.date).toDateString()===todayStr());
+  const stepPct=pct(data.steps,S.stepsGoal);
+  const waterPct=pct(data.water,T.water);
+  const todayWorkout=data.workout;
   const habitsTotal=4;
-  const habitsDone=[...S.habitsChecked].length;
+  const habitsDone=data.habitsCount;
+  const isFuture=false;
+  const canGoForward=new Date(vd)<new Date(new Date().toDateString());
 
   return`<div class="today-hero" style="position:relative">
-    <div class="today-greeting">${greeting}</div>
-    <div class="today-name">${userName()}</div>
-    <div class="today-sub">${now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
+    <div class="today-greeting">${isToday?greeting:'📅 '+viewDateLabel(vd)}</div>
+    <div class="today-name">${isToday?userName():new Date(vd).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
+    <div class="today-sub">${isToday?now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'}):'Tap ▶ to move forward'}</div>
     <button onclick="S.showSettings=true;render()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--muted);font-size:0.72rem;padding:5px 9px;cursor:pointer" title="Settings">⚙ Settings</button>
   </div>
+  <!-- Date navigator -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--s1);border-bottom:1px solid var(--border)">
+    <button onclick="navDate(-1)" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text);font-size:0.9rem;cursor:pointer;font-weight:600">◀</button>
+    <div style="text-align:center">
+      <div style="font-size:0.95rem;font-weight:700;color:var(--text)">${viewDateLabel(vd)}</div>
+      ${!isToday?`<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">tap ▶ to go forward</div>`:'<div style="font-size:0.65rem;color:var(--green);margin-top:1px">● Live</div>'}
+    </div>
+    <button onclick="navDate(1)" style="background:${canGoForward?'var(--s2)':'rgba(255,255,255,0.04)'};border:1px solid ${canGoForward?'var(--border)':'transparent'};border-radius:10px;padding:8px 16px;color:${canGoForward?'var(--text)':'rgba(255,255,255,0.15)'};font-size:0.9rem;cursor:${canGoForward?'pointer':'default'};font-weight:600" ${canGoForward?'':'disabled'}>▶</button>
+  </div>
+  ${!isToday?`<div style="margin:10px 16px 0;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:10px;padding:9px 13px;font-size:0.78rem;color:var(--amber);display:flex;align-items:center;justify-content:space-between">
+    <span>📖 Viewing history — read only</span>
+    <button onclick="S.viewDate=todayStr();render()" style="background:var(--amber);border:none;border-radius:7px;padding:4px 10px;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer">Jump to Today</button>
+  </div>`:''}
 
   <!-- Streak -->
   ${S.streak>0?`<div style="padding:12px 16px 0">
@@ -2066,12 +2130,12 @@ function renderToday(){
       <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct(protEaten,T.protein)}%;background:var(--blue)"></div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" style="color:var(--amber)">${S.waterDone}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${T.water}</span></div>
+      <div class="stat-val" style="color:var(--amber)">${data.water}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${T.water}</span></div>
       <div class="stat-lbl">Water (glasses)</div>
       <div class="stat-bar"><div class="stat-bar-fill" style="width:${waterPct}%;background:var(--amber)"></div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="step-val" style="color:var(--purple)">${S.stepsToday.toLocaleString()}</div>
+      <div class="stat-val" id="step-val" style="color:var(--purple)">${data.steps.toLocaleString()}</div>
       <div class="stat-lbl">Steps / ${(S.stepsGoal/1000).toFixed(0)}K goal</div>
       <div class="stat-bar"><div class="stat-bar-fill" id="step-bar" style="width:${stepPct}%;background:var(--purple)"></div></div>
     </div>
