@@ -4256,12 +4256,43 @@ function setYTCache(exId,videoId){
 }
 
 function embedYTVideo(wrap, videoId){
-  wrap.innerHTML='<iframe '+
-    'src="https://www.youtube-nocookie.com/embed/'+videoId+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" '+
-    'width="100%" height="220" frameborder="0" '+
-    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '+
-    'allowfullscreen '+
-    'style="border-radius:12px;display:block;background:#000"></iframe>';
+  var exId=wrap.id.replace('yt-wrap-','');
+  // Store exId on element so onclick can read it without quote escaping
+  wrap.dataset.ytExid=exId;
+  wrap.innerHTML='<div style="position:relative">'+
+    '<iframe '+
+      'src="https://www.youtube-nocookie.com/embed/'+videoId+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" '+
+      'width="100%" height="220" frameborder="0" '+
+      'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '+
+      'allowfullscreen '+
+      'style="border-radius:12px;display:block;background:#000"></iframe>'+
+    '<button onclick="resetYTVideo(this.closest(\'[data-yt-exid]\').dataset.ytExid)" '+
+      'style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.6);font-size:0.65rem;padding:3px 8px;cursor:pointer">'+
+      '⟳ Wrong video?'+
+    '</button>'+
+  '</div>';
+}
+
+function resetYTVideo(exId){
+  if(!exId) return;
+  var cache=getYTCache();
+  delete cache[exId];
+  localStorage.setItem('fitos_yt_cache',JSON.stringify(cache));
+  var wrap=document.getElementById('yt-wrap-'+exId);
+  if(!wrap) return;
+  var ex=null;
+  ['A','B','C','D'].forEach(function(k){
+    (WK[k]&&WK[k].exercises||[]).forEach(function(e){if(e.id===exId) ex=e;});
+  });
+  var ytQ=ex?ex.yt:exId.replace(/-/g,'+');
+  wrap.dataset.ytExid=exId;
+  wrap.innerHTML='<div class="yt-placeholder" onclick="loadYTDemo(this.closest(\'[data-yt-exid]\').dataset.ytExid,\''+ytQ+'\')">'+
+    '<div class="yt-placeholder-inner">'+
+      '<div class="yt-play-circle"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="24" fill="rgba(255,0,0,0.85)"/><polygon points="18,12 18,36 38,24" fill="white"/></svg></div>'+
+      '<div class="yt-ex-label">'+(ex?ex.name:exId)+'</div>'+
+      '<div class="yt-tap-hint">Tap to search again</div>'+
+    '</div>'+
+  '</div>';
 }
 
 function closeYTKeySheet(){var s=document.getElementById('yt-key-sheet');if(s)s.remove();}
