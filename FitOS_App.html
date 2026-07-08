@@ -148,6 +148,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .yt-play-circle{filter:drop-shadow(0 4px 12px rgba(255,0,0,0.5))}
 .yt-ex-label{color:rgba(255,255,255,0.8);font-size:0.8rem;font-weight:600;text-align:center;max-width:220px;line-height:1.3}
 .yt-tap-hint{color:rgba(255,255,255,0.35);font-size:0.68rem;letter-spacing:.05em;text-transform:uppercase}
+@keyframes spin{to{transform:rotate(360deg)}}
 .muscle-tags-bar{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;background:var(--s2)}
 .muscle-tag{font-size:0.68rem;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)}
 .watch-demo-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;background:#cc0000;color:#fff;font-weight:700;font-size:0.92rem;text-decoration:none;transition:opacity .15s}
@@ -2639,7 +2640,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
         <div class="yt-logo"><svg viewBox="0 0 90 20" width="72" height="16"><text y="16" font-family="Arial" font-weight="bold" font-size="16" fill="white">You</text><rect x="36" y="0" width="27" height="20" rx="4" fill="#ff0000"/><polygon points="44,4 44,16 56,10" fill="white"/><text x="64" y="16" font-family="Arial" font-weight="bold" font-size="16" fill="white">be</text></svg></div>
         <div class="yt-play-circle"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="24" fill="rgba(255,0,0,0.85)"/><polygon points="18,12 18,36 38,24" fill="white"/></svg></div>
         <div class="yt-ex-label">${ex.name}</div>
-        <div class="yt-tap-hint">Tap to load demo</div>
+        <div class="yt-tap-hint">Tap to search YouTube</div>
       </div>
     </div>
   </div>
@@ -4240,17 +4241,136 @@ function nextEx(){
   else{S.trainScreen='cooldown';render();window.scrollTo(0,0);}
 }
 function prevEx(){if(S.exIdx>0){S.exIdx--;S.editingSet=null;render();window.scrollTo(0,0);}}
-function loadYTDemo(exId, ytQuery){
-  var wrap = document.getElementById('yt-wrap-'+exId);
-  if(!wrap) return;
-  var q = encodeURIComponent(ytQuery+' form tutorial');
-  wrap.innerHTML = '<iframe '+
-    'src="https://www.youtube-nocookie.com/embed?listType=search&list='+q+'&autoplay=1&modestbranding=1&rel=0&iv_load_policy=3" '+
+// ── YouTube / officialdemic integration ──────────────────────────────────
+var YT_CHANNEL_ID='UC359Dn1EcIKV2uSj7NkLUJQ'; // @officialdemic
+
+function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||'';}
+function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
+
+function getYTCache(){
+  try{return JSON.parse(localStorage.getItem('fitos_yt_cache')||'{}');}catch(e){return{};}
+}
+function setYTCache(exId,videoId){
+  var c=getYTCache(); c[exId]=videoId;
+  localStorage.setItem('fitos_yt_cache',JSON.stringify(c));
+}
+
+function embedYTVideo(wrap, videoId){
+  wrap.innerHTML='<iframe '+
+    'src="https://www.youtube-nocookie.com/embed/'+videoId+'?autoplay=1&rel=0&modestbranding=1&playsinline=1" '+
     'width="100%" height="220" frameborder="0" '+
-    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '+
+    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '+
     'allowfullscreen '+
-    'style="border-radius:12px;display:block;background:#000" '+
-    'loading="lazy"></iframe>';
+    'style="border-radius:12px;display:block;background:#000"></iframe>';
+}
+
+function closeYTKeySheet(){var s=document.getElementById('yt-key-sheet');if(s)s.remove();}
+function resetYTApiKey(){localStorage.removeItem('fitos_yt_apikey');showYTApiKeySheet();}
+
+function showYTApiKeySheet(){
+  var existing=document.getElementById('yt-key-sheet');
+  if(existing) existing.remove();
+  var sheet=document.createElement('div');
+  sheet.id='yt-key-sheet';
+  sheet.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(0,0,0,0.7)';
+  sheet.innerHTML='<div style="background:var(--s2);border-radius:18px 18px 0 0;padding:24px 20px 40px;border-top:1px solid var(--border)">'+
+    '<div style="font-size:1rem;font-weight:800;margin-bottom:6px">🎬 YouTube API Key</div>'+
+    '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;line-height:1.5">Needed once to find @officialdemic Shorts in-app.<br>'+
+    'Get a free key: <span style="color:var(--green)">console.cloud.google.com</span> → New Project → Enable YouTube Data API v3 → Credentials → API Key</div>'+
+    '<input id="yt-key-input" type="text" placeholder="Paste your API key here..." '+
+    'style="width:100%;background:var(--s3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px 14px;font-size:0.9rem;box-sizing:border-box;margin-bottom:12px"/>'+
+    '<button onclick="confirmYTApiKey()" class="btn btn-green" style="margin-bottom:10px">Save & Find Videos</button>'+
+    '<button onclick="closeYTKeySheet()" style="width:100%;background:none;border:none;color:var(--muted);font-size:0.85rem;padding:8px;cursor:pointer">Cancel</button>'+
+  '</div>';
+  sheet.onclick=function(e){if(e.target===sheet) sheet.remove();};
+  document.body.appendChild(sheet);
+  setTimeout(function(){var inp=document.getElementById('yt-key-input');if(inp) inp.focus();},100);
+}
+
+function confirmYTApiKey(){
+  var inp=document.getElementById('yt-key-input');
+  if(!inp||!inp.value.trim()){alert('Paste your API key first.');return;}
+  saveYTApiKey(inp.value.trim());
+  var sheet=document.getElementById('yt-key-sheet');
+  if(sheet) sheet.remove();
+  // Re-trigger — user will tap again
+  var wrap=document.getElementById('_pending_yt_wrap');
+  var exId=localStorage.getItem('_pending_yt_exId');
+  var query=localStorage.getItem('_pending_yt_query');
+  if(wrap&&exId&&query) fetchDemicShort(exId,query,wrap);
+}
+
+function fetchDemicShort(exId, ytQuery, wrap){
+  // 1. Check cache
+  var cache=getYTCache();
+  if(cache[exId]){embedYTVideo(wrap,cache[exId]);return;}
+
+  // 2. Check API key
+  var apiKey=getYTApiKey();
+  if(!apiKey){
+    // Store pending so we can retry after key entry
+    window._pending_yt_wrap=wrap;
+    localStorage.setItem('_pending_yt_exId',exId);
+    localStorage.setItem('_pending_yt_query',ytQuery);
+    showYTApiKeySheet();
+    return;
+  }
+
+  // 3. Show loading state
+  wrap.innerHTML='<div style="height:220px;background:linear-gradient(145deg,#0f0f0f,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px">'+
+    '<div style="width:32px;height:32px;border:3px solid rgba(255,0,0,0.3);border-top-color:#ff0000;border-radius:50%;animation:spin 0.8s linear infinite"></div>'+
+    '<div style="color:rgba(255,255,255,0.5);font-size:0.75rem">Finding @officialdemic short...</div>'+
+  '</div>';
+
+  // 4. Call YouTube Data API v3
+  var q=encodeURIComponent(ytQuery.replace(/\+/g,' '));
+  var url='https://www.googleapis.com/youtube/v3/search?part=snippet'+
+    '&channelId='+YT_CHANNEL_ID+
+    '&q='+q+
+    '&type=video'+
+    '&videoDuration=short'+
+    '&maxResults=1'+
+    '&order=relevance'+
+    '&key='+apiKey;
+
+  fetch(url)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.error){
+        // API key issue
+        wrap.innerHTML='<div style="height:220px;background:#1a1a2e;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:20px;text-align:center">'+
+          '<div style="font-size:1.4rem">⚠️</div>'+
+          '<div style="color:var(--red);font-size:0.8rem;font-weight:600">API key error</div>'+
+          '<div style="color:var(--muted);font-size:0.72rem">'+data.error.message+'</div>'+
+          '<button onclick="resetYTApiKey()" style="margin-top:8px;background:var(--s3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 14px;font-size:0.78rem;cursor:pointer">Update Key</button>'+
+        '</div>';
+        return;
+      }
+      var items=data.items||[];
+      if(!items.length){
+        // No Short found — fall back to channel page
+        wrap.innerHTML='<div style="height:220px;background:#1a1a2e;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:20px;text-align:center">'+
+          '<div style="font-size:1.4rem">🔍</div>'+
+          '<div style="color:var(--muted);font-size:0.8rem">No Short found for this exercise</div>'+
+          '<a href="https://www.youtube.com/@officialdemic/shorts" target="_blank" style="color:var(--green);font-size:0.78rem">Browse @officialdemic Shorts</a>'+
+        '</div>';
+        return;
+      }
+      var videoId=items[0].id.videoId;
+      setYTCache(exId,videoId);
+      embedYTVideo(wrap,videoId);
+    })
+    .catch(function(err){
+      wrap.innerHTML='<div style="height:220px;background:#1a1a2e;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center">'+
+        '<div style="color:var(--muted);font-size:0.8rem">Network error — check connection</div>'+
+      '</div>';
+    });
+}
+
+function loadYTDemo(exId, ytQuery){
+  var wrap=document.getElementById('yt-wrap-'+exId);
+  if(!wrap) return;
+  fetchDemicShort(exId, ytQuery, wrap);
 }
 
 function completeWorkout(){
