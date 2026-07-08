@@ -1057,8 +1057,6 @@ function startExerciseAnim(key,container){
 // ═══════════════════════════════════════════════════════════════════════════
 // WORKOUT DATA
 // ═══════════════════════════════════════════════════════════════════════════
-const WK={
-
 // ═══════════════════════════════════════════════════════════════════════════
 // EXERCISE SWAP ALTERNATIVES (same muscle group / movement pattern)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1184,6 +1182,7 @@ const SWAP_ALTS={
   ]
 };
 
+const WK={
   A:{name:"Upper Push",color:"#4a90d9",tag:"Chest · Shoulders · Triceps",exercises:[
     {id:"bench",name:"Barbell Bench Press",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Chest","Front Delt","Triceps"],cue:"Retract scapula, slight arch, feet drive into floor. Bar to lower chest. Elbows 45–70°.",anim:"bench",yt:"barbell+bench+press+proper+form+tutorial"},
     {id:"incline-db",name:"Incline Dumbbell Press",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Upper Chest","Front Delt","Triceps"],cue:"30–45° incline. 3 sec eccentric. Full stretch at bottom. Don't let DBs crash at top.",anim:"bench",yt:"incline+dumbbell+press+form+tutorial"},
@@ -3188,7 +3187,7 @@ function renderFoodPanel(){
             }).join('')}
           </div>
         </div>
-        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to ${(()=>{var ld=S.logDate||todayStr();return ld===todayStr()?"Today's Log":new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+''s Log';})()}</button>
+        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to ${(()=>{var ld=S.logDate||todayStr();return ld===todayStr()?"Today's Log":new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+"'s Log";})()}</button>
         <button onclick="S.pendingFood=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">← Back to results</button>
       </div>`}
     </div>
@@ -3329,7 +3328,7 @@ const AU_RESTAURANT_DB=[
   {name:'Edamame',brand:'Sushi',cal:122.0,p:11.0,c:9.0,f:5.0,fiber:5.0,sugars:0.0,sodium:63,sat_fat:0.7,servingG:100,au:true}
 ];
 
-async const POPULAR_FOODS_DB=[
+const POPULAR_FOODS_DB=[
   // Proteins
   {name:'Chicken Breast (cooked)',brand:'Generic',cal:165,p:31,c:0,f:4,fiber:0,sugars:0,sodium:74,sat_fat:1.1},
   {name:'Eggs (whole)',brand:'Generic',cal:143,p:13,c:1,f:10,fiber:0,sugars:0,sodium:142,sat_fat:3.3},
@@ -3380,7 +3379,7 @@ async const POPULAR_FOODS_DB=[
   {name:'Skim Milk',brand:'Generic',cal:34,p:3.4,c:5,f:0.1,fiber:0,sugars:5,sodium:50,sat_fat:0.1},
   {name:'Honey',brand:'Generic',cal:304,p:0.3,c:82,f:0,fiber:0.2,sugars:82,sodium:4,sat_fat:0},
 ];
-function doFoodSearch(type){
+async function doFoodSearch(type){
   if(type==='popular'){
     S.foodResults=POPULAR_FOODS_DB.slice();
     render();return;
