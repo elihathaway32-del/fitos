@@ -230,6 +230,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .rest-actions{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
 .rest-btn-extend{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 6px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:background .15s}
 .rest-btn-skip{background:linear-gradient(135deg,var(--green),#0fa868);border:none;border-radius:12px;padding:11px 6px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(29,158,117,0.35)}
+.swap-alt-btn{transition:background .15s}.swap-alt-btn:hover{background:rgba(255,255,255,0.1)!important}
 .next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
 .dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
 .phase-screen{padding:16px}
@@ -661,8 +662,9 @@ function getAvailable(p){
 }
 
 // Select best exercise for a given pattern from available list, avoiding already used
-function pickEx(available,pattern,used){
+function pickEx(available,pattern,used,seed,isFemale){
   var TIER_RANK={'bw':0,'min':1,'home':2,'comm':3,'elite':4,'mob':0,'cardio':1};
+  seed=seed||0;
   // Try exact pattern match first
   var candidates=available.filter(function(ex){
     return ex.p===pattern&&!used.has(ex.id);
@@ -676,12 +678,28 @@ function pickEx(available,pattern,used){
     });
   }
   if(!candidates.length) return null;
-  // Sort by tier DESCENDING — elite gym users get elite exercises, not push-ups
+  // Sort: tier first, then gender preference, then stable seed-shuffle within same tier
+  var lowerPats=['hinge','lunge','squat','iso-lower'];
   candidates.sort(function(a,b){
-    return (TIER_RANK[b.t]||0)-(TIER_RANK[a.t]||0);
+    // 1. Higher tier wins
+    var td=(TIER_RANK[b.t]||0)-(TIER_RANK[a.t]||0);
+    if(td!==0) return td;
+    // 2. Female glute/ham preference in lower patterns
+    if(isFemale&&lowerPats.indexOf(pattern)!==-1){
+      var aG=(a.pm&&(a.pm.indexOf('glutes')!==-1||a.pm.indexOf('hams')!==-1))?1:0;
+      var bG=(b.pm&&(b.pm.indexOf('glutes')!==-1||b.pm.indexOf('hams')!==-1))?1:0;
+      if(bG!==aG) return bG-aG;
+    }
+    // 3. Stable per-user shuffle so different names → different exercise picks
+    var aH=simpleHash(a.id+seed)%97;
+    var bH=simpleHash(b.id+seed)%97;
+    return aH-bH;
   });
   return candidates[0];
 }
+
+// Stable hash of a string (for consistent per-user exercise shuffling)
+function simpleHash(str){var h=5381;for(var i=0;i<str.length;i++){h=((h<<5)+h)+str.charCodeAt(i);h=h&h;}return Math.abs(h);}
 
 // Generate a full training block for a profile
 function buildBlock(p){
@@ -692,6 +710,9 @@ function buildBlock(p){
   const used=new Set();
   const ws=weekStyle(style,S.week||1);
   const name=p.name||'Athlete';
+  const isFemale=(p.gender||'male')==='female';
+  // Stable per-user shuffle seed so two users with same params get different exercises
+  const seed=simpleHash((p.name||'')+(p.age||'')+(p.goal||''));
 
   // Day templates by number of training days
   // Each entry: {name, color, tag, patterns:[...pattern arrays per exercise]}
@@ -731,6 +752,32 @@ function buildBlock(p){
     ]
   };
 
+  // ── Female-specific template overrides (more lower body / glute emphasis) ──
+  if(isFemale){
+    if(days===3){
+      template=[
+        {n:'Lower Body — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','squat','lunge','iso-lower','iso-lower','core']},
+        {n:'Upper Body',col:'#4a90d9',tag:'Push · Pull · Arms',pat:['push-h','pull-v','push-v','pull-h','iso-push','iso-pull']},
+        {n:'Lower Body — Quad & Core',col:'#f0a030',tag:'Quads · Glutes · Core',pat:['squat','lunge','hinge','iso-lower','core']}
+      ];
+    } else if(days===4){
+      template=[
+        {n:'Lower — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push']},
+        {n:'Lower — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']}
+      ];
+    } else if(days===5){
+      template=[
+        {n:'Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','iso-lower','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','core']},
+        {n:'Legs — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','iso-lower']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Full Body & Core',col:'#9b59b6',tag:'Compound + Core + Conditioning',pat:['hinge','squat','push-h','pull-h','core']}
+      ];
+    }
+  }
+
   // Yoga / Pilates templates
   if(mod==='yoga'){
     var yogaDays=[];
@@ -745,7 +792,7 @@ function buildBlock(p){
       var exs=[];
       var dayUsed=new Set(used);
       tmpl.pat.forEach(function(pat){
-        var ex=pickEx(available,'yoga',dayUsed)||pickEx(available,'mobility',dayUsed);
+        var ex=pickEx(available,'yoga',dayUsed,seed,isFemale)||pickEx(available,'mobility',dayUsed,seed,isFemale);
         if(ex){exs.push(Object.assign({},ex,{sets:ws.s,lo:ex.lo,hi:ex.hi,rest:ex.r}));dayUsed.add(ex.id);used.add(ex.id);}
       });
       yResult[dayKey]={name:tmpl.n,color:tmpl.col,tag:tmpl.tag,exercises:exs};
@@ -761,7 +808,7 @@ function buildBlock(p){
       var pExs=[];
       var pUsed=new Set(used);
       ['pilates','pilates','mob','pilates','mob'].forEach(function(pat){
-        var ex=pickEx(available,pat,pUsed);
+        var ex=pickEx(available,pat,pUsed,seed,isFemale);
         if(ex){pExs.push(Object.assign({},ex,{sets:ws.s,lo:ex.lo,hi:ex.hi,rest:ex.r}));pUsed.add(ex.id);used.add(ex.id);}
       });
       pResult[pKey]={name:pName,color:'#9b59b6',tag:'Reformer Pilates',exercises:pExs};
@@ -780,7 +827,7 @@ function buildBlock(p){
     var maxEx=sessionMins<=30?3:sessionMins<=45?4:sessionMins<=60?5:sessionMins<=75?6:tmpl.pat.length;
     var exCount=Math.min(maxEx,style==='beginner'?Math.min(4,tmpl.pat.length):tmpl.pat.length);
     tmpl.pat.slice(0,exCount).forEach(function(pat){
-      var ex=pickEx(available,pat,dayUsed);
+      var ex=pickEx(available,pat,dayUsed,seed,isFemale);
       if(!ex) return;
       // Apply injury modifications
       var injuries=(p.injuries||[]).map(function(i){return (i||'').toLowerCase();});
@@ -1011,6 +1058,132 @@ function startExerciseAnim(key,container){
 // WORKOUT DATA
 // ═══════════════════════════════════════════════════════════════════════════
 const WK={
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXERCISE SWAP ALTERNATIVES (same muscle group / movement pattern)
+// ═══════════════════════════════════════════════════════════════════════════
+const SWAP_ALTS={
+  "bench":[
+    {id:"db-bench",name:"Dumbbell Flat Bench Press",muscles:["Chest","Front Delt","Triceps"],cue:"Full stretch at bottom. Press in slight arc, meet at top. Neutral or pronated grip. Safer on shoulders.",anim:"bench",yt:"dumbbell+flat+bench+press+form+tutorial"},
+    {id:"machine-press",name:"Machine Chest Press",muscles:["Chest","Front Delt","Triceps"],cue:"Adjust seat so handles are at mid-chest. Full ROM. Good for high reps or when fatigued.",anim:"bench",yt:"machine+chest+press+form+tutorial"},
+    {id:"smith-bench",name:"Smith Machine Bench Press",muscles:["Chest","Front Delt","Triceps"],cue:"Set bar path so it tracks to lower chest. Feet flat. Bar path is fixed so focus on chest squeeze.",anim:"bench",yt:"smith+machine+bench+press+form"},
+    {id:"cable-fly",name:"Cable Chest Fly (Low to High)",muscles:["Chest","Front Delt"],cue:"Cables set low. Arms slightly bent throughout. Squeeze pecs at top — think hugging a tree.",anim:"bench",yt:"cable+chest+fly+low+to+high+form"}
+  ],
+  "incline-db":[
+    {id:"incline-bb",name:"Incline Barbell Press",muscles:["Upper Chest","Front Delt","Triceps"],cue:"30° incline. Grip slightly wider than shoulder. Bar to upper chest. Controlled eccentric.",anim:"bench",yt:"incline+barbell+press+form+tutorial"},
+    {id:"incline-machine",name:"Incline Machine Press",muscles:["Upper Chest","Front Delt"],cue:"Adjust seat height. Handles should start at upper chest level. Full extension at top.",anim:"bench",yt:"incline+machine+chest+press+form"},
+    {id:"pec-deck",name:"Pec Deck / Chest Fly Machine",muscles:["Chest","Front Delt"],cue:"Sit tall. Arms on pads, elbows slightly bent. Squeeze pecs at front. Controlled stretch back.",anim:"bench",yt:"pec+deck+fly+machine+chest+form"},
+    {id:"cable-crossover",name:"Cable Crossover (High to Low)",muscles:["Lower Chest","Chest"],cue:"Cables set high. Cross hands at bottom. Keep slight bend in elbows. Squeeze pecs.",anim:"bench",yt:"cable+crossover+chest+form+tutorial"}
+  ],
+  "seated-press":[
+    {id:"arnold-press",name:"Arnold Press (DB)",muscles:["Side Delt","Front Delt","Triceps"],cue:"Start palms facing you, rotate to face forward as you press. Hits all three delt heads.",anim:"shoulder-press",yt:"arnold+press+dumbbell+form+tutorial"},
+    {id:"machine-shoulder",name:"Machine Shoulder Press",muscles:["Side Delt","Front Delt","Triceps"],cue:"Adjust seat so handles are at shoulder height. Controlled descent. Great for volume work.",anim:"shoulder-press",yt:"machine+shoulder+press+form"},
+    {id:"bb-ohp",name:"Barbell Overhead Press",muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar rests on upper chest. Drive bar up, head through at top. Core braced. Full lockout.",anim:"shoulder-press",yt:"barbell+overhead+press+form+tutorial"},
+    {id:"landmine-press",name:"Landmine Press (Single Arm)",muscles:["Side Delt","Upper Chest","Triceps"],cue:"Kneel or stand. Press at 45° angle. Great shoulder health option. Alternate arms.",anim:"shoulder-press",yt:"landmine+press+shoulder+form+tutorial"}
+  ],
+  "cable-lateral":[
+    {id:"db-lateral",name:"DB Lateral Raise",muscles:["Side Delt"],cue:"Slight forward lean. Raise to just above shoulder height. Lead with elbow. No shrugging.",anim:"lateral",yt:"dumbbell+lateral+raise+side+delt+form"},
+    {id:"machine-lateral",name:"Machine Lateral Raise",muscles:["Side Delt"],cue:"Elbows on pads. Full stack if needed. Great for constant tension + dropsets.",anim:"lateral",yt:"machine+lateral+raise+form"},
+    {id:"cable-y-raise",name:"Cable Y-Raise",muscles:["Side Delt","Rear Delt","Lower Traps"],cue:"Cables set low. Raise arms into Y shape. Shoulder health + side delt in one.",anim:"lateral",yt:"cable+y+raise+shoulder+form"}
+  ],
+  "rope-pushdown":[
+    {id:"bar-pushdown",name:"Straight Bar Pushdown",muscles:["Triceps"],cue:"Elbows pinned. Full extension. Bar stays close to body. Supinate grip for lateral head.",anim:"pushdown",yt:"tricep+straight+bar+pushdown+form"},
+    {id:"db-kickback",name:"DB Tricep Kickback",muscles:["Triceps"],cue:"Hinge forward. Upper arm parallel to floor. Extend fully. Hold 1 sec at lockout.",anim:"pushdown",yt:"dumbbell+tricep+kickback+form+tutorial"},
+    {id:"band-pushdown",name:"Band Tricep Pushdown",muscles:["Triceps"],cue:"Anchor band overhead. Great for warmup or pump work. High reps 20–30.",anim:"pushdown",yt:"resistance+band+tricep+pushdown+form"}
+  ],
+  "oh-ext":[
+    {id:"skull-crusher",name:"EZ-Bar Skull Crusher",muscles:["Triceps Long Head"],cue:"Elbows vertical. Lower bar to forehead. Long head stretch is the whole point. Control.",anim:"overhead-ext",yt:"ez+bar+skull+crusher+tricep+form"},
+    {id:"db-oh-ext",name:"DB Overhead Tricep Extension",muscles:["Triceps Long Head"],cue:"Single DB, both hands. Arms straight overhead, lower behind head. Full stretch. Drive up.",anim:"overhead-ext",yt:"dumbbell+overhead+tricep+extension+form"},
+    {id:"close-grip",name:"Close-Grip Bench Press",muscles:["Triceps","Chest"],cue:"Grip shoulder-width or slightly inside. Elbows at 45°. Full press. Tricep-focused.",anim:"bench",yt:"close+grip+bench+press+tricep+form"}
+  ],
+  "squat":[
+    {id:"hack-squat",name:"Hack Squat (Machine)",muscles:["Quads","Glutes"],cue:"Feet shoulder-width, slight toe out. Push platform away. Knees track toes. Full depth.",anim:"squat",yt:"hack+squat+machine+form+tutorial"},
+    {id:"goblet-squat",name:"Goblet Squat (DB/KB)",muscles:["Quads","Glutes"],cue:"Hold weight at chest. Elbows inside knees at bottom. Sit INTO it. Great for technique.",anim:"squat",yt:"goblet+squat+form+tutorial"},
+    {id:"smith-squat",name:"Smith Machine Squat",muscles:["Quads","Glutes"],cue:"Step feet forward slightly. Sit back into it. Removes balance demand — load it up.",anim:"squat",yt:"smith+machine+squat+form+tutorial"},
+    {id:"safety-bar",name:"Safety Bar Squat",muscles:["Quads","Glutes","Upper Back"],cue:"Easier on wrists/shoulders. Slightly more upright torso. Same cues as back squat.",anim:"squat",yt:"safety+bar+squat+form+tutorial"}
+  ],
+  "leg-press":[
+    {id:"pendulum-squat",name:"Pendulum Squat (Machine)",muscles:["Quads","Glutes"],cue:"More quad-dominant arc. Sit back in machine. Full ROM. Knees out.",anim:"leg-press",yt:"pendulum+squat+machine+form"},
+    {id:"v-squat",name:"V-Squat Machine",muscles:["Quads","Glutes"],cue:"Similar pattern to leg press. Adjust back pad. Full depth without lower back rounding.",anim:"leg-press",yt:"v+squat+machine+form+tutorial"}
+  ],
+  "bss":[
+    {id:"lunges",name:"DB Walking Lunges",muscles:["Quads","Glutes","Hip Flexors"],cue:"Step long enough that front shin is vertical. Drive through front heel to stand. Alternate legs.",anim:"split-squat",yt:"dumbbell+walking+lunge+form+tutorial"},
+    {id:"step-up",name:"Box Step-Up (DB)",muscles:["Quads","Glutes"],cue:"Step onto box, drive through heel. Other leg hangs — don't push off it. Step down controlled.",anim:"split-squat",yt:"box+step+up+dumbbell+glutes+form"},
+    {id:"smith-split",name:"Smith Machine Split Squat",muscles:["Quads","Glutes"],cue:"Same as BSS. Smith removes balance so you can focus on depth and load. Rear foot on bench.",anim:"split-squat",yt:"smith+machine+split+squat+form"}
+  ],
+  "leg-ext":[
+    {id:"terminal-ext",name:"Terminal Knee Extension (Band)",muscles:["VMO","Quads"],cue:"Band around back of knee. Slight bend, extend to lockout. Rehab-friendly VMO builder.",anim:"leg-ext",yt:"terminal+knee+extension+VMO+rehab"},
+    {id:"sissy-squat",name:"Sissy Squat (Bodyweight/Loaded)",muscles:["Quads","VMO"],cue:"Hold support. Lean back as knees travel far forward. Intense quad stretch. Go slow.",anim:"leg-ext",yt:"sissy+squat+form+tutorial+quads"}
+  ],
+  "calf-stand":[
+    {id:"donkey-calf",name:"Donkey Calf Raise (Machine)",muscles:["Gastrocnemius"],cue:"Hips hinged, load across lower back. This position stretches the gastroc maximally.",anim:"calf",yt:"donkey+calf+raise+machine+form"},
+    {id:"lp-calf",name:"Leg Press Calf Raise",muscles:["Gastrocnemius","Soleus"],cue:"Feet on bottom of plate. Full stretch, full extension. Great for loading bilaterally.",anim:"calf",yt:"leg+press+calf+raise+form"}
+  ],
+  "dead-bug":[
+    {id:"plank",name:"Plank (Forearm)",muscles:["Deep Core","Lumbar Stabilisers"],cue:"Neutral spine. Don't sag hips or pike. Breathe. 30–60 sec holds. Quality over time.",anim:"dead-bug",yt:"plank+form+core+tutorial"},
+    {id:"hollow-hold",name:"Hollow Body Hold",muscles:["Deep Core","Hip Flexors"],cue:"Lower back pressed to floor. Arms overhead or by sides. Legs low but back stays flat.",anim:"dead-bug",yt:"hollow+body+hold+form+gymnastics+core"},
+    {id:"ab-wheel",name:"Ab Wheel Rollout",muscles:["Deep Core","Lats","Lumbar Stabilisers"],cue:"Start on knees. Brace hard. Roll out slowly, pull back with lats. Don't let hips drop.",anim:"dead-bug",yt:"ab+wheel+rollout+form+core"}
+  ],
+  "pull-up":[
+    {id:"lat-pulldown",name:"Lat Pulldown (Wide Grip)",muscles:["Lats","Rhomboids","Biceps"],cue:"Depress scapula before pulling. Pull to upper chest. Elbows drive DOWN. Lean back slightly.",anim:"pull",yt:"lat+pulldown+wide+grip+form+tutorial"},
+    {id:"close-grip-pd",name:"Close-Grip Lat Pulldown",muscles:["Lats","Biceps"],cue:"V-bar or close grip. More bicep involvement. Full stretch at top — don't cut it short.",anim:"pull",yt:"close+grip+lat+pulldown+form"},
+    {id:"straight-arm-pd",name:"Cable Straight-Arm Pulldown",muscles:["Lats","Serratus"],cue:"Arms straight, slight bend. Pull bar to thighs. Hinge at hips. Lat isolation king.",anim:"pull",yt:"cable+straight+arm+pulldown+lat+form"},
+    {id:"assisted-pu",name:"Assisted Pull-Up (Machine)",muscles:["Lats","Rhomboids","Biceps"],cue:"More assistance = easier. Work toward less assistance over weeks. Full dead hang start.",anim:"pull",yt:"assisted+pull+up+machine+form+tutorial"}
+  ],
+  "cs-row":[
+    {id:"machine-row",name:"Seated Machine Row",muscles:["Rhomboids","Lats","Rear Delt"],cue:"Chest against pad. Full stretch forward. Pull elbows back and together. Hold 1 sec.",anim:"row",yt:"seated+machine+row+form+tutorial"},
+    {id:"db-row",name:"Single-Arm DB Row",muscles:["Lats","Rhomboids","Biceps"],cue:"Brace on bench. Let shoulder drop for full stretch. Pull elbow back, not up. Twist slightly.",anim:"row",yt:"single+arm+dumbbell+row+form+tutorial"},
+    {id:"t-bar-row",name:"T-Bar Row",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° hinge. Pull handles to lower chest. Keep chest up. Go heavy on this one.",anim:"row",yt:"t+bar+row+form+back+tutorial"}
+  ],
+  "cable-row":[
+    {id:"bent-over-row",name:"Bent-Over DB Row (Bilateral)",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° forward lean. Both DBs. Elbows back, not flared. Squeeze shoulder blades at top.",anim:"row",yt:"bent+over+dumbbell+row+form"},
+    {id:"iso-row",name:"Iso-Lateral Row (Machine)",muscles:["Mid Back","Lats"],cue:"One arm at a time or both. Full stretch. Great for correcting imbalances.",anim:"row",yt:"iso+lateral+row+machine+form"},
+    {id:"meadows-row",name:"Meadows Row (Landmine)",muscles:["Lats","Rear Delt","Biceps"],cue:"Stand beside landmine. Staggered stance. Pull to hip. Long range of motion.",anim:"row",yt:"meadows+row+landmine+form+tutorial"}
+  ],
+  "face-pull":[
+    {id:"band-pull-apart",name:"Band Pull-Apart",muscles:["Rear Delt","External Rotators"],cue:"Arms straight at chest height. Pull band apart to chest. Squeeze rear delts. 20+ reps.",anim:"face-pull",yt:"band+pull+apart+form+shoulder+health"},
+    {id:"rear-delt-fly",name:"Rear Delt Fly (DB, Prone)",muscles:["Rear Delt","Mid Traps"],cue:"Lie face down on incline bench. Arms hang. Raise with slight elbow bend. Rear delt squeeze.",anim:"face-pull",yt:"prone+rear+delt+fly+dumbbell+form"},
+    {id:"cable-rear-delt",name:"Cable Rear Delt Fly",muscles:["Rear Delt","External Rotators"],cue:"Single cable, pull across body. Or set both cables at face height. Full ROM.",anim:"face-pull",yt:"cable+rear+delt+fly+form"}
+  ],
+  "ez-curl":[
+    {id:"bb-curl",name:"Barbell Curl",muscles:["Biceps","Brachialis"],cue:"Shoulder-width grip. Full supination at top. Long eccentric. Elbows stay forward.",anim:"curl",yt:"barbell+bicep+curl+form+tutorial"},
+    {id:"db-curl",name:"Alternating DB Curl",muscles:["Biceps","Brachialis"],cue:"Supinate at top of each rep. Don't swing. Full stretch at bottom. Alternate arms.",anim:"curl",yt:"alternating+dumbbell+curl+form"},
+    {id:"cable-curl",name:"Cable Curl (Straight Bar)",muscles:["Biceps"],cue:"Cable low. Constant tension — better than free weight at short range. High reps shine here.",anim:"curl",yt:"cable+bicep+curl+form+tutorial"}
+  ],
+  "hammer-curl":[
+    {id:"cable-hammer",name:"Cable Hammer Curl (Rope)",muscles:["Brachialis","Brachioradialis"],cue:"Rope attached low. Neutral grip throughout. Don't supinate. Elbow curl only.",anim:"hammer-curl",yt:"cable+hammer+curl+rope+form"},
+    {id:"cross-body-curl",name:"Cross-Body Hammer Curl",muscles:["Brachialis","Brachioradialis"],cue:"Curl DB across body to opposite shoulder. Brachialis dominant. Alternate arms.",anim:"hammer-curl",yt:"cross+body+hammer+curl+form"},
+    {id:"reverse-curl",name:"Reverse Curl (EZ or BB)",muscles:["Brachialis","Brachioradialis","Forearms"],cue:"Pronated grip. Keeps elbow stable. Builds forearm and brachialis thickness.",anim:"curl",yt:"reverse+curl+brachialis+forearm+form"}
+  ],
+  "hip-thrust":[
+    {id:"glute-bridge",name:"Glute Bridge (Bodyweight / Banded)",muscles:["Glutes","Hamstrings"],cue:"Feet flat, knees at 90°. Drive through heels. Posterior tilt at top. Add band above knees.",anim:"hip-thrust",yt:"glute+bridge+form+tutorial+bodyweight"},
+    {id:"smith-thrust",name:"Smith Machine Hip Thrust",muscles:["Glutes","Hamstrings"],cue:"Same as barbell. Smith keeps bar stable — allows focus on glute squeeze not balance.",anim:"hip-thrust",yt:"smith+machine+hip+thrust+form"},
+    {id:"cable-kickback",name:"Cable Glute Kickback",muscles:["Glutes"],cue:"Ankle cuff attached low. Hinge slightly. Drive leg back and up. Squeeze at top. No momentum.",anim:"hip-thrust",yt:"cable+glute+kickback+form+tutorial"}
+  ],
+  "seated-leg-curl":[
+    {id:"lying-leg-curl",name:"Lying Leg Curl (Machine)",muscles:["Hamstrings","Biceps Femoris"],cue:"Toes slightly inward. Full stretch at start. Squeeze at top. Dorsiflexed foot = more activation.",anim:"leg-curl",yt:"lying+leg+curl+machine+form"},
+    {id:"nordic-curl",name:"Nordic Curl (Eccentric)",muscles:["Hamstrings"],cue:"Feet anchored. Lower body slowly with just hamstrings. Use hands to push up if needed.",anim:"leg-curl",yt:"nordic+hamstring+curl+form+eccentric"},
+    {id:"swiss-curl",name:"Swiss Ball Leg Curl",muscles:["Hamstrings","Glutes"],cue:"Feet on ball, hips bridged. Curl ball toward hips. Don't let hips drop. Hard but effective.",anim:"leg-curl",yt:"swiss+ball+leg+curl+form+hamstrings"}
+  ],
+  "pull-through":[
+    {id:"kb-swing",name:"KB Swing (American or Russian)",muscles:["Glutes","Hamstrings","Erectors"],cue:"Hinge — NOT a squat. Hips drive the swing. Neutral spine. Power from glutes.",anim:"pull-through",yt:"kettlebell+swing+form+tutorial+hinge"},
+    {id:"good-morning",name:"Good Morning (Light BB / Cable)",muscles:["Hamstrings","Glutes","Erectors"],cue:"Bar on back or cable at face. Hinge at hips. Keep spine long. Feel the hamstring stretch.",anim:"pull-through",yt:"good+morning+exercise+form+hamstrings"}
+  ],
+  "sl-rdl":[
+    {id:"db-rdl",name:"DB Romanian Deadlift (Both Legs)",muscles:["Hamstrings","Glutes","Erectors"],cue:"Neutral spine. Hinge at hip. Feel hamstring stretch before driving back up. Not a squat.",anim:"single-leg-rdl",yt:"dumbbell+romanian+deadlift+form+tutorial"},
+    {id:"lying-hip-ext",name:"Prone Hip Extension (Bench)",muscles:["Glutes","Hamstrings"],cue:"Lie face down on bench, hips at edge. Raise legs to hip height. Squeeze glutes. Low back safe.",anim:"hip-thrust",yt:"prone+hip+extension+glutes+form"}
+  ],
+  "seated-calf":[
+    {id:"lp-calf-seated",name:"Leg Press Calf Raise",muscles:["Soleus","Gastrocnemius"],cue:"Feet on bottom of platform. Full ROM. Hold stretch 1 sec, hold squeeze 1 sec.",anim:"calf",yt:"leg+press+calf+raise+form+soleus"},
+    {id:"smith-calf",name:"Smith Machine Calf Raise",muscles:["Gastrocnemius","Soleus"],cue:"Stand on step/plate. Full stretch. Drive up tall. Slow eccentric.",anim:"calf",yt:"smith+machine+calf+raise+form"}
+  ],
+  "bird-dog":[
+    {id:"superman",name:"Superman Hold",muscles:["Erectors","Glutes","Lumbar Stabilisers"],cue:"Face down. Lift opposite arm and leg simultaneously. Hold 2–3 sec. Good morning routine.",anim:"bird-dog",yt:"superman+hold+exercise+lower+back+form"},
+    {id:"fire-hydrant",name:"Fire Hydrant (Banded)",muscles:["Glutes","Hip Abductors"],cue:"On all fours. Lift knee out to side. Keep hips square. Band adds resistance.",anim:"bird-dog",yt:"fire+hydrant+exercise+glutes+form"},
+    {id:"glute-bridge-bw",name:"Glute Bridge (Bodyweight Rehab)",muscles:["Glutes","Hamstrings","Core"],cue:"Feet flat, knees bent. Bridge up. PPT at top. Great daily movement for lumbar rehab.",anim:"hip-thrust",yt:"glute+bridge+bodyweight+form+lower+back"}
+  ]
+};
+
   A:{name:"Upper Push",color:"#4a90d9",tag:"Chest · Shoulders · Triceps",exercises:[
     {id:"bench",name:"Barbell Bench Press",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Chest","Front Delt","Triceps"],cue:"Retract scapula, slight arch, feet drive into floor. Bar to lower chest. Elbows 45–70°.",anim:"bench",yt:"barbell+bench+press+proper+form+tutorial"},
     {id:"incline-db",name:"Incline Dumbbell Press",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Upper Chest","Front Delt","Triceps"],cue:"30–45° incline. 3 sec eccentric. Full stretch at bottom. Don't let DBs crash at top.",anim:"bench",yt:"incline+dumbbell+press+form+tutorial"},
@@ -1427,6 +1600,8 @@ let S={
   expandedRecipe: null,
   showSettings: false,
   showRestSheet: false,
+  showSwapSheet: false,
+  logDate: new Date().toDateString(),
   viewDate: todayStr(),
   snapshots: loadJSON('fitos_snapshots',{}),
 
@@ -1583,7 +1758,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -2102,9 +2277,14 @@ function renderToday(){
     </div>
     <button onclick="navDate(1)" style="background:${canGoForward?'var(--s2)':'rgba(255,255,255,0.04)'};border:1px solid ${canGoForward?'var(--border)':'transparent'};border-radius:10px;padding:8px 16px;color:${canGoForward?'var(--text)':'rgba(255,255,255,0.15)'};font-size:0.9rem;cursor:${canGoForward?'pointer':'default'};font-weight:600" ${canGoForward?'':'disabled'}>▶</button>
   </div>
-  ${!isToday?`<div style="margin:10px 16px 0;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:10px;padding:9px 13px;font-size:0.78rem;color:var(--amber);display:flex;align-items:center;justify-content:space-between">
-    <span>📖 Viewing history — read only</span>
-    <button onclick="S.viewDate=todayStr();render()" style="background:var(--amber);border:none;border-radius:7px;padding:4px 10px;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer">Jump to Today</button>
+  ${!isToday?`<div style="margin:10px 16px 0;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:10px;padding:9px 13px;font-size:0.78rem;color:var(--amber)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span>📖 Viewing history</span>
+      <button onclick="S.viewDate=todayStr();render()" style="background:var(--amber);border:none;border-radius:7px;padding:4px 10px;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer">Jump to Today</button>
+    </div>
+    <button onclick="openFoodPanel(vd)" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 12px;color:#fff;font-size:0.75rem;font-weight:600;cursor:pointer;width:100%">
+      📋 Add missed food to ${viewDateLabel(vd)}
+    </button>
   </div>`:''}
 
   <!-- Streak -->
@@ -2293,10 +2473,11 @@ function renderWorkout(){
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${progPct}%"></div></div>
 ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
-<div class="ex-header">
+<div class="ex-header" style="position:relative">
   <div class="ex-type-badge ${badgeClass(ex.type)}">${ex.type}</div>
   <div class="ex-name">${ex.name}</div>
   <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
+  ${SWAP_ALTS[ex.id]?`<button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Swap</button>`:''}
 </div>
 <div class="demo-area">
   <div class="demo-3d-wrap" id="ex-anim-canvas"></div>
@@ -2307,9 +2488,9 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   </a>
 </div>
 <div class="cue-box">📋 ${ex.cue}</div>
-${prev.length?`<div class="prev-box"><div class="prev-title">Last session — ${fmt(getPrevSession(S.day).date)}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong>${s.weight}kg × ${s.reps}</strong>`).join(' · ')}</div></div>`:''}
+${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session — ${fmt(getPrevSession(S.day).date)} · Week ${getPrevSession(S.day).week||'?'}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong style="color:var(--text)">${s.weight}kg×${s.reps}</strong>`).join(' &nbsp;·&nbsp; ')}</div><div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Beat these numbers today 💪</div></div>`:''}
 <div class="set-logger">
-  <div class="set-row-header"><div>#</div><div>Weight (kg)</div><div>Reps</div><div>Action</div><div></div></div>
+  <div class="set-row-header"><div>#</div><div>kg<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>reps<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>Action</div><div></div></div>
   ${Array.from({length:ex.sets},(_,i)=>{
     const done=logged[i];
     const prevSet=prev[i];
@@ -2317,8 +2498,14 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">Last session — ${
     const editable=!done||isEditing;
     return`<div class="set-row">
       <div class="set-num${done&&!isEditing?' done':''}">${done&&!isEditing?'✓':i+1}</div>
-      <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
-      <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
+        ${prevSet?`<div style="font-size:0.6rem;color:#363636;text-align:center;line-height:1">${prevSet.weight}kg</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
+        ${prevSet?`<div style="font-size:0.6rem;color:#363636;text-align:center;line-height:1">${prevSet.reps}r</div>`:''}
+      </div>
       <button class="log-btn${done&&!isEditing?' done-btn':''}" onclick="logSet(${i})">${done&&!isEditing?'✓ Done':isEditing?'Save':'Log'}</button>
       ${done&&!isEditing?`<button class="edit-btn" onclick="editSet('${ex.id}',${i})" title="Edit">✏️</button>`:'<div></div>'}
     </div>`;
@@ -2339,6 +2526,35 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">Last session — ${
 </div>`;
 }
 
+function renderSwapSheet(){
+  var ex=curEx();
+  var alts=SWAP_ALTS[ex.id]||[];
+  return`<div style="position:fixed;inset:0;background:#000a;z-index:910" onclick="if(event.target===this){S.showSwapSheet=false;render()}">
+  <div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 16px 24px;z-index:911;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)">
+    <div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;cursor:pointer" onclick="S.showSwapSheet=false;render()"></div>
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:4px">Swapping out</div>
+    <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px">${ex.name}</div>
+    <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Choose alternative</div>
+    ${alts.map(a=>`<button onclick="swapExercise('${a.id}')" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
+      <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:3px">${a.name}</div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.4)">${a.muscles.join(' · ')}</div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:3px;line-height:1.4">${a.cue}</div>
+    </button>`).join('')}
+    <button onclick="S.showSwapSheet=false;render()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px;color:rgba(255,255,255,0.4);font-size:0.85rem;cursor:pointer;margin-top:4px">Keep ${ex.name}</button>
+  </div>
+</div>`;
+}
+function swapExercise(altId){
+  var ex=curEx();
+  var alts=SWAP_ALTS[ex.id]||[];
+  var alt=alts.find(function(a){return a.id===altId;});
+  if(!alt)return;
+  // Inherit sets/reps/rest from original exercise
+  var swapped=Object.assign({},ex,{id:ex.id+'_swap',name:alt.name,muscles:alt.muscles,cue:alt.cue,anim:alt.anim,yt:alt.yt,_swappedFrom:ex.name});
+  WK[S.day].exercises[S.exIdx]=swapped;
+  S.showSwapSheet=false;
+  render();
+}
 function renderRestSheet(){
   const next=S.exIdx<totalEx()-1?WK[S.day].exercises[S.exIdx+1]:null;
   const r=38;const circ=Math.PI*2*r;
@@ -2553,28 +2769,57 @@ ${hasProfile&&tdeeData?`
     </div>
   </div>
 
-  <!-- Food log -->
-  ${S.foodLog.filter(f=>f.date===todayStr()).length?
-  `<div style="margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700">📝 Food Log — Today</div>
-    </div>
-    ${S.foodLog.filter(f=>f.date===todayStr()).map(f=>`
-    <div class="food-log-item">
-      <div>
-        <div class="food-log-name">${f.name}${f.qty&&f.qty!==100?` <span style="color:var(--muted);font-weight:400;font-size:0.75rem">(${f.qty}g)</span>`:''}</div>
-        <div class="food-log-macros">P:${f.p}g · C:${f.c}g · F:${f.f}g</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="food-log-cal">${f.cal} cal</div>
-        <button onclick="removeFoodLog('${f.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:0.75rem">✕</button>
-      </div>
-    </div>`).join('')}
-  </div>`:''}
+  <!-- Food log — grouped by meal -->
+  ${(()=>{
+    const viewDate=S.logDate||todayStr();
+    const logEntries=S.foodLog.filter(f=>f.date===viewDate);
+    if(!logEntries.length) return '';
+    const cats=[
+      {key:'breakfast',icon:'🌅',label:'Breakfast',col:'#f5a623'},
+      {key:'lunch',icon:'☀️',label:'Lunch',col:'#4a90d9'},
+      {key:'dinner',icon:'🌙',label:'Dinner',col:'#9b59b6'},
+      {key:'snack',icon:'🍎',label:'Snacks',col:'#1D9E75'},
+      {key:'untagged',icon:'📝',label:'Other',col:'#666'}
+    ];
+    return cats.map(cat=>{
+      const items=logEntries.filter(f=>(f.meal||'untagged')===cat.key);
+      if(!items.length) return '';
+      const catCal=items.reduce((a,f)=>a+(f.cal||0),0);
+      const catP=items.reduce((a,f)=>a+(f.p||0),0);
+      return`<div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:1.1rem">${cat.icon}</span>
+            <span style="font-size:0.82rem;font-weight:700;color:${cat.col}">${cat.label}</span>
+            <span style="font-size:0.68rem;color:var(--muted)">${items.length} item${items.length>1?'s':''}</span>
+          </div>
+          <div style="font-size:0.8rem;font-weight:700;color:${cat.col}">${catCal} cal · ${catP}g P</div>
+        </div>
+        ${items.map(f=>`<div class="food-log-item">
+          <div>
+            <div class="food-log-name">${f.name}${f.qty&&f.qty!==100?` <span style="color:var(--muted);font-weight:400;font-size:0.75rem">(${f.qty}g)</span>`:''}</div>
+            <div class="food-log-macros">P:${f.p}g · C:${f.c}g · F:${f.f}g${f.fiber?` · Fiber:${f.fiber}g`:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="food-log-cal">${f.cal}</div>
+            <select onchange="S.foodLog.find(x=>x.id==='${f.id}').meal=this.value;saveDailyState();render()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:3px 4px;color:var(--muted);font-size:0.65rem;cursor:pointer">
+              ${['breakfast','lunch','dinner','snack','untagged'].map(m=>`<option value="${m}"${(f.meal||'untagged')===m?' selected':''}>${m==='breakfast'?'🌅':m==='lunch'?'☀️':m==='dinner'?'🌙':m==='snack'?'🍎':'📝'}</option>`).join('')}
+            </select>
+            <button onclick="removeFoodLog('${f.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:0.75rem">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  })()}
   <!-- Log Food button -->
-  <button onclick="openFoodPanel()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--s2);border:1px dashed var(--green)60;border-radius:12px;color:var(--green);font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:16px">
+    <button onclick="openFoodPanel()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--s2);border:1px dashed var(--green)60;border-radius:12px;color:var(--green);font-size:0.9rem;font-weight:700;cursor:pointer">
     + Log Food / Scan Barcode
   </button>
+    <button onclick="copyYesterdayMeals()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy all food logged yesterday into today">
+      📋 Copy<br>Yesterday
+    </button>
+  </div>
 
   <!-- Meals -->
   ${MEALS.map(m=>{
@@ -2858,6 +3103,20 @@ function renderFoodPanel(){
         <div style="font-size:1rem;font-weight:700">${pending?pending.name:'Log Food'}</div>
         <button onclick="${pending?'S.pendingFood=null;render()':'closeFoodPanel()'}" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);cursor:pointer;font-size:0.85rem">${pending?'← Back':'✕ Close'}</button>
       </div>
+      ${(()=>{
+        var ld=S.logDate||todayStr();
+        var isLogToday=ld===todayStr();
+        var yest=new Date(Date.now()-864e5).toDateString();
+        var lbl=isLogToday?'Today':ld===yest?'Yesterday':new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+        var canFwd=new Date(ld)<new Date(todayStr());
+        return'<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)">'+
+          '<span style="font-size:0.68rem;color:var(--muted)">📅 Logging to:</span>'+
+          '<button onclick="var d=new Date(S.logDate||todayStr());d.setDate(d.getDate()-1);S.logDate=d.toDateString();render()" style="background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:3px 8px;color:var(--muted);font-size:0.75rem;cursor:pointer">◀</button>'+
+          '<span style="font-size:0.82rem;font-weight:700;color:'+(isLogToday?'var(--green)':'var(--amber)')+'">'+lbl+'</span>'+
+          '<button onclick="if(new Date(S.logDate)<new Date(todayStr())){var d=new Date(S.logDate);d.setDate(d.getDate()+1);S.logDate=d.toDateString();render()}" style="background:'+(canFwd?'var(--s2)':'rgba(255,255,255,0.03)')+';border:1px solid '+(canFwd?'var(--border)':'transparent')+';border-radius:7px;padding:3px 8px;color:'+(canFwd?'var(--muted)':'rgba(255,255,255,0.1)')+';font-size:0.75rem;cursor:'+(canFwd?'pointer':'default')+'" '+(canFwd?'':'disabled')+'>▶</button>'+
+          (!isLogToday?'<button onclick="S.logDate=todayStr();render()" style="margin-left:auto;background:var(--green);border:none;border-radius:7px;padding:3px 9px;color:#fff;font-size:0.68rem;font-weight:700;cursor:pointer">Back to Today</button>':'')+
+        '</div>';
+      })()}
 
       ${!pending?`
       <div class="food-search-row">
@@ -2918,14 +3177,39 @@ function renderFoodPanel(){
             <span style="color:var(--muted);font-size:0.85rem">g &nbsp;(per 100g values shown above)</span>
           </div>
         </div>
-        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to Today's Log</button>
+        <div style="margin-bottom:16px">
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;font-weight:600">Add to meal</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            ${['breakfast','lunch','dinner','snack'].map(m=>{
+              const icons={breakfast:'🌅',lunch:'☀️',dinner:'🌙',snack:'🍎'};
+              const lbls={breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snack:'Snacks'};
+              const active=(pending.meal||'dinner')===m;
+              return`<button onclick="S.pendingFood.meal='${m}';render()" style="padding:9px 4px;background:${active?'var(--green)':'var(--s3)'};border:1px solid ${active?'var(--green)':'var(--border)'};border-radius:10px;color:${active?'#fff':'var(--muted)'};font-size:0.68rem;font-weight:700;cursor:pointer;line-height:1.3;text-align:center">${icons[m]}<br>${lbls[m]}</button>`;
+            }).join('')}
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to ${(()=>{var ld=S.logDate||todayStr();return ld===todayStr()?"Today's Log":new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+''s Log';})()}</button>
         <button onclick="S.pendingFood=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">← Back to results</button>
       </div>`}
     </div>
   </div>`;
 }
 
-function openFoodPanel(){S.showFoodPanel=true;S.pendingFood=null;S.foodResults=[];S.foodQuery='';render();}
+function copyYesterdayMeals(){
+  var yest=new Date(Date.now()-864e5).toDateString();
+  var td=todayStr();
+  var yesterdayLog=S.foodLog.filter(function(f){return f.date===yest;});
+  if(!yesterdayLog.length){alert("No food logged yesterday to copy.");return;}
+  var already=S.foodLog.filter(function(f){return f.date===td;});
+  var msg="Copy "+yesterdayLog.length+" item"+( yesterdayLog.length>1?"s":"")+" from yesterday into today?"+(already.length?" ("+already.length+" item"+(already.length>1?"s":"")+" already logged today)":"");
+  if(!confirm(msg))return;
+  yesterdayLog.forEach(function(f){
+    S.foodLog.push(Object.assign({},f,{id:Date.now().toString()+'_'+Math.random().toString(36).slice(2),date:td}));
+  });
+  saveDailyState();
+  render();
+}
+function openFoodPanel(date){S.showFoodPanel=true;S.pendingFood=null;S.foodResults=[];S.foodQuery='';S.logDate=date||todayStr();render();}
 function closeFoodPanel(){S.showFoodPanel=false;S.pendingFood=null;S.foodResults=[];render();}
 
 const AU_RESTAURANT_DB=[
@@ -3045,30 +3329,60 @@ const AU_RESTAURANT_DB=[
   {name:'Edamame',brand:'Sushi',cal:122.0,p:11.0,c:9.0,f:5.0,fiber:5.0,sugars:0.0,sodium:63,sat_fat:0.7,servingG:100,au:true}
 ];
 
-async function doFoodSearch(type){
+async const POPULAR_FOODS_DB=[
+  // Proteins
+  {name:'Chicken Breast (cooked)',brand:'Generic',cal:165,p:31,c:0,f:4,fiber:0,sugars:0,sodium:74,sat_fat:1.1},
+  {name:'Eggs (whole)',brand:'Generic',cal:143,p:13,c:1,f:10,fiber:0,sugars:0,sodium:142,sat_fat:3.3},
+  {name:'Salmon (cooked)',brand:'Generic',cal:208,p:28,c:0,f:10,fiber:0,sugars:0,sodium:59,sat_fat:1.9},
+  {name:'Tuna in Spring Water',brand:'Generic',cal:109,p:25,c:0,f:1,fiber:0,sugars:0,sodium:340,sat_fat:0.3},
+  {name:'Beef Mince 90% lean (cooked)',brand:'Generic',cal:215,p:26,c:0,f:12,fiber:0,sugars:0,sodium:67,sat_fat:5},
+  {name:'Turkey Breast (cooked)',brand:'Generic',cal:135,p:30,c:0,f:1,fiber:0,sugars:0,sodium:70,sat_fat:0.3},
+  {name:'Tofu (firm)',brand:'Generic',cal:76,p:8,c:2,f:4,fiber:0.3,sugars:0.5,sodium:10,sat_fat:0.6},
+  {name:'Greek Yoghurt (full fat)',brand:'Generic',cal:97,p:9,c:4,f:5,fiber:0,sugars:4,sodium:36,sat_fat:3.5},
+  {name:'Cottage Cheese (low fat)',brand:'Generic',cal:72,p:12,c:3,f:1,fiber:0,sugars:3,sodium:350,sat_fat:0.5},
+  {name:'Whey Protein Powder',brand:'Generic',cal:380,p:76,c:8,f:6,fiber:1,sugars:3,sodium:150,sat_fat:1},
+  // Carbs
+  {name:'White Rice (cooked)',brand:'Generic',cal:130,p:3,c:28,f:0,fiber:0.4,sugars:0,sodium:1,sat_fat:0.1},
+  {name:'Brown Rice (cooked)',brand:'Generic',cal:112,p:2.6,c:23,f:0.9,fiber:1.8,sugars:0,sodium:5,sat_fat:0.2},
+  {name:'Basmati Rice (cooked)',brand:'Generic',cal:121,p:2.8,c:25,f:0.4,fiber:0.6,sugars:0,sodium:1,sat_fat:0.1},
+  {name:'Rolled Oats (dry)',brand:'Generic',cal:375,p:13,c:62,f:7,fiber:10,sugars:1,sodium:2,sat_fat:1.4},
+  {name:'Pasta (cooked)',brand:'Generic',cal:131,p:5,c:25,f:1,fiber:1.8,sugars:0.6,sodium:1,sat_fat:0.2},
+  {name:'Sourdough Bread',brand:'Generic',cal:274,p:9,c:52,f:3,fiber:2.4,sugars:2,sodium:470,sat_fat:0.5},
+  {name:'White Bread',brand:'Generic',cal:265,p:9,c:49,f:3.2,fiber:2.7,sugars:5,sodium:491,sat_fat:0.7},
+  {name:'Sweet Potato (cooked)',brand:'Generic',cal:90,p:2,c:21,f:0,fiber:3,sugars:4.2,sodium:55,sat_fat:0},
+  {name:'Potato (baked)',brand:'Generic',cal:93,p:2.5,c:21,f:0.1,fiber:2.2,sugars:1,sodium:10,sat_fat:0},
+  {name:'Chickpeas (cooked)',brand:'Generic',cal:164,p:9,c:27,f:2.6,fiber:7.6,sugars:4.8,sodium:24,sat_fat:0.3},
+  {name:'Lentils (cooked)',brand:'Generic',cal:116,p:9,c:20,f:0.4,fiber:7.9,sugars:1.8,sodium:2,sat_fat:0.1},
+  // Fruits
+  {name:'Banana',brand:'Generic',cal:89,p:1,c:23,f:0,fiber:2.6,sugars:12,sodium:1,sat_fat:0.1},
+  {name:'Apple',brand:'Generic',cal:52,p:0.3,c:14,f:0.2,fiber:2.4,sugars:10,sodium:1,sat_fat:0},
+  {name:'Orange',brand:'Generic',cal:47,p:0.9,c:12,f:0.1,fiber:2.4,sugars:9.4,sodium:0,sat_fat:0},
+  {name:'Blueberries',brand:'Generic',cal:57,p:0.7,c:14,f:0.3,fiber:2.4,sugars:10,sodium:1,sat_fat:0},
+  {name:'Strawberries',brand:'Generic',cal:32,p:0.7,c:7.7,f:0.3,fiber:2,sugars:4.9,sodium:1,sat_fat:0},
+  {name:'Watermelon',brand:'Generic',cal:30,p:0.6,c:7.6,f:0.2,fiber:0.4,sugars:6.2,sodium:1,sat_fat:0},
+  {name:'Mango',brand:'Generic',cal:60,p:0.8,c:15,f:0.4,fiber:1.6,sugars:14,sodium:1,sat_fat:0.1},
+  {name:'Grapes',brand:'Generic',cal:69,p:0.7,c:18,f:0.2,fiber:0.9,sugars:16,sodium:2,sat_fat:0},
+  // Vegetables
+  {name:'Broccoli (steamed)',brand:'Generic',cal:35,p:3,c:7,f:0,fiber:2.6,sugars:1.7,sodium:33,sat_fat:0},
+  {name:'Spinach (raw)',brand:'Generic',cal:23,p:2.9,c:3.6,f:0.4,fiber:2.2,sugars:0.4,sodium:79,sat_fat:0.1},
+  {name:'Carrot (raw)',brand:'Generic',cal:41,p:0.9,c:10,f:0.2,fiber:2.8,sugars:4.7,sodium:69,sat_fat:0},
+  {name:'Cucumber',brand:'Generic',cal:16,p:0.7,c:3.6,f:0.1,fiber:0.5,sugars:1.7,sodium:2,sat_fat:0},
+  {name:'Tomato',brand:'Generic',cal:18,p:0.9,c:3.9,f:0.2,fiber:1.2,sugars:2.6,sodium:5,sat_fat:0},
+  {name:'Capsicum (red)',brand:'Generic',cal:31,p:1,c:6,f:0.3,fiber:2.1,sugars:4.2,sodium:4,sat_fat:0},
+  // Fats & dairy
+  {name:'Avocado',brand:'Generic',cal:160,p:2,c:9,f:15,fiber:7,sugars:0.7,sodium:7,sat_fat:2.1},
+  {name:'Almonds (raw)',brand:'Generic',cal:579,p:21,c:22,f:50,fiber:12.5,sugars:4.4,sodium:1,sat_fat:3.7},
+  {name:'Peanut Butter (natural)',brand:'Generic',cal:588,p:25,c:20,f:50,fiber:6,sugars:9,sodium:365,sat_fat:9},
+  {name:'Olive Oil',brand:'Generic',cal:884,p:0,c:0,f:100,fiber:0,sugars:0,sodium:2,sat_fat:13.8},
+  {name:'Butter',brand:'Generic',cal:717,p:0.9,c:0.1,f:81,fiber:0,sugars:0,sodium:11,sat_fat:51},
+  {name:'Cheddar Cheese',brand:'Generic',cal:402,p:25,c:1.3,f:33,fiber:0,sugars:0.5,sodium:621,sat_fat:21},
+  {name:'Full Cream Milk',brand:'Generic',cal:61,p:3.2,c:4.8,f:3.4,fiber:0,sugars:4.8,sodium:44,sat_fat:2.1},
+  {name:'Skim Milk',brand:'Generic',cal:34,p:3.4,c:5,f:0.1,fiber:0,sugars:5,sodium:50,sat_fat:0.1},
+  {name:'Honey',brand:'Generic',cal:304,p:0.3,c:82,f:0,fiber:0.2,sugars:82,sodium:4,sat_fat:0},
+];
+function doFoodSearch(type){
   if(type==='popular'){
-    S.foodResults=[
-      {name:'Chicken Breast (cooked)',brand:'Generic',cal:165,p:31,c:0,f:4,fiber:0,sugars:0,sodium:74,sat_fat:1.1},
-      {name:'White Rice (cooked)',brand:'Generic',cal:130,p:3,c:28,f:0,fiber:0.4,sugars:0,sodium:1,sat_fat:0.1},
-      {name:'Rolled Oats (dry)',brand:'Generic',cal:375,p:13,c:62,f:7,fiber:10,sugars:1,sodium:2,sat_fat:1.4},
-      {name:'Eggs (whole)',brand:'Generic',cal:143,p:13,c:1,f:10,fiber:0,sugars:0,sodium:142,sat_fat:3.3},
-      {name:'Greek Yoghurt (full fat)',brand:'Generic',cal:97,p:9,c:4,f:5,fiber:0,sugars:4,sodium:36,sat_fat:3.5},
-      {name:'Banana',brand:'Generic',cal:89,p:1,c:23,f:0,fiber:2.6,sugars:12,sodium:1,sat_fat:0.1},
-      {name:'Almonds (raw)',brand:'Generic',cal:579,p:21,c:22,f:50,fiber:12.5,sugars:4.4,sodium:1,sat_fat:3.7},
-      {name:'Sweet Potato (cooked)',brand:'Generic',cal:90,p:2,c:21,f:0,fiber:3,sugars:4.2,sodium:55,sat_fat:0},
-      {name:'Salmon (cooked)',brand:'Generic',cal:208,p:28,c:0,f:10,fiber:0,sugars:0,sodium:59,sat_fat:1.9},
-      {name:'Beef Mince 90% lean (cooked)',brand:'Generic',cal:215,p:26,c:0,f:12,fiber:0,sugars:0,sodium:67,sat_fat:5},
-      {name:'Broccoli (steamed)',brand:'Generic',cal:35,p:3,c:7,f:0,fiber:2.6,sugars:1.7,sodium:33,sat_fat:0},
-      {name:'Whey Protein Powder',brand:'Generic',cal:380,p:76,c:8,f:6,fiber:1,sugars:3,sodium:150,sat_fat:1},
-      {name:'Sourdough Bread',brand:'Generic',cal:274,p:9,c:52,f:3,fiber:2.4,sugars:2,sodium:470,sat_fat:0.5},
-      {name:'Cottage Cheese (low fat)',brand:'Generic',cal:72,p:12,c:3,f:1,fiber:0,sugars:3,sodium:350,sat_fat:0.5},
-      {name:'Tuna in Spring Water',brand:'Generic',cal:109,p:25,c:0,f:1,fiber:0,sugars:0,sodium:340,sat_fat:0.3},
-      {name:'Avocado',brand:'Generic',cal:160,p:2,c:9,f:15,fiber:7,sugars:0.7,sodium:7,sat_fat:2.1},
-      {name:'Peanut Butter (natural)',brand:'Generic',cal:588,p:25,c:20,f:50,fiber:6,sugars:9,sodium:365,sat_fat:9},
-      {name:'Full Cream Milk',brand:'Generic',cal:61,p:3.2,c:4.8,f:3.4,fiber:0,sugars:4.8,sodium:44,sat_fat:2.1},
-      {name:'Brown Rice (cooked)',brand:'Generic',cal:112,p:2.6,c:23,f:0.9,fiber:1.8,sugars:0,sodium:5,sat_fat:0.2},
-      {name:'Pasta (cooked)',brand:'Generic',cal:131,p:5,c:25,f:1,fiber:1.8,sugars:0.6,sodium:1,sat_fat:0.2},
-    ];
+    S.foodResults=POPULAR_FOODS_DB.slice();
     render();return;
   }
   if(type==='restaurants'){
@@ -3079,16 +3393,23 @@ async function doFoodSearch(type){
   if(!q)return;
   S.foodSearching=true;render();
 
+  // Layer 0 — Popular/common foods fuzzy match (instant, always first)
+  const qLow0=q.toLowerCase();
+  const popularHits=POPULAR_FOODS_DB.filter(item=>{
+    const n=item.name.toLowerCase();
+    return n.includes(qLow0)||qLow0.split(' ').some(w=>w.length>2&&n.includes(w));
+  });
   // Layer 1 — AU Restaurant DB (fuzzy match, instant, no API call)
   const qLow=q.toLowerCase().replace(/[^a-z0-9 ]/g,' ');
   const qWords=qLow.split(' ').filter(w=>w.length>1);
-  if(qWords.length>0){
-    const auMatches=AU_RESTAURANT_DB.filter(item=>{
+  if(popularHits.length>0||qWords.length>0){
+    const auMatches=qWords.length>0?AU_RESTAURANT_DB.filter(item=>{
       const hay=(item.name+' '+item.brand).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
       return qWords.some(w=>hay.includes(w));
-    });
-    if(auMatches.length>0){
-      S.foodResults=auMatches.slice(0,10);
+    }):[];
+    if(popularHits.length>0||auMatches.length>0){
+      const seen=new Set(popularHits.map(x=>x.name));
+      S.foodResults=[...popularHits,...auMatches.filter(x=>!seen.has(x.name)).slice(0,6)];
       S.foodSearching=false;render();return;
     }
   }
@@ -3128,10 +3449,10 @@ async function doFoodSearch(type){
   // Layer 2 & 3 — Open Food Facts (AU endpoint first, world fallback)
   try{
     const parseProducts=prods=>prods
-      .filter(p=>p.product_name&&p.nutriments&&p.nutriments['energy-kcal_100g'])
+      .filter(p=>p.product_name&&p.nutriments&&(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||p.nutriments['energy_100g']))
       .slice(0,6).map(p=>({
         name:p.product_name,brand:p.brands||'',
-        cal:Math.round(p.nutriments['energy-kcal_100g']||0),
+        cal:Math.round(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||Math.round((p.nutriments['energy_100g']||0)/4.184)||0),
         p:Math.round(p.nutriments['proteins_100g']||0),
         c:Math.round(p.nutriments['carbohydrates_100g']||0),
         f:Math.round(p.nutriments['fat_100g']||0),
@@ -3151,10 +3472,21 @@ async function doFoodSearch(type){
     const d2=await r2.json();
     S.foodResults=parseProducts(d2.products||[]);
   }catch{S.foodResults=[];}
+  // Fallback: popular foods fuzzy match if API returned nothing
+  if(S.foodResults.length===0){
+    const qf=q.toLowerCase();
+    S.foodResults=POPULAR_FOODS_DB.filter(item=>item.name.toLowerCase().includes(qf)||qf.split(' ').some(w=>w.length>2&&item.name.toLowerCase().includes(w)));
+  }
   S.foodSearching=false;render();
 }
 
-function selectFood(idx){var food=S.foodResults[idx];if(!food)return;S.pendingFood={...food,servingQty:food.servingG||100};render();}
+function selectFood(idx){
+  var food=S.foodResults[idx];if(!food)return;
+  var hr=new Date().getHours();
+  var defaultMeal=hr<11?'breakfast':hr<15?'lunch':hr<18?'snack':'dinner';
+  S.pendingFood={...food,servingQty:food.servingG||100,meal:defaultMeal};
+  render();
+}
 
 function updateFoodQty(val){
   var qty=parseInt(val)||100;
@@ -3254,7 +3586,8 @@ function confirmAddFood(){
   const scale=qty/100;
   S.foodLog.push({
     id:Date.now().toString(),
-    date:todayStr(),
+    date:S.logDate||todayStr(),
+    meal:f.meal||'untagged',
     name:f.name,
     brand:f.brand||'',
     qty,
