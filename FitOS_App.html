@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-visual">
+  <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FitOS">
@@ -24,7 +27,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--tab-h) + 8px)}
 
 /* ── TAB BAR ── */
-.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px)}
 .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
 .tab-item.active{color:var(--green)}
 .tab-item svg{width:22px;height:22px}
@@ -1730,6 +1733,26 @@ async function startStepTracking(){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ANDROID KEYBOARD HANDLER — hide tab bar when virtual keyboard is open
+// ═══════════════════════════════════════════════════════════════════════════
+(function(){
+  if(!window.visualViewport) return;
+  var tabBar=null;
+  function onVVResize(){
+    if(!tabBar) tabBar=document.getElementById('tab-bar');
+    if(!tabBar) return;
+    // Keyboard is open when viewport height is < 75% of screen height
+    var keyboardOpen=window.visualViewport.height < window.screen.height * 0.72;
+    tabBar.style.transform=keyboardOpen
+      ?'translateX(-50%) translateY(100%)'
+      :'translateX(-50%) translateY(0)';
+    tabBar.style.transition='transform 0.15s ease';
+  }
+  window.visualViewport.addEventListener('resize',onVVResize);
+  window.visualViewport.addEventListener('scroll',onVVResize);
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RENDER ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 function render(){
@@ -2281,7 +2304,7 @@ function renderToday(){
       <span>📖 Viewing history</span>
       <button onclick="S.viewDate=todayStr();render()" style="background:var(--amber);border:none;border-radius:7px;padding:4px 10px;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer">Jump to Today</button>
     </div>
-    <button onclick="openFoodPanel(vd)" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 12px;color:#fff;font-size:0.75rem;font-weight:600;cursor:pointer;width:100%">
+    <button onclick="openFoodPanel('${vd}')" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 12px;color:#fff;font-size:0.75rem;font-weight:600;cursor:pointer;width:100%">
       📋 Add missed food to ${viewDateLabel(vd)}
     </button>
   </div>`:''}
@@ -2942,10 +2965,10 @@ ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
     </div>
     <div class="step-progress-wrap"><div class="step-progress-fill" style="width:${stepPct}%"></div></div>
     <div class="step-manual-row">
-      <input id="step-manual" type="number" placeholder="Add steps" class="wizard-input" style="padding:8px;font-size:0.9rem;flex:1" min="0"/>
-      <button class="step-btn" onclick="addManualSteps()">+ Add</button>
-      <button class="step-btn" onclick="requestSteps()" style="background:var(--blue);border-color:var(--blue);color:#fff">📱 Sync</button>
+      <button class="step-btn" onclick="openSetSteps()" style="flex:1;background:var(--blue);border-color:var(--blue);color:#fff;font-size:0.8rem">✏️ Set from Health app</button>
+      <button class="step-btn" onclick="toggleStepCounting()" style="font-size:0.8rem" id="step-count-btn">${S.stepTrackingActive?'⏹ Stop':'🏃 Auto-count'}</button>
     </div>
+    ${S.stepTrackingActive?'<div style="text-align:center;font-size:0.72rem;color:var(--green);margin-top:4px">● Counting steps via accelerometer</div>':''}
   </div>
   <div class="card-title" style="margin-top:16px">Water Intake</div>
   <div class="card">
@@ -4185,14 +4208,63 @@ function wizNext(){
 function wizBack(){if(S.intakeStep>0){S.intakeStep--;render();}}
 
 // ─── STEP PERMISSION ─────────────────────────────────────────────────────
-function requestSteps(){
+function openSetSteps(){
+  var sheet=document.createElement('div');
+  sheet.id='step-set-sheet';
+  sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isAndroid=/android/i.test(navigator.userAgent);
+  var hint=isIOS
+    ?'Open <b>Health app</b> → Browse → Activity → Steps → see today\'s count'
+    :isAndroid
+      ?'Open <b>Google Fit</b> or <b>Samsung Health</b> → check today\'s steps'
+      :'Check your fitness tracker or phone\'s health app for today\'s step count';
+  var cur=S.stepsToday||'';
+  sheet.innerHTML='<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.5)">'
+    +'<div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px"></div>'
+    +'<div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Set Today\'s Steps</div>'
+    +'<div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;line-height:1.5">'+hint+'</div>'
+    +'<input id="step-set-input" type="number" placeholder="e.g. 7500" inputmode="numeric"'
+    +' style="width:100%;padding:14px 12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:1.2rem;text-align:center;margin-bottom:12px;box-sizing:border-box"'
+    +' value="'+cur+'"/>'
+    +'<button onclick="confirmSetSteps()" style="width:100%;padding:14px;background:var(--blue);border:none;border-radius:12px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:8px">✅ Save Steps</button>'
+    +'<button onclick="document.getElementById(\'step-set-sheet\').remove()" style="width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.9rem;cursor:pointer">Cancel</button>'
+    +'</div>';
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click',function(e){if(e.target===sheet)sheet.remove();});
+  setTimeout(function(){var inp=document.getElementById('step-set-input');if(inp){inp.focus();inp.select();}},100);
+}
+
+function confirmSetSteps(){
+  var inp=document.getElementById('step-set-input');
+  if(!inp) return;
+  var n=parseInt(inp.value)||0;
+  if(n>=0){S.stepsToday=n;localStorage.setItem('fitos_steps',n);render();}
+  var sheet=document.getElementById('step-set-sheet');
+  if(sheet) sheet.remove();
+}
+
+function toggleStepCounting(){
+  if(S.stepTrackingActive){
+    window.removeEventListener('devicemotion',onMotion);
+    S.stepTrackingActive=false;render();return;
+  }
   if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
     DeviceMotionEvent.requestPermission().then(function(r){
-      if(r==='granted'){window.addEventListener('devicemotion',onMotion);S.stepTrackingActive=true;render();}
+      if(r==='granted'){window.addEventListener('devicemotion',onMotion,{passive:true});S.stepTrackingActive=true;render();}
+      else{alert('Motion access denied. Set steps manually instead.');}
     }).catch(function(){});
   } else {
-    window.addEventListener('devicemotion',onMotion);S.stepTrackingActive=true;render();
+    window.addEventListener('devicemotion',onMotion,{passive:true});
+    S.stepTrackingActive=true;render();
   }
+}
+
+function addManualSteps(){
+  var inp=document.getElementById('step-manual');
+  if(!inp) return;
+  var n=parseInt(inp.value)||0;
+  if(n>0){S.stepsToday+=n;localStorage.setItem('fitos_steps',S.stepsToday);inp.value='';render();}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
