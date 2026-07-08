@@ -137,8 +137,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ex-target{font-size:0.88rem;color:var(--muted)}
 .ex-target strong{color:var(--text)}
 .rir-badge{display:inline-block;background:#1D9E7520;color:var(--green);font-size:0.75rem;padding:3px 9px;border-radius:20px;margin-left:8px;font-weight:600}
-.demo-area{background:var(--s2);border-bottom:1px solid var(--border)}
+.demo-area{background:var(--s2);border-bottom:1px solid var(--border);padding-bottom:12px}
 .demo-3d-wrap{height:230px;background:#111827;border-radius:10px;overflow:hidden;position:relative}.demo-3d-wrap canvas{display:block;width:100%!important;height:100%!important}
+.yt-embed-wrap{padding:0 14px}
+.yt-placeholder{height:220px;background:linear-gradient(145deg,#0f0f0f,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,0,0,0.25);position:relative;overflow:hidden;transition:border-color .2s}
+.yt-placeholder:active{border-color:rgba(255,0,0,0.6);transform:scale(0.99)}
+.yt-placeholder::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(255,0,0,0.08) 0%,transparent 70%)}
+.yt-placeholder-inner{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;z-index:1}
+.yt-logo{opacity:0.9}
+.yt-play-circle{filter:drop-shadow(0 4px 12px rgba(255,0,0,0.5))}
+.yt-ex-label{color:rgba(255,255,255,0.8);font-size:0.8rem;font-weight:600;text-align:center;max-width:220px;line-height:1.3}
+.yt-tap-hint{color:rgba(255,255,255,0.35);font-size:0.68rem;letter-spacing:.05em;text-transform:uppercase}
 .muscle-tags-bar{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;background:var(--s2)}
 .muscle-tag{font-size:0.68rem;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)}
 .watch-demo-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;background:#cc0000;color:#fff;font-weight:700;font-size:0.92rem;text-decoration:none;transition:opacity .15s}
@@ -1310,14 +1319,43 @@ function getInjuryRehab(profile){
   return injuries.filter(function(inj){return INJURY_WARMUP[inj];}).map(function(inj){return INJURY_WARMUP[inj];});
 }
 
-const WARMUP_GENERAL=[
-  {id:'wu1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. HR to 110–120 bpm before anything else.'},
-  {id:'wu2',name:'90/90 Hip Stretch',detail:'60 sec each side — opens hip flexors and external rotators. Essential pre-lower.'},
-  {id:'wu3',name:'Cat-Cow',detail:'10 reps slow — mobilises lumbar and thoracic spine. Full range each rep.'},
-  {id:'wu4',name:'Bird-Dog',detail:'10 reps each side — activates deep lumbar stabilisers. Slow, controlled.'},
-  {id:'wu5',name:'Bodyweight Glute Bridge',detail:'15 reps, hold 2 sec at top — fires glutes and teaches hip extension pattern.'},
-  {id:'wu6',name:'Band Pull-Apart',detail:'20 reps — activates rear delts and rhomboids. Light band or towel.'}
-];
+// Day-specific warm-up protocols (muscle-group matched)
+const WARMUP_BY_DAY={
+  upper_push:[
+    {id:'wu-up1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. HR to 110–120 bpm. Gets blood to the shoulder joint.'},
+    {id:'wu-up2',name:'Arm Circles (progressive)',detail:'30 sec each direction — small to large. Mobilises glenohumeral joint before loading.'},
+    {id:'wu-up3',name:'Scapular Push-Up',detail:'2×10 reps — protract/retract blades only, arms straight. Activates serratus anterior.'},
+    {id:'wu-up4',name:'Band Pull-Apart',detail:'2×20 reps, light band — activates rear delts and rhomboids. Counterbalances pressing.'},
+    {id:'wu-up5',name:'Wall Slide',detail:'10 reps — forearms on wall, slide up and down. Opens lats and thoracic spine.'},
+    {id:'wu-up6',name:'Shoulder CARs',detail:'5 slow full circles each arm — controlled articular rotations. Lubricates the joint before load.'}
+  ],
+  upper_pull:[
+    {id:'wu-ul1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. Rowing specifically primes the pull pattern.'},
+    {id:'wu-ul2',name:'Cat-Cow',detail:'10 reps slow — mobilises thoracic spine. Full range, exhale on flex, inhale on extend.'},
+    {id:'wu-ul3',name:'Thoracic Rotation (Quadruped)',detail:'10 reps each side — hand behind head, rotate and open to ceiling. Unlocks mid-back.'},
+    {id:'wu-ul4',name:'Band Pull-Apart',detail:'2×20 reps — activates rear delts and rhomboids. Prime the pulling muscles.'},
+    {id:'wu-ul5',name:'Dead Hang / Shoulder Flexion',detail:'20–30 sec hang — decompresses spine, opens lats. If no bar, reach overhead and breathe.'},
+    {id:'wu-ul6',name:'Face Pull (light band)',detail:'2×15 reps — external rotation activation. Shoulder health before any pulling load.'}
+  ],
+  lower_quad:[
+    {id:'wu-lq1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. HR to 110–120 bpm. Warms knee joint specifically.'},
+    {id:'wu-lq2',name:'90/90 Hip Stretch',detail:'60 sec each side — opens hip flexors and external rotators. Non-negotiable pre-squat.'},
+    {id:'wu-lq3',name:'Leg Swing (front/back)',detail:'10 reps each leg — dynamic hamstring and hip flexor warm-up. Hold wall for balance.'},
+    {id:'wu-lq4',name:'Leg Swing (side to side)',detail:'10 reps each leg — opens hip abductors and adductors. Improves squat depth.'},
+    {id:'wu-lq5',name:'Goblet Squat (bodyweight)',detail:'2×10 reps — heels elevated if needed. Hold bottom 2 sec. Ankle and hip mobility check.'},
+    {id:'wu-lq6',name:'Glute Bridge (bodyweight)',detail:'15 reps, 2 sec hold at top — activates glutes before quad-dominant work. Protects knees.'}
+  ],
+  lower_post:[
+    {id:'wu-lp1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. Get blood moving before any hinge loading.'},
+    {id:'wu-lp2',name:'Cat-Cow',detail:'10 reps slow — mobilises lumbar spine. Essential before any hinge or posterior loading.'},
+    {id:'wu-lp3',name:'Bird-Dog',detail:'10 reps each side — activates deep lumbar stabilisers. Slow and deliberate.'},
+    {id:'wu-lp4',name:'Hip Hinge Drill (dowel/wall)',detail:'10 reps — dowel along spine (or butt to wall). Teaches neutral hinge, no lumbar rounding.'},
+    {id:'wu-lp5',name:'Glute Bridge (bodyweight)',detail:'2×15 reps, 2 sec hold — fires glutes before loading the posterior chain.'},
+    {id:'wu-lp6',name:'Standing Hip Circle',detail:'10 each direction per leg — full hip joint mobilisation through range before loading.'}
+  ]
+};
+// Legacy alias for injury rehab sections (used by getInjuryRehab)
+const WARMUP_GENERAL=WARMUP_BY_DAY.upper_push;
 const WARMUP_REHAB=[
   {id:'wr1',name:'Dead Bug',detail:'3×10 each side — core anti-extension. Lower back pressed to floor. Lumbar safe.'},
   {id:'wr2',name:"Child's Pose",detail:'60 sec hold — decompresses the lumbar spine. Breathe deep into lower back.'},
@@ -1325,23 +1363,42 @@ const WARMUP_REHAB=[
   {id:'wr4',name:'Knee-to-Chest',detail:'30 sec each side — gentle lumbar flexion mobilisation. Never force.'}
 ];
 const COOLDOWN={
-  upper:[
-    {id:'cd1',name:'Chest / Pec Doorway Stretch',detail:'30 sec each side — arms at 90°, lean through doorway.'},
-    {id:'cd2',name:'Lat Overhead Stretch',detail:'30 sec each side — reach overhead, bend sideways. Decompress thoracic.'},
-    {id:'cd3',name:'Cross-Body Shoulder Stretch',detail:'30 sec each — pull arm across chest. Rear delt and rotator cuff.'},
-    {id:'cd4',name:'Tricep Overhead Stretch',detail:'30 sec each — elbow behind head, gently press down. Long head stretch.'},
-    {id:'cd5',name:'Neck Side Stretch',detail:'30 sec each side — ear to shoulder. Releases upper trap tension.'},
-    {id:'cd6',name:"Child's Pose",detail:"60 sec — lumbar decompression. Non-negotiable. Breathe."}
+  upper_push:[
+    {id:'cd-up1',name:'Chest / Pec Doorway Stretch',detail:'30 sec each side — arms at 90°, lean through doorway. Holds the pec stretch.'},
+    {id:'cd-up2',name:'Anterior Shoulder Stretch',detail:'30 sec each — arm back and low, rotate palm up. Releases front delt after pressing.'},
+    {id:'cd-up3',name:'Tricep Overhead Stretch',detail:'30 sec each arm — elbow behind head, gentle press. Long head of tricep.'},
+    {id:'cd-up4',name:'Neck Side Stretch',detail:'30 sec each side — ear to shoulder. Releases upper trap tension from pressing.'},
+    {id:'cd-up5',name:'Cross-Body Shoulder Stretch',detail:'30 sec each — pull arm across chest. Rear delt balance after heavy pressing.'},
+    {id:'cd-up6',name:"Child's Pose",detail:"60 sec — decompress thoracic spine after pressing load. Breathe into lower back."}
   ],
-  lower:[
-    {id:'cd1',name:'Hip Flexor Lunge Stretch',detail:'60 sec each side — rear knee down, hips forward.'},
-    {id:'cd2',name:'Pigeon Pose',detail:'60 sec each side — glute and piriformis release.'},
-    {id:'cd3',name:'Seated Hamstring Stretch',detail:'30 sec each — leg straight, reach toward foot.'},
-    {id:'cd4',name:'Figure-Four Glute Stretch',detail:'30 sec each — cross ankle over opposite knee, pull to chest.'},
-    {id:'cd5',name:'Standing Calf Stretch',detail:'30 sec each — heel down, lean into wall.'},
-    {id:'cd6',name:"Child's Pose",detail:"90 sec — lumbar decompression. Always last."}
+  upper_pull:[
+    {id:'cd-ul1',name:'Lat Overhead Stretch',detail:'30 sec each side — reach overhead, bend sideways. Opens the lat fully after pulling.'},
+    {id:'cd-ul2',name:'Cross-Body Shoulder / Rear Delt Stretch',detail:'30 sec each — pull arm across chest. Targets rear delts and rhomboids.'},
+    {id:'cd-ul3',name:'Bicep Stretch (wall assist)',detail:'30 sec each — arm behind, hand on wall, rotate away. Full bicep lengthening.'},
+    {id:'cd-ul4',name:'Thoracic Extension (foam roll or bench)',detail:'60 sec — thoracic spine over roller, arms overhead. Counters the pulling rounding.'},
+    {id:'cd-ul5',name:'Neck Side Stretch',detail:'30 sec each side — releases upper trap and levator scapulae after rowing.'},
+    {id:'cd-ul6',name:"Child's Pose",detail:"60 sec — lumbar decompression and lat stretch. Always last."}
+  ],
+  lower_quad:[
+    {id:'cd-lq1',name:'Hip Flexor Lunge Stretch',detail:'60 sec each side — rear knee down, hips forward. Counters the quad shortening from squats.'},
+    {id:'cd-lq2',name:'Quad Stretch (standing)',detail:'30 sec each — pull heel to glute, knee pointing straight down. Full rectus femoris.'},
+    {id:'cd-lq3',name:'Figure-Four Glute Stretch',detail:'30 sec each — cross ankle over knee, pull to chest. Glute med and piriformis.'},
+    {id:'cd-lq4',name:'Standing Calf Stretch (straight leg)',detail:'30 sec each — heel down, lean into wall. Gastrocnemius release.'},
+    {id:'cd-lq5',name:'Seated Hamstring Stretch',detail:'30 sec each — leg straight, reach toward foot. Balances quad-dominant day.'},
+    {id:'cd-lq6',name:"Child's Pose",detail:"90 sec — lumbar decompression after squatting load. Non-negotiable."}
+  ],
+  lower_post:[
+    {id:'cd-lp1',name:'Pigeon Pose',detail:'60 sec each side — glute and piriformis release after heavy posterior work.'},
+    {id:'cd-lp2',name:'Supine Hamstring Stretch',detail:'45 sec each — leg up, strap or towel around foot. Full hamstring lengthening.'},
+    {id:'cd-lp3',name:'Figure-Four Glute Stretch',detail:'30 sec each — cross ankle over knee, pull to chest. Deep glute release.'},
+    {id:'cd-lp4',name:'Hip Flexor Lunge Stretch',detail:'60 sec each side — hip extension counter. Hip flexors get compressed during hinging.'},
+    {id:'cd-lp5',name:"Child's Pose (wide stance)",detail:"90 sec — lumbar decompression. Wide knees hits inner groin too. Always last."},
+    {id:'cd-lp6',name:'Seated Spinal Twist',detail:'30 sec each side — cross one knee over, rotate opposite direction. Lumbar decompression.'}
   ]
 };
+// Legacy aliases so existing code doesn't break
+COOLDOWN.upper=COOLDOWN.upper_push;
+COOLDOWN.lower=COOLDOWN.lower_quad;
 const REST_DAY_REHAB=[
   {id:'rd1',name:'Cat-Cow',detail:'10 reps slow — spinal mobility.'},
   {id:'rd2',name:'Bird-Dog',detail:'10 each side — lumbar stabiliser activation.'},
@@ -1575,7 +1632,7 @@ let S={
 
   // Train tab
   trainScreen:'home',  // home|warmup|workout|rest|cooldown|complete|restday
-  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},
+  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
@@ -1791,7 +1848,7 @@ function render(){
       fab.onclick=function(){openCoach();};
       document.body.appendChild(fab);
     }
-    if(S.tab==='train'&&S.trainScreen==='workout'){const _ex=curEx();setTimeout(()=>{const _c=document.getElementById('ex-anim-canvas');if(_c)startExerciseAnim(_ex.anim,_c);},60);}
+    // YouTube demo replaces Three.js animation — no canvas hook needed
   }catch(err){
     console.error('render error:',err);
     // Safe fallback — never leave the user with a broken screen
@@ -2441,15 +2498,87 @@ ${S.day?`<div class="card" style="border-color:${WK[S.day].color}40;margin-botto
   </div>
 </div>
 ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</div>
-<div class="card">${hist.map(h=>`<div class="hist-item"><div><strong>Day ${h.day}</strong> — ${WK[h.day].name}<br><span style="color:var(--muted);font-size:0.75rem">${fmt(h.date)} · Wk ${h.week}</span></div><span style="font-size:0.8rem;color:var(--muted)">${Object.values(h.sets).reduce((a,s)=>a+s.length,0)} sets</span></div>`).join('')}</div>`:''}
+<div class="card">${hist.map((h,hi)=>{
+  const gIdx=S.gymHistory.length-1-hi;
+  const totalSets=Object.values(h.sets||{}).reduce((a,s)=>a+s.length,0);
+  const totalVol=Math.round(Object.values(h.sets||{}).reduce((a,sets)=>a+sets.reduce((b,s)=>b+(s.weight*s.reps),0),0));
+  return`<div class="hist-item" onclick="viewSession(${gIdx})" style="cursor:pointer;active:opacity(0.7)">
+    <div>
+      <strong style="color:${WK[h.day]?.color||'var(--green)'}">${WK[h.day]?.name||'Day '+h.day}</strong><br>
+      <span style="color:var(--muted);font-size:0.75rem">${fmt(h.date)} · Wk ${h.week}${h.duration?' · '+h.duration+' min':''}</span>
+    </div>
+    <div style="text-align:right">
+      <span style="font-size:0.8rem;color:var(--muted)">${totalSets} sets</span><br>
+      <span style="font-size:0.7rem;color:var(--muted)">${totalVol.toLocaleString()} kg vol</span>
+    </div>
+  </div>`;}).join('')}</div>`:''}
 </div>`;
 }
 
+function viewSession(gIdx){
+  var h=S.gymHistory[gIdx];if(!h)return;
+  var dayExs=(WK[h.day]&&WK[h.day].exercises)||[];
+  var exName={};dayExs.forEach(function(e){exName[e.id]=e.name;});
+  var dayColor=(WK[h.day]&&WK[h.day].color)||'var(--green)';
+  var dayName=(WK[h.day]&&WK[h.day].name)||'Day '+h.day;
+  var dateStr=new Date(h.date).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  var totalSets=Object.values(h.sets||{}).reduce(function(a,s){return a+s.length;},0);
+  var totalVol=Math.round(Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.reduce(function(b,s){return b+(s.weight*s.reps);},0);},0));
+  var exRows=Object.entries(h.sets||{}).map(function(entry){
+    var id=entry[0],sets=entry[1];
+    var name=exName[id]||id;
+    var rows=sets.map(function(s,i){
+      return'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.83rem;border-bottom:1px solid rgba(255,255,255,0.06)">'
+        +'<span style="color:var(--muted)">Set '+(i+1)+'</span>'
+        +'<span style="font-weight:600">'+s.weight+'kg &times; '+s.reps+' reps</span>'
+        +'</div>';
+    }).join('');
+    var noteText=(h.notes&&h.notes[id])||'';
+    var noteHtml=noteText?'<div style="margin-top:6px;padding:8px 10px;background:rgba(255,200,0,0.08);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;font-size:0.78rem;color:var(--muted);line-height:1.5">💬 '+noteText+'</div>':'';
+    return'<div style="margin-bottom:16px">'
+      +'<div style="font-weight:700;font-size:0.88rem;margin-bottom:6px;color:'+dayColor+'">'+name+'</div>'
+      +rows+noteHtml
+      +'</div>';
+  }).join('');
+  var sheet=document.createElement('div');
+  sheet.id='session-history-sheet';
+  sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  sheet.innerHTML='<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.5)">'
+    +'<div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'
+      +'<div><div style="font-size:1.1rem;font-weight:700">Day '+h.day+' · '+dayName+'</div>'
+      +'<div style="font-size:0.78rem;color:var(--muted);margin-top:3px">'+dateStr+' · Week '+h.week+'</div></div>'
+      +'<div style="text-align:right;font-size:0.75rem;color:var(--muted)">'+(h.duration?h.duration+' min':'')+'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:0;margin-bottom:20px;background:var(--s2);border-radius:12px;overflow:hidden">'
+      +'<div style="flex:1;text-align:center;padding:12px 8px"><div style="font-size:1.3rem;font-weight:700;color:var(--green)">'+totalSets+'</div><div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Sets</div></div>'
+      +'<div style="flex:1;text-align:center;padding:12px 8px;border-left:1px solid var(--border)"><div style="font-size:1.3rem;font-weight:700;color:var(--blue)">'+totalVol.toLocaleString()+'</div><div style="font-size:0.68rem;color:var(--muted);margin-top:2px">kg volume</div></div>'
+      +(h.duration?'<div style="flex:1;text-align:center;padding:12px 8px;border-left:1px solid var(--border)"><div style="font-size:1.3rem;font-weight:700;color:var(--amber)">'+h.duration+'</div><div style="font-size:0.68rem;color:var(--muted);margin-top:2px">minutes</div></div>':'')
+    +'</div>'
+    +'<div style="border-top:1px solid var(--border);padding-top:16px">'
+      +(exRows||'<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No sets logged</div>')
+    +'</div>'
+    +'<button onclick="document.getElementById(\'session-history-sheet\').remove()" style="width:100%;padding:13px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.9rem;cursor:pointer;margin-top:12px">Close</button>'
+    +'</div>';
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click',function(e){if(e.target===sheet)sheet.remove();});
+}
+
+function getWarmupItems(){
+  const tag=(WK[S.day]?.tag||'').toLowerCase();
+  const nm=(WK[S.day]?.name||'').toLowerCase();
+  if(tag.includes('chest')||tag.includes('shoulder')||tag.includes('tricep')||nm.includes('push')) return WARMUP_BY_DAY.upper_push;
+  if(tag.includes('back')||tag.includes('bicep')||tag.includes('rear delt')||nm.includes('pull')) return WARMUP_BY_DAY.upper_pull;
+  if(tag.includes('ham')||tag.includes('posterior')||nm.includes('posterior')||nm.includes('hinge')) return WARMUP_BY_DAY.lower_post;
+  if(tag.includes('quad')||tag.includes('leg')||nm.includes('quad')||nm.includes('lower')) return WARMUP_BY_DAY.lower_quad;
+  return WARMUP_BY_DAY.upper_push;
+}
 function renderWarmup(){
   const day=WK[S.day];
+  const dayItems=getWarmupItems();
   const injuryRehab=getInjuryRehab(S.profile);
   const allRehab=injuryRehab.reduce(function(a,p){return a.concat(p.items);},[]);
-  const allItems=[...WARMUP_GENERAL,...allRehab];
+  const allItems=[...dayItems,...allRehab];
   const checked=S.warmupChecked.size;
   const total=allItems.length;
   const pct2=Math.round(checked/total*100);
@@ -2461,15 +2590,16 @@ function renderWarmup(){
     </div>`;
   };
   return`<div class="top-bar">
-  <div><div style="font-size:0.88rem;font-weight:600">Warm-Up · Day ${S.day} · ${day.name}</div><div class="top-sub">${checked}/${total} complete</div></div>
+  <button class="btn btn-outline btn-sm" onclick="abandonWorkout()" style="color:var(--muted)">← Back</button>
+  <div style="text-align:center"><div style="font-size:0.88rem;font-weight:600">Warm-Up · Day ${S.day} · ${day.name}</div><div class="top-sub">${checked}/${total} complete</div></div>
   <button class="btn btn-outline btn-sm" onclick="skipWarmup()">Skip →</button>
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
 <div class="phase-screen">
   ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color}">${p.note}</div>`).join('')}
   <div class="phase-section">
-    <div class="phase-section-title"><span>General Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${WARMUP_GENERAL.filter(i=>S.warmupChecked.has(i.id)).length}/${WARMUP_GENERAL.length}</span></div>
-    ${WARMUP_GENERAL.map(mkItem).join('')}
+    <div class="phase-section-title"><span>${day.name} Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${dayItems.filter(i=>S.warmupChecked.has(i.id)).length}/${dayItems.length}</span></div>
+    ${dayItems.map(mkItem).join('')}
   </div>
   ${injuryRehab.map(p=>`<div class="phase-section">
     <div class="phase-section-title"><span>${p.title} <span style="color:${p.color}">${p.time}</span></span><span style="color:var(--muted)">${p.items.filter(i=>S.warmupChecked.has(i.id)).length}/${p.items.length}</span></div>
@@ -2491,7 +2621,7 @@ function renderWorkout(){
   const progPct=Math.round((S.exIdx/totalEx())*100);
   return`<div class="top-bar">
   <div><div style="font-size:0.88rem;font-weight:600">Day ${S.day} · Week ${S.week} · ${day.name}</div><div class="top-sub">Exercise ${S.exIdx+1} of ${totalEx()}</div></div>
-  <button class="btn btn-outline btn-sm" onclick="endWorkout()">Finish</button>
+  <div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="abandonWorkout()" style="color:var(--muted);font-size:0.72rem">✕ Abandon</button><button class="btn btn-outline btn-sm" onclick="endWorkout()">Finish ✓</button></div>
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${progPct}%"></div></div>
 ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
@@ -2502,12 +2632,17 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   ${SWAP_ALTS[ex.id]?`<button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Swap</button>`:''}
 </div>
 <div class="demo-area">
-  <div class="demo-3d-wrap" id="ex-anim-canvas"></div>
   <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
-  <a class="watch-demo-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt+' officialdemic')}" target="_blank" rel="noopener">
-    <div class="watch-demo-icon"><svg width="12" height="12" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21" fill="#cc0000"/></svg></div>
-    Watch Exercise Demo on YouTube
-  </a>
+  <div class="yt-embed-wrap" id="yt-wrap-${ex.id}">
+    <div class="yt-placeholder" onclick="loadYTDemo('${ex.id}','${ex.yt}')">
+      <div class="yt-placeholder-inner">
+        <div class="yt-logo"><svg viewBox="0 0 90 20" width="72" height="16"><text y="16" font-family="Arial" font-weight="bold" font-size="16" fill="white">You</text><rect x="36" y="0" width="27" height="20" rx="4" fill="#ff0000"/><polygon points="44,4 44,16 56,10" fill="white"/><text x="64" y="16" font-family="Arial" font-weight="bold" font-size="16" fill="white">be</text></svg></div>
+        <div class="yt-play-circle"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="24" fill="rgba(255,0,0,0.85)"/><polygon points="18,12 18,36 38,24" fill="white"/></svg></div>
+        <div class="yt-ex-label">${ex.name}</div>
+        <div class="yt-tap-hint">Tap to load demo</div>
+      </div>
+    </div>
+  </div>
 </div>
 <div class="cue-box">📋 ${ex.cue}</div>
 ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session — ${fmt(getPrevSession(S.day).date)} · Week ${getPrevSession(S.day).week||'?'}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong style="color:var(--text)">${s.weight}kg×${s.reps}</strong>`).join(' &nbsp;·&nbsp; ')}</div><div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Beat these numbers today 💪</div></div>`:''}
@@ -2535,6 +2670,16 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
   ${logged.length?`<div style="margin-top:10px">
     <div style="text-align:right;font-size:0.78rem;color:var(--muted)">Volume: <strong style="color:var(--green)">${logged.reduce((a,s)=>a+(s?s.weight*s.reps:0),0).toLocaleString()}kg</strong></div>
   </div>`:''}
+</div>
+<div style="padding:12px 16px 4px">
+  <div style="font-size:0.78rem;font-weight:600;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    💬 Exercise Note <span style="font-weight:400;font-size:0.7rem">(optional — wins, issues, how it felt)</span>
+  </div>
+  <textarea id="note-${ex.id}"
+    placeholder="e.g. Felt a tweak in left shoulder on set 3. Right side stronger. Dropped weight on set 4."
+    oninput="S.exerciseNotes['${ex.id}']=this.value"
+    style="width:100%;min-height:72px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:0.82rem;padding:10px 12px;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box"
+  >${S.exerciseNotes[ex.id]||''}</textarea>
 </div>
 <div style="padding:0 16px 6px">
   <div class="card-title">Coming up</div>
@@ -2618,8 +2763,12 @@ function renderRest(){return'';}
 function renderCooldown(){
   const day=WK[S.day];
   const _tag=(WK[S.day]?.tag||'').toLowerCase();const _nm=(WK[S.day]?.name||'').toLowerCase();
-  const isLower=_tag.includes('quad')||_tag.includes('leg')||_tag.includes('lower')||_tag.includes('glute')||_tag.includes('ham')||_tag.includes('posterior')||_nm.includes('leg')||_nm.includes('lower')||_nm.includes('posterior');
-  const items=isLower?COOLDOWN.lower:COOLDOWN.upper;
+  let _cdKey='upper_push';
+  if(_tag.includes('back')||_tag.includes('bicep')||_tag.includes('rear delt')||_nm.includes('pull')) _cdKey='upper_pull';
+  else if(_tag.includes('ham')||_tag.includes('posterior')||_nm.includes('posterior')) _cdKey='lower_post';
+  else if(_tag.includes('quad')||_tag.includes('leg')||_nm.includes('quad')||_nm.includes('lower')) _cdKey='lower_quad';
+  const items=COOLDOWN[_cdKey];
+  const isLower=_cdKey.startsWith('lower');
   const checked=S.cooldownChecked.size;
   const total=items.length;
   const pct2=Math.round(checked/total*100);
@@ -3646,6 +3795,22 @@ function renderCheckin(){
   function pillBtns(field,max){
     return Array.from({length:max+1},(_,i)=>'<button class="rating-btn'+(c[field]===i?' sel':'')+'" onclick="S.checkin.'+field+'='+i+';render()">'+i+'</button>').join('');
   }
+  // Pull exercise notes from sessions this week
+  const weekNotes=(function(){
+    var n=[];
+    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+    (S.gymHistory||[]).forEach(function(h){
+      if(!h.notes||new Date(h.date)<cutoff) return;
+      var dayName=(WK[h.day]&&WK[h.day].name)||('Day '+h.day);
+      Object.entries(h.notes).forEach(function(e){
+        if(e[1]&&e[1].trim()){
+          var exN=(WK[h.day]&&WK[h.day].exercises||[]).find(function(x){return x.id===e[0];});
+          n.push({day:dayName,ex:(exN&&exN.name)||e[0],note:e[1],date:h.date});
+        }
+      });
+    });
+    return n;
+  })();
   const dispatch=S.checkinDispatch;
 
   return '<div class="checkin-overlay">'+
@@ -3746,6 +3911,19 @@ function renderCheckin(){
     '</div>'+
   '</div>'+
 
+  // EXERCISE NOTES (from this week's sessions)
+  (weekNotes.length?
+    '<div class="checkin-section" style="border-left:3px solid var(--amber);padding-left:12px">'+
+      '<div class="checkin-section-title" style="color:var(--amber)">&#x1F4CB; Your Exercise Notes This Week</div>'+
+      weekNotes.map(function(n){
+        return '<div style="margin-bottom:10px;padding:8px 10px;background:rgba(255,180,0,0.07);border-radius:8px">'+
+          '<div style="font-size:0.7rem;color:var(--amber);font-weight:700;margin-bottom:2px">'+n.day+' &middot; '+n.ex+'</div>'+
+          '<div style="font-size:0.85rem;color:var(--text)">'+n.note+'</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'
+  :'')+
+
   // DISPATCH BUTTON
   '<div style="padding:20px 16px 0">'+
     '<button class="btn btn-green" onclick="generateCheckinDispatch()">&#x26A1; Generate Week '+weekNum+' Dispatch</button>'+
@@ -3805,6 +3983,25 @@ function generateCheckinDispatch(){
     'Improve: '+(c.toImprove||'—'),
     '',
     '═══════════════════════════════════',
+  ].concat((function(){
+    var wn=[];var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+    (S.gymHistory||[]).forEach(function(h){
+      if(!h.notes||new Date(h.date)<cutoff) return;
+      var dayName=(WK[h.day]&&WK[h.day].name)||('Day '+h.day);
+      Object.entries(h.notes).forEach(function(e){
+        if(e[1]&&e[1].trim()){
+          var exN=(WK[h.day]&&WK[h.day].exercises||[]).find(function(x){return x.id===e[0];});
+          wn.push({day:dayName,ex:(exN&&exN.name)||e[0],note:e[1],date:h.date});
+        }
+      });
+    });
+    if(!wn.length) return [];
+    var lines=['','EXERCISE NOTES (flag for recalibration):'];
+    wn.forEach(function(n){lines.push('• ['+n.day+' — '+n.ex+'] '+n.note);});
+    return lines;
+  })()).concat([
+    '',
+    '═══════════════════════════════════',
     'AI COACH — PLEASE:',
     '1. Assess recovery & adjust training load if needed',
     '2. Flag red flags (low sleep + high stress = reduce volume?)',
@@ -3812,7 +4009,7 @@ function generateCheckinDispatch(){
     '4. Confirm progressive overload targets for Week '+(weekNum+1),
     '5. Give me ONE key focus for next week',
     '═══════════════════════════════════'
-  ].filter(function(l){return l!==undefined&&l!==null;}).join('\n');
+  ]).filter(function(l){return l!==undefined&&l!==null;}).join('\n');
   S.checkinDispatch=dispatch;
   // Save snapshot to history (keep last 16 weeks)
   if(c.bodyWeight){
@@ -4015,6 +4212,24 @@ function saveLog(){
 function endWorkout(){
   if(confirm('Finish workout early? Your logged sets will be saved.')){completeWorkout();}
 }
+function abandonWorkout(){
+  var hasSets=Object.keys(S.loggedSets||{}).length>0;
+  var msg=hasSets
+    ?'Abandon workout? All logged sets will be discarded and nothing will be saved.'
+    :'Go back to day selection? No sets have been logged.';
+  if(!hasSets||confirm(msg)){
+    S.trainScreen='home';
+    S.day=null;
+    S.exIdx=0;
+    S.loggedSets={};S.exerciseNotes={};
+    S.warmupChecked=new Set();
+    S.cooldownChecked=new Set();
+    S.workoutStart=null;
+    stopRest();
+    render();
+    window.scrollTo(0,0);
+  }
+}
 function skipRest(){stopRest();}
 function extendRest(secs){S.restLeft+=secs;S.restTotal+=secs;render();}
 function selectWeek(w){S.week=w;render();}
@@ -4025,13 +4240,26 @@ function nextEx(){
   else{S.trainScreen='cooldown';render();window.scrollTo(0,0);}
 }
 function prevEx(){if(S.exIdx>0){S.exIdx--;S.editingSet=null;render();window.scrollTo(0,0);}}
+function loadYTDemo(exId, ytQuery){
+  var wrap = document.getElementById('yt-wrap-'+exId);
+  if(!wrap) return;
+  var q = encodeURIComponent(ytQuery+' form tutorial');
+  wrap.innerHTML = '<iframe '+
+    'src="https://www.youtube-nocookie.com/embed?listType=search&list='+q+'&autoplay=1&modestbranding=1&rel=0&iv_load_policy=3" '+
+    'width="100%" height="220" frameborder="0" '+
+    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '+
+    'allowfullscreen '+
+    'style="border-radius:12px;display:block;background:#000" '+
+    'loading="lazy"></iframe>';
+}
+
 function completeWorkout(){
   var sets=S.loggedSets;
   var mins=S.workoutStart?Math.round((Date.now()-S.workoutStart)/60000):0;
-  S.gymHistory.push({date:new Date().toISOString(),day:S.day,week:S.week,sets:JSON.parse(JSON.stringify(sets)),duration:mins});
+  S.gymHistory.push({date:new Date().toISOString(),day:S.day,week:S.week,sets:JSON.parse(JSON.stringify(sets)),notes:JSON.parse(JSON.stringify(S.exerciseNotes||{})),duration:mins});
   if(S.gymHistory.length>50) S.gymHistory=S.gymHistory.slice(-50);
   localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));
-  S.trainScreen='complete';S.loggedSets={};
+  S.trainScreen='complete';S.loggedSets={};S.exerciseNotes={};
   render();
 }
 function startRest(secs){
