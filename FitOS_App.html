@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v46 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v49 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -1394,6 +1394,51 @@ const SWAP_ALTS={
     {id:"machine-curl",name:"Machine Preacher Curl",equip:"machines",muscles:["Biceps"],cue:"Arms on pad. Full stretch at bottom crucial. Peak squeeze at top.",anim:"curl",yt:"preacher+curl+machine+biceps+form"},
     {id:"band-curl",name:"Band Bicep Curl",equip:"bands",muscles:["Biceps"],cue:"Stand on band. Curl up. High resistance at top. Great for pump sets 20-30 reps.",anim:"curl",yt:"resistance+band+bicep+curl+form"},
     {id:"incline-curl",name:"Incline DB Curl",equip:"dumbbells",muscles:["Biceps Long Head"],cue:"Arms hang at 45-60° incline. Full stretch on long head. Don't let elbows drift.",anim:"curl",yt:"incline+dumbbell+curl+long+head+biceps+form"}
+  ],
+  // ── BARBELL / DB OVERHEAD PRESS ──────────────────────────────
+  "ohp":[
+    {id:"db-shoulder-press",name:"DB Seated Shoulder Press",equip:"dumbbells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Back supported. Start at ear height. Full lockout. Don't shrug at top.",anim:"shoulder-press",yt:"seated+dumbbell+shoulder+press+form+tutorial"},
+    {id:"arnold-press2",name:"Arnold Press",equip:"dumbbells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Start palms facing you, rotate out as you press. Hits all three delt heads.",anim:"shoulder-press",yt:"arnold+press+dumbbell+form+tutorial"},
+    {id:"machine-ohp",name:"Machine Shoulder Press",equip:"machines",muscles:["Side Delt","Front Delt","Triceps"],cue:"Adjust seat so handles sit at shoulder height. Full extension. Controlled descent.",anim:"shoulder-press",yt:"machine+shoulder+press+form"},
+    {id:"smith-ohp2",name:"Smith Machine OHP",equip:"smith",muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar in front of face. Press straight up. Great for loading heavy safely.",anim:"shoulder-press",yt:"smith+machine+overhead+press+form"},
+    {id:"landmine-ohp",name:"Landmine Press",equip:"barbells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Kneel or stand. Press at 45° angle. Shoulder-friendly arc. Alternate arms.",anim:"shoulder-press",yt:"landmine+press+shoulder+form+tutorial"},
+    {id:"cable-ohp2",name:"Cable Single-Arm Press",equip:"cables",muscles:["Side Delt","Front Delt"],cue:"Cable at shoulder height, face away. Press overhead. Core fights rotation.",anim:"shoulder-press",yt:"cable+single+arm+overhead+press+form"},
+    {id:"kb-press2",name:"KB Single-Arm Press",equip:"kettlebells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Clean to rack. Press straight up. Wrist straight over elbow over shoulder.",anim:"shoulder-press",yt:"kettlebell+single+arm+press+form"}
+  ],
+  // ── PULL-THROUGH / HIP HINGE ─────────────────────────────────
+  "pull-through":[
+    {id:"kb-swing2",name:"KB Swing (Hip Hinge)",equip:"kettlebells",muscles:["Glutes","Hamstrings","Core"],cue:"Hinge at hip — NOT a squat. Drive hips forward explosively. KB floats to shoulder height.",anim:"hip-thrust",yt:"kettlebell+swing+hip+hinge+form+tutorial"},
+    {id:"hip-thrust2",name:"Bodyweight Hip Thrust",equip:"bodyweight",muscles:["Glutes","Hamstrings"],cue:"Shoulders on bench. Drive through heels. Squeeze glutes 2 sec at top.",anim:"hip-thrust",yt:"hip+thrust+bodyweight+form"},
+    {id:"banded-hip2",name:"Banded Hip Thrust",equip:"bands",muscles:["Glutes"],cue:"Band across hips. Shoulders on bench. Drive up and squeeze hard. High reps 20-30.",anim:"hip-thrust",yt:"banded+hip+thrust+form+glutes"},
+    {id:"good-morning2",name:"Good Morning (BB or Cable)",equip:"barbells",muscles:["Hamstrings","Glutes","Erectors"],cue:"Bar on upper back. Hip hinge forward. Feel hamstring stretch. Spine neutral throughout.",anim:"rdl",yt:"good+morning+barbell+form+tutorial"},
+    {id:"45-back-ext",name:"45° Back Extension",equip:"machines",muscles:["Glutes","Hamstrings","Erectors"],cue:"Hinge at hip on GHD or 45° bench. Squeeze glutes at top. Don't hyperextend spine.",anim:"rdl",yt:"45+degree+back+extension+form+glutes"},
+    {id:"rdl-trap",name:"Trap Bar RDL",equip:"trapbar",muscles:["Hamstrings","Glutes"],cue:"Stand in trap bar. Hip hinge. Feel hamstring stretch. Drive hips through at top.",anim:"rdl",yt:"trap+bar+rdl+form+hamstrings"}
+  ],
+  // ── SINGLE-LEG RDL ───────────────────────────────────────────
+  "sl-rdl":[
+    {id:"db-rdl2",name:"DB Romanian Deadlift (Bilateral)",equip:"dumbbells",muscles:["Hamstrings","Glutes"],cue:"Hip hinge. Soft bend in knees. Hamstring stretch drives movement. Drive hips at top.",anim:"rdl",yt:"dumbbell+romanian+deadlift+form+tutorial"},
+    {id:"lying-leg-curl2",name:"Lying Leg Curl",equip:"machines",muscles:["Hamstrings"],cue:"Full ROM. Foot flexed. 3-sec eccentric. Easier on lower back than RDL.",anim:"leg-curl",yt:"lying+leg+curl+machine+form"},
+    {id:"seated-leg-curl2",name:"Seated Leg Curl",equip:"machines",muscles:["Hamstrings"],cue:"Seated = more hamstring stretch. Flex foot. Control the return.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
+    {id:"nordic-curl2",name:"Nordic Curl",equip:"bodyweight",muscles:["Hamstrings"],cue:"Feet anchored. Lower body forward eccentrically. Most effective hamstring exercise there is.",anim:"leg-curl",yt:"nordic+curl+form+tutorial+hamstrings"},
+    {id:"cable-pull2",name:"Cable Pull-Through",equip:"cables",muscles:["Hamstrings","Glutes"],cue:"Rope between legs, face away. Hip hinge. Drive hips forward at top.",anim:"rdl",yt:"cable+pull+through+glutes+hamstrings+form"},
+    {id:"step-down2",name:"Single-Leg Step Down",equip:"bodyweight",muscles:["Hamstrings","Glutes","VMO"],cue:"Stand on step. Lower opposite heel slowly on one leg. 4-sec eccentric. Rehab gold.",anim:"leg-ext",yt:"single+leg+step+down+eccentric+quad+form"}
+  ],
+  // ── SEATED CALF ───────────────────────────────────────────────
+  "seated-calf":[
+    {id:"standing-calf2",name:"Standing Calf Raise (Machine)",equip:"machines",muscles:["Gastrocnemius"],cue:"Straight knees = more gastroc. Full stretch down, full squeeze up. 1 sec each end.",anim:"calf",yt:"standing+calf+raise+machine+form"},
+    {id:"lp-calf2",name:"Leg Press Calf Raise",equip:"legpress",muscles:["Gastrocnemius","Soleus"],cue:"Toes on edge of plate. Full ROM. Slow and controlled. Both heads hit.",anim:"calf",yt:"leg+press+calf+raise+form"},
+    {id:"smith-calf2",name:"Smith Machine Calf Raise",equip:"smith",muscles:["Gastrocnemius","Soleus"],cue:"Toes on plates. Heavy load. Full stretch and extension every rep.",anim:"calf",yt:"smith+machine+calf+raise+form"},
+    {id:"bw-calf2",name:"Single-Leg Bodyweight Calf Raise",equip:"bodyweight",muscles:["Gastrocnemius"],cue:"Hold wall. One leg off step edge. Full hang at bottom. Slow and controlled.",anim:"calf",yt:"single+leg+calf+raise+bodyweight+form"},
+    {id:"db-calf2",name:"DB Single-Leg Calf Raise",equip:"dumbbells",muscles:["Gastrocnemius","Soleus"],cue:"Hold DB. Stand on step. Full range. Slow eccentric for max stimulus.",anim:"calf",yt:"dumbbell+calf+raise+single+leg+form"}
+  ],
+  // ── BIRD-DOG / CORE REHAB ────────────────────────────────────
+  "bird-dog":[
+    {id:"dead-bug2",name:"Dead Bug",equip:"bodyweight",muscles:["Deep Core","Lumbar Stabilisers"],cue:"Lower back FLAT on floor. Opposite arm and leg extend. Breathe out as you extend.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"},
+    {id:"plank2",name:"Forearm Plank",equip:"bodyweight",muscles:["Deep Core","Lumbar Stabilisers"],cue:"Neutral spine. Don't sag hips. Breathe. 30-60 sec holds. Quality over time.",anim:"dead-bug",yt:"plank+form+core+tutorial"},
+    {id:"hollow2",name:"Hollow Body Hold",equip:"bodyweight",muscles:["Deep Core","Hip Flexors"],cue:"Lower back pressed to floor. Arms overhead. Legs low but back stays flat.",anim:"dead-bug",yt:"hollow+body+hold+form+gymnastics+core"},
+    {id:"pallof",name:"Pallof Press",equip:"cables",muscles:["Deep Core","Obliques"],cue:"Cable at chest height. Press out and hold. Resist rotation. Anti-rotation core work.",anim:"dead-bug",yt:"pallof+press+core+anti+rotation+form"},
+    {id:"ab-wheel2",name:"Ab Wheel Rollout",equip:"bodyweight",muscles:["Deep Core","Lats"],cue:"Start on knees. Brace hard. Roll out slow. Pull back with lats. Don't let hips drop.",anim:"dead-bug",yt:"ab+wheel+rollout+form+core"},
+    {id:"suitcase-carry",name:"Suitcase Carry (KB/DB)",equip:"dumbbells",muscles:["Deep Core","Obliques","Lumbar Stabilisers"],cue:"Hold weight one side. Walk tall. Don't lean. Core fights lateral bend. 20-30m each side.",anim:"dead-bug",yt:"suitcase+carry+core+stability+form"}
   ]
 };
 
@@ -3103,7 +3148,8 @@ function getSwapAlts(ex){
     return userEquip.indexOf(a.equip)>=0;
   }
   // Resolve the best SWAP_ALTS key for this exercise
-  var lookupId=ex.id;
+  var ALIASES={'chin-up':'pull-up','chinup':'pull-up','pullup':'pull-up','lat-pd':'pull-up','lat-pulldown':'pull-up','bb-bench':'bench','bb-press':'bench','db-press':'bench','db-incline':'incline-db','incline-press':'incline-db','ohp':'seated-press','bb-ohp':'ohp','ohp':'ohp','overhead-press':'ohp','db-ohp':'ohp','as-ohp':'ohp','sh-bb-ohp':'ohp','barbell-ohp':'ohp','bb-ohp':'ohp','db-ohp':'seated-press','db-shoulder':'seated-press','lateral':'cable-lateral','side-raise':'cable-lateral','pushdown':'rope-pushdown','tri-pushdown':'rope-pushdown','overhead-ext':'oh-ext','skull':'oh-ext','bb-squat':'squat','back-squat':'squat','front-squat':'squat','split-squat':'bss','lunge':'bss','leg-curl':'lying-leg-curl','ham-curl':'lying-leg-curl','rdl':'db-rdl','bb-rdl':'db-rdl','glute-bridge':'hip-thrust','kb-swing':'hip-thrust','bb-curl':'ez-curl','bicep-curl':'ez-curl','db-curl':'ez-curl','bent-row':'cs-row','bb-row':'cs-row','t-row':'cs-row','seated-row':'cable-row','low-row':'cable-row','rear-delt':'face-pull','pull-apart':'face-pull','sh-rear-delt-fly':'face-pull','bird-dog':'bird-dog','bird dog':'bird-dog','pull-through':'pull-through','cable-pull-through':'pull-through','sl-rdl':'sl-rdl','single-leg-rdl':'sl-rdl','seated-calf':'seated-calf','seated-calf-raise':'seated-calf','ohp':'ohp','calf':'calf-stand','calf-raise':'calf-stand','plank':'dead-bug','core':'dead-bug','bird-dog':'dead-bug'};
+  var lookupId=ALIASES[ex.id]||ex.id;
   if(!SWAP_ALTS[lookupId]||!SWAP_ALTS[lookupId].length){
     // Strip equipment prefixes: bb-bench → bench, db-incline → incline etc
     var stripped=lookupId.replace(/^(bb|db|kb|sm|lp|cf|sh|ll|cc|bf|as|ez|sg|sl)-/,'');
@@ -3115,25 +3161,19 @@ function getSwapAlts(ex){
       if(found)lookupId=found;
     }
   }
-  // Build full candidates list
+  // Build full candidates list — pre-exclude all exercises already in today's plan
   var candidates=[];var seen={};seen[ex.id]=true;
+  try{(getWorkoutDay(S.day).exercises||[]).forEach(function(e){seen[e.id]=true;});}catch(e2){}
   // 1. From SWAP_ALTS for this exercise
   if(SWAP_ALTS[lookupId]&&SWAP_ALTS[lookupId].length){
     SWAP_ALTS[lookupId].forEach(function(a){if(!seen[a.id]){seen[a.id]=true;candidates.push(a);}});
   }
-  // 2. Muscle-match from other SWAP_ALTS entries
+  // 2. Muscle-match from SWAP_ALTS entries only (no WK pollution)
   var exMuscles=ex.muscles||[];
   Object.values(SWAP_ALTS).forEach(function(alts){alts.forEach(function(a){
     if(seen[a.id])return;
     var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
     if(overlap){seen[a.id]=true;candidates.push(a);}
-  });});
-  // 3. Muscle-match from WK / WK_DAY_LIBRARY exercises
-  var allDays=Object.values(WK).concat(Object.values(WK_DAY_LIBRARY));
-  allDays.forEach(function(day){(day.exercises||[]).forEach(function(e){
-    if(seen[e.id])return;
-    var overlap=(e.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
-    if(overlap){seen[e.id]=true;candidates.push({id:e.id,name:e.name,muscles:e.muscles||[],equip:e.equip||'',cue:e.cue||'',anim:e.anim||'',yt:e.yt||''});}
   });});
   // Filter by user equipment
   var filtered=candidates.filter(equipOk);
@@ -5260,7 +5300,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v46';
+  window.APP_VERSION='v49';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5275,7 +5315,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v46';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v49';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
@@ -5308,147 +5348,4 @@ function openCoach(){
   if(existing) existing.parentNode.removeChild(existing);
   var root=document.createElement('div');
   root.id='coach-overlay-root';
-  root.style.cssText='position:fixed;inset:0;z-index:700';
-  root.innerHTML=renderCoach();
-  document.body.appendChild(root);
-  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;var inp=document.getElementById('coach-input-field');if(inp)inp.focus();},150);
-}
-function closeCoach(){
-  S.showCoach=false;
-  var root=document.getElementById('coach-overlay-root');
-  if(root) root.parentNode.removeChild(root);
-}
-function refreshCoach(){
-  var root=document.getElementById('coach-overlay-root');
-  if(!root) return;
-  root.innerHTML=renderCoach();
-  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},50);
-}
-
-function getCoachName(){return S.profile.coachName||'Coach Alex';}
-function getCoachEmoji(){return S.profile.coachGender==='female'?'👩':'🧑';}
-
-function buildCoachContext(){
-  var p=S.profile;
-  var t=calcTDEE?calcTDEE():{tdee:2400,targetCal:2000,proteinG:180};
-  var style=p.coachStyle||'mate';
-  var styleDesc=style==='drill'?'tough love, direct, no excuses, military PT energy':
-    style==='science'?'scientific, evidence-based, calm, precise, cite studies':
-    'casual Australian PT — warm, funny, real, encouraging but no BS';
-  var todayLog=S.foodLog?S.foodLog.filter(function(f){return f.date===todayStr();}):[];
-  var calToday=todayLog.reduce(function(a,f){return a+f.cal;},0);
-  var ex=null;try{ex=curEx&&curEx();}catch(e){}
-  return 'You are '+getCoachName()+', a personal trainer AI. Your style: '+styleDesc+'.\n'+
-    'ATHLETE PROFILE:\n'+
-    '- Name: '+(p.name||'Athlete')+', '+(p.age||'?')+'yo '+(p.gender||'male')+'\n'+
-    '- Weight: '+(p.weight||'?')+'kg | Height: '+(p.height||'?')+'cm\n'+
-    '- Goal: '+(p.goal||'body recomp')+' | Experience: '+(p.experience||'intermediate')+'\n'+
-    '- Training: '+(p.daysPerWeek||4)+' days/week | Gym type: '+(p.gymType||'commercial gym')+'\n'+
-    '- TDEE: '+t.tdee+' cal | Target: '+t.targetCal+' cal | Protein: '+t.proteinG+'g\n'+
-    (p.injuries&&p.injuries.length?'- Injuries/limitations: '+p.injuries.join(', ')+'\n':'')+
-    'TODAY:\n'+
-    '- Calories logged: '+calToday+' / '+t.targetCal+'\n'+
-    '- Week: '+(S.week||1)+' of 8-week block\n'+
-    (ex?'- Currently doing: '+ex.name+' | Cue: '+ex.cue+'\n':'')+
-    '\nBe concise (2-4 sentences unless they ask for detail). Use their name occasionally. Stay in character.';
-}
-
-async function sendCoachMessage(){
-  var input=document.getElementById('coach-input-field');
-  if(!input) return;
-  var msg=input.value.trim();
-  if(!msg) return;
-  input.value='';S.coachInput='';
-
-  // Add user message
-  S.coachMessages.push({role:'user',content:msg,ts:Date.now()});
-  S.coachTyping=true;
-  refreshCoach();
-  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},50);
-
-  var apiKey=localStorage.getItem('fitos_claude_key')||'';
-  if(!apiKey){
-    S.coachTyping=false;
-    S.coachMessages.push({role:'assistant',content:'I need a Claude API key to chat with you! Tap ⚙️ in the top right and enter your key. Get one free at console.anthropic.com',ts:Date.now()});
-    saveCoachHistory();render();return;
-  }
-
-  try{
-    var msgs=S.coachMessages.slice(-10).map(function(m){return{role:m.role,content:m.content};});
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:buildCoachContext(),messages:msgs})
-    });
-    var data=await resp.json();
-    S.coachTyping=false;
-    if(data.content&&data.content[0]){
-      S.coachMessages.push({role:'assistant',content:data.content[0].text,ts:Date.now()});
-    } else if(data.error){
-      S.coachMessages.push({role:'assistant',content:'API error: '+data.error.message,ts:Date.now()});
-    }
-  }catch(err){
-    S.coachTyping=false;
-    S.coachMessages.push({role:'assistant',content:'Connection error. Check your internet and try again.',ts:Date.now()});
-  }
-  saveCoachHistory();refreshCoach();
-  setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},80);
-}
-
-function saveCoachHistory(){
-  // Keep last 40 messages
-  if(S.coachMessages.length>40) S.coachMessages=S.coachMessages.slice(-40);
-  try{localStorage.setItem('fitos_coach_msgs',JSON.stringify(S.coachMessages));}catch(e){}
-}
-
-function setApiKey(){
-  var key=prompt('Enter your Claude API key (from console.anthropic.com):\n\nStarts with sk-ant-... Stored only on your device.');
-  if(key&&key.trim()){
-    localStorage.setItem('fitos_claude_key',key.trim());
-    if(!S.coachMessages.length){
-      var greeting='Hey '+( S.profile.name||'champ')+'! '+getCoachName()+' here. Ready to help you crush your goals. Ask me anything — form checks, meal ideas, how to push through a plateau, anything.';
-      S.coachMessages.push({role:'assistant',content:greeting,ts:Date.now()});
-      saveCoachHistory();
-    }
-    if(S.showCoach) refreshCoach(); else openCoach();
-  }
-}
-
-function renderCoach(){
-  var name=getCoachName();
-  var emoji=getCoachEmoji();
-  var hasKey=!!localStorage.getItem('fitos_claude_key');
-  var msgs=S.coachMessages;
-  if(!msgs.length&&hasKey){
-    msgs=[{role:'assistant',content:'Hey '+(S.profile.name||'champ')+'! '+name+' here. What do you need?',ts:Date.now()}];
-  }
-  return '<div class="coach-overlay">'+
-    '<div class="coach-header">'+
-      '<div class="coach-avatar">'+emoji+'</div>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:1rem;font-weight:700">'+name+'</div>'+
-        '<div style="font-size:0.72rem;color:var(--green)">Your AI Personal Trainer</div>'+
-      '</div>'+
-      (!hasKey?'<button onclick="setApiKey()" style="background:var(--amber);border:none;border-radius:10px;color:#000;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer">⚙️ Set API Key</button>':'<button onclick="setApiKey()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:6px 10px;font-size:0.72rem;cursor:pointer">⚙️</button>')+
-      '<button onclick="closeCoach()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 10px;font-size:0.85rem;cursor:pointer;margin-left:6px">✕</button>'+
-    '</div>'+
-    '<div class="coach-messages" id="coach-msgs">'+
-      (!hasKey?'<div class="coach-bubble coach" style="border-color:var(--amber)40">👋 I\'m <strong>'+name+'</strong>, your AI PT! To activate me, tap <strong>⚙️ Set API Key</strong> above.<br><br>Get a free key at <strong>console.anthropic.com</strong> — it takes 2 minutes and costs pennies per chat.</div>':'')+
-      msgs.map(function(m){
-        return '<div class="coach-bubble '+(m.role==='user'?'user':'coach')+'">'+m.content+'</div>';
-      }).join('')+
-      (S.coachTyping?'<div class="coach-bubble coach"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div>':'')+
-    '</div>'+
-    '<div class="coach-input-row">'+
-      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask '+name+' anything..." '+
-        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"/>'+
-      '<button class="coach-send" onclick="sendCoachMessage()">➤</button>'+
-    '</div>'+
-  '</div>';
-}
-
-
-initApp();
-</script>
-</body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+  root.style.cssText='position:fixed;ins
