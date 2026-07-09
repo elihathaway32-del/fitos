@@ -1,5 +1,5 @@
 // FitOS Service Worker — network-first for HTML, cache fallback for offline
-const CACHE = 'fitos-v32';
+const CACHE = 'fitos-v33';
 const SHELL = ['/fitos/manifest.json'];
 
 self.addEventListener('install', e => {
