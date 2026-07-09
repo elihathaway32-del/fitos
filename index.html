@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v49 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v50 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3139,6 +3139,221 @@ function closeDaySwapSheet(){
   S.swapSheetDay=null;
   render();
 }
+// BIOMECHANICAL EXERCISE DATABASE
+// Maps exercise names (lowercase) → SWAP_ALTS key
+// This is the source of truth — every exercise is explicitly coded
+// by what it DOES to the body, not what it's named.
+// Pattern codes: bench=h-press, incline-db=inc-press, ohp=v-press,
+// pull-up=v-pull, cs-row/cable-row=h-pull, ez-curl/hammer-curl/cable-curl=elbow-flex,
+// rope-pushdown/oh-ext=elbow-ext, cable-lateral=shld-abd, face-pull=rear-delt,
+// squat/leg-press/bss=knee-dom, db-rdl/sl-rdl/pull-through=hip-hinge,
+// hip-thrust=glute-dom, lying-leg-curl/seated-leg-curl=ham-iso,
+// leg-ext=quad-iso, calf-stand/seated-calf=calf, dead-bug=core
+var EXERCISE_DB={
+  // ── HORIZONTAL PUSH (chest/triceps/ant delt) ──
+  'barbell bench press':'bench','bb bench press':'bench','flat bench press':'bench',
+  'bench press':'bench','flat press':'bench','chest press':'bench',
+  'dumbbell press':'bench','db flat press':'bench','dumbbell flat press':'bench',
+  'machine chest press':'bench','smith machine bench':'bench','sm bench press':'bench',
+  'push up':'bench','push-up':'bench','wide push up':'bench','wide grip push up':'bench',
+  'close grip push up':'bench','close-grip push-up':'bench',
+  'cable fly':'bench','cable chest fly':'bench','pec deck':'bench',
+  'dumbbell fly':'bench','db fly':'bench','cable crossover':'bench',
+  // ── INCLINE PUSH (upper chest/triceps) ──
+  'incline barbell press':'incline-db','incline bb press':'incline-db',
+  'incline bench press':'incline-db','incline press':'incline-db',
+  'incline dumbbell press':'incline-db','incline db press':'incline-db',
+  'incline fly':'incline-db','incline cable fly':'incline-db',
+  'landmine press':'incline-db','landmine chest press':'incline-db',
+  'low to high cable fly':'incline-db','low-to-high cable fly':'incline-db',
+  'incline push up':'incline-db','decline push up':'bench',
+  'cable incline press':'incline-db','low cable fly':'incline-db',
+  // ── VERTICAL PUSH / OVERHEAD (delts/triceps) ──
+  'barbell overhead press':'ohp','bb overhead press':'ohp','overhead press':'ohp',
+  'military press':'ohp','standing overhead press':'ohp','bb ohp':'ohp',
+  'push press':'ohp','barbell push press':'ohp','log press':'ohp',
+  'landmine shoulder press':'ohp','landmine ohp':'ohp',
+  'z press':'ohp','floor ohp':'ohp','seated barbell press':'ohp',
+  'smith machine ohp':'ohp','sm ohp':'ohp',
+  // ── SEATED/MACHINE SHOULDER PRESS ──
+  'seated dumbbell press':'seated-press','seated db press':'seated-press',
+  'dumbbell shoulder press':'seated-press','db shoulder press':'seated-press',
+  'arnold press':'seated-press','machine shoulder press':'seated-press',
+  'machine press':'seated-press','hammer strength press':'seated-press',
+  // ── VERTICAL PULL (lats/biceps) ──
+  'pull up':'pull-up','pull-up':'pull-up','pullup':'pull-up',
+  'chin up':'pull-up','chin-up':'pull-up','chinup':'pull-up',
+  'neutral grip pull up':'pull-up','neutral-grip pull-up':'pull-up',
+  'wide grip pull up':'pull-up','close grip pull up':'pull-up',
+  'weighted pull up':'pull-up','assisted pull up':'pull-up',
+  'lat pulldown':'pull-up','lat pull-down':'pull-up','lat pull down':'pull-up',
+  'close grip lat pulldown':'pull-up','wide grip lat pulldown':'pull-up',
+  'single arm lat pulldown':'pull-up','cable pulldown':'pull-up',
+  'straight arm pulldown':'pull-up','straight-arm pulldown':'pull-up',
+  // ── HORIZONTAL PULL compound (mid back/lats/biceps) ──
+  'bent over row':'cs-row','barbell row':'cs-row','bb row':'cs-row',
+  'bent over barbell row':'cs-row','pendlay row':'cs-row',
+  'chest supported row':'cs-row','cs row':'cs-row','t-bar row':'cs-row',
+  't bar row':'cs-row','seal row':'cs-row','meadows row':'cs-row',
+  'incline row':'cs-row','db row':'cs-row','dumbbell row':'cs-row',
+  'single arm row':'cs-row','one arm row':'cs-row','kroc row':'cs-row',
+  'machine row':'cable-row','hammer strength row':'cable-row',
+  'iso row':'cable-row','plate loaded row':'cs-row',
+  // ── HORIZONTAL PULL cable/machine ──
+  'cable row':'cable-row','seated cable row':'cable-row','low cable row':'cable-row',
+  'seated row':'cable-row','low row':'cable-row','close grip cable row':'cable-row',
+  'wide grip cable row':'cable-row','single arm cable row':'cable-row',
+  'rope cable row':'cable-row',
+  // ── REAR DELT / EXTERNAL ROTATION ──
+  'face pull':'face-pull','cable face pull':'face-pull',
+  'rear delt fly':'face-pull','reverse fly':'face-pull',
+  'dumbbell reverse fly':'face-pull','db reverse fly':'face-pull',
+  'bent over fly':'face-pull','bent-over fly':'face-pull',
+  'band pull apart':'face-pull','pull apart':'face-pull',
+  'pec deck reverse':'face-pull','reverse pec deck':'face-pull',
+  'cable rear delt fly':'face-pull','cable pull apart':'face-pull',
+  'w raise':'face-pull','y raise':'face-pull','yt raise':'face-pull',
+  // ── SHOULDER ABDUCTION (side delt) ──
+  'lateral raise':'cable-lateral','lateral raises':'cable-lateral',
+  'dumbbell lateral raise':'cable-lateral','db lateral raise':'cable-lateral',
+  'cable lateral raise':'cable-lateral','machine lateral raise':'cable-lateral',
+  'side raise':'cable-lateral','side lateral raise':'cable-lateral',
+  'band lateral raise':'cable-lateral','single arm lateral raise':'cable-lateral',
+  'leaning lateral raise':'cable-lateral','upright row':'cable-lateral',
+  // ── BICEP CURLS ──
+  'barbell curl':'ez-curl','bb curl':'ez-curl','straight bar curl':'ez-curl',
+  'ez bar curl':'ez-curl','ez curl':'ez-curl','ez-bar curl':'ez-curl',
+  'preacher curl':'ez-curl','spider curl':'ez-curl','concentration curl':'ez-curl',
+  'scott curl':'ez-curl','machine curl':'ez-curl','cable curl':'cable-curl',
+  'high cable curl':'cable-curl','low cable curl':'ez-curl',
+  'dumbbell curl':'ez-curl','db curl':'ez-curl','alternating curl':'ez-curl',
+  'seated dumbbell curl':'ez-curl','incline dumbbell curl':'ez-curl',
+  'incline curl':'ez-curl',
+  // ── HAMMER / NEUTRAL GRIP CURLS ──
+  'hammer curl':'hammer-curl','db hammer curl':'hammer-curl',
+  'dumbbell hammer curl':'hammer-curl','neutral grip curl':'hammer-curl',
+  'cross body curl':'hammer-curl','cross-body curl':'hammer-curl',
+  'rope hammer curl':'hammer-curl','cable hammer curl':'hammer-curl',
+  'zottman curl':'hammer-curl',
+  // ── TRICEP PUSHDOWN / CABLE EXT ──
+  'rope pushdown':'rope-pushdown','cable pushdown':'rope-pushdown',
+  'tricep pushdown':'rope-pushdown','push down':'rope-pushdown',
+  'straight bar pushdown':'rope-pushdown','v-bar pushdown':'rope-pushdown',
+  'single arm pushdown':'rope-pushdown','reverse grip pushdown':'rope-pushdown',
+  'cable kickback':'rope-pushdown','tricep kickback':'rope-pushdown',
+  // ── TRICEP OVERHEAD EXTENSION ──
+  'skull crusher':'oh-ext','skull crushers':'oh-ext','lying tricep extension':'oh-ext',
+  'ez skull crusher':'oh-ext','close grip bench press':'oh-ext',
+  'overhead tricep extension':'oh-ext','oh tricep extension':'oh-ext',
+  'dumbbell overhead extension':'oh-ext','db overhead extension':'oh-ext',
+  'cable overhead extension':'oh-ext','overhead cable extension':'oh-ext',
+  'french press':'oh-ext','jm press':'oh-ext',
+  // ── BILATERAL SQUAT / KNEE DOMINANT ──
+  'barbell squat':'squat','bb squat':'squat','back squat':'squat',
+  'barbell back squat':'squat','low bar squat':'squat','high bar squat':'squat',
+  'front squat':'squat','goblet squat':'squat','kb goblet squat':'squat',
+  'dumbbell squat':'squat','db squat':'squat','safety bar squat':'squat',
+  'safety squat':'squat','smith machine squat':'squat','sm squat':'squat',
+  'box squat':'squat','pause squat':'squat','tempo squat':'squat',
+  // ── LEG PRESS / HACK SQUAT MACHINE ──
+  'leg press':'leg-press','machine leg press':'leg-press',
+  'hack squat':'leg-press','hack squat machine':'leg-press',
+  'pendulum squat':'leg-press','v squat':'leg-press',
+  // ── UNILATERAL KNEE DOMINANT (BSS/Lunge) ──
+  'bulgarian split squat':'bss','split squat':'bss','bss':'bss',
+  'rear foot elevated split squat':'bss','rfess':'bss',
+  'lunge':'bss','walking lunge':'bss','reverse lunge':'bss',
+  'dumbbell lunge':'bss','db lunge':'bss','barbell lunge':'bss',
+  'forward lunge':'bss','lateral lunge':'bss','curtsy lunge':'bss',
+  'step up':'bss','box step up':'bss','dumbbell step up':'bss',
+  'deficit lunge':'bss','slider lunge':'bss',
+  // ── LEG EXTENSION / QUAD ISOLATION ──
+  'leg extension':'leg-ext','machine leg extension':'leg-ext',
+  'seated leg extension':'leg-ext','leg extensions':'leg-ext',
+  'quad extension':'leg-ext','nordic leg extension':'leg-ext',
+  // ── HAMSTRING ISOLATION (lying) ──
+  'lying leg curl':'lying-leg-curl','prone leg curl':'lying-leg-curl',
+  'hamstring curl':'lying-leg-curl','lying hamstring curl':'lying-leg-curl',
+  'leg curl':'lying-leg-curl','prone hamstring curl':'lying-leg-curl',
+  'nordic curl':'lying-leg-curl','nordic hamstring curl':'lying-leg-curl',
+  'glute ham raise':'lying-leg-curl','ghr':'lying-leg-curl',
+  // ── HAMSTRING ISOLATION (seated) ──
+  'seated leg curl':'seated-leg-curl','seated hamstring curl':'seated-leg-curl',
+  'seated ham curl':'seated-leg-curl',
+  // ── HIP THRUST / GLUTE BRIDGE (glute dominant) ──
+  'hip thrust':'hip-thrust','barbell hip thrust':'hip-thrust',
+  'bb hip thrust':'hip-thrust','machine hip thrust':'hip-thrust',
+  'glute bridge':'hip-thrust','barbell glute bridge':'hip-thrust',
+  'single leg hip thrust':'hip-thrust','single-leg hip thrust':'hip-thrust',
+  'frog pump':'hip-thrust','banded hip thrust':'hip-thrust',
+  'cable hip thrust':'hip-thrust','smith machine hip thrust':'hip-thrust',
+  // ── HIP HINGE / RDL PATTERN ──
+  'romanian deadlift':'db-rdl','rdl':'db-rdl','db rdl':'db-rdl',
+  'dumbbell rdl':'db-rdl','barbell rdl':'db-rdl','bb rdl':'db-rdl',
+  'stiff leg deadlift':'db-rdl','sldl':'db-rdl','stiff-leg deadlift':'db-rdl',
+  'good morning':'db-rdl','barbell good morning':'db-rdl',
+  'trap bar rdl':'db-rdl','hex bar rdl':'db-rdl',
+  // ── DEADLIFT PATTERN ──
+  'deadlift':'db-rdl','conventional deadlift':'db-rdl',
+  'sumo deadlift':'db-rdl','trap bar deadlift':'db-rdl',
+  'hex bar deadlift':'db-rdl','deficit deadlift':'db-rdl',
+  'block pull':'db-rdl','rack pull':'db-rdl',
+  // ── UNILATERAL HIP HINGE ──
+  'single leg rdl':'sl-rdl','sl rdl':'sl-rdl','single-leg rdl':'sl-rdl',
+  'single leg romanian deadlift':'sl-rdl','single-leg deadlift':'sl-rdl',
+  'kb single leg rdl':'sl-rdl','db single leg rdl':'sl-rdl',
+  // ── CABLE PULL THROUGH / HIP EXTENSION ──
+  'cable pull through':'pull-through','pull through':'pull-through',
+  'cable pull-through':'pull-through','kb swing':'pull-through',
+  'kettlebell swing':'pull-through','american swing':'pull-through',
+  'cable kickback glute':'pull-through','donkey kick':'pull-through',
+  // ── CALF (standing) ──
+  'standing calf raise':'calf-stand','calf raise':'calf-stand',
+  'calf raises':'calf-stand','smith machine calf raise':'calf-stand',
+  'leg press calf raise':'calf-stand','donkey calf raise':'calf-stand',
+  'single leg calf raise':'calf-stand',
+  // ── CALF (seated) ──
+  'seated calf raise':'seated-calf','seated calf raises':'seated-calf',
+  // ── CORE / STABILITY ──
+  'dead bug':'dead-bug','bird dog':'dead-bug','bird-dog':'dead-bug',
+  'plank':'dead-bug','side plank':'dead-bug','hollow hold':'dead-bug',
+  'hollow body':'dead-bug','ab wheel':'dead-bug','rollout':'dead-bug',
+  'pallof press':'dead-bug','cable crunch':'dead-bug','decline crunch':'dead-bug',
+  'hanging knee raise':'dead-bug','leg raise':'dead-bug','ab crunch':'dead-bug',
+  'russian twist':'dead-bug','suitcase carry':'dead-bug','farmers carry':'dead-bug'
+};
+// nameToSwapKey: looks up exercise by name in EXERCISE_DB first (explicit biomechanical truth),
+// then falls back to muscle-tag inference only if no DB entry found.
+function nameToSwapKey(name,muscles){
+  if(!name)return null;
+  var n=name.toLowerCase().trim();
+  // Direct lookup
+  if(EXERCISE_DB[n])return EXERCISE_DB[n];
+  // Try stripping leading equipment prefix words (e.g. "barbell ", "dumbbell ", "cable ", "machine ", "kb ", "bb ", "db ")
+  var stripped=n.replace(/^(barbell|dumbbell|cable|machine|kettlebell|smith machine|banded|weighted|assisted|db|bb|kb|sm|ez bar|ez-bar)\s+/,'').trim();
+  if(EXERCISE_DB[stripped])return EXERCISE_DB[stripped];
+  // Try without trailing qualifiers ("with pause", "3 second", "tempo", "alternating")
+  var noQualifier=stripped.replace(/\s+(with\s+\w+|pause|tempo|alternating|single arm|unilateral|bilateral|\d+ second|\d+s)$/,'').trim();
+  if(EXERCISE_DB[noQualifier])return EXERCISE_DB[noQualifier];
+  // Muscle-tag fallback when name alone doesn't resolve
+  var m=(muscles||[]).map(function(x){return x.toLowerCase();}).join(' ');
+  if(/pec|chest/.test(m))return 'bench';
+  if(/quad/.test(m)&&/glute/.test(m))return 'squat';
+  if(/quad/.test(m))return 'squat';
+  if(/hamstring/.test(m)&&/glute/.test(m))return 'hip-thrust';
+  if(/hamstring/.test(m))return 'lying-leg-curl';
+  if(/lat|rhomboid/.test(m))return 'pull-up';
+  if(/mid.back|mid back/.test(m))return 'cs-row';
+  if(/bicep/.test(m))return 'ez-curl';
+  if(/tricep/.test(m))return /long.head/.test(m)?'oh-ext':'rope-pushdown';
+  if(/side.delt|lateral.delt/.test(m))return 'cable-lateral';
+  if(/rear.delt/.test(m))return 'face-pull';
+  if(/anterior.delt|front.delt/.test(m))return 'ohp';
+  if(/glute/.test(m))return 'hip-thrust';
+  if(/soleus|gastrocnemius|calf/.test(m))return 'calf-stand';
+  if(/core|lumbar|transverse/.test(m))return 'dead-bug';
+  return null;
+}
 function getSwapAlts(ex){
   var userEquip=(S.profile&&S.profile.equipment)||[];
   var hasEquipProfile=userEquip.length>0;
@@ -3147,18 +3362,20 @@ function getSwapAlts(ex){
     if(!hasEquipProfile)return true;
     return userEquip.indexOf(a.equip)>=0;
   }
-  // Resolve the best SWAP_ALTS key for this exercise
-  var ALIASES={'chin-up':'pull-up','chinup':'pull-up','pullup':'pull-up','lat-pd':'pull-up','lat-pulldown':'pull-up','bb-bench':'bench','bb-press':'bench','db-press':'bench','db-incline':'incline-db','incline-press':'incline-db','ohp':'seated-press','bb-ohp':'ohp','ohp':'ohp','overhead-press':'ohp','db-ohp':'ohp','as-ohp':'ohp','sh-bb-ohp':'ohp','barbell-ohp':'ohp','bb-ohp':'ohp','db-ohp':'seated-press','db-shoulder':'seated-press','lateral':'cable-lateral','side-raise':'cable-lateral','pushdown':'rope-pushdown','tri-pushdown':'rope-pushdown','overhead-ext':'oh-ext','skull':'oh-ext','bb-squat':'squat','back-squat':'squat','front-squat':'squat','split-squat':'bss','lunge':'bss','leg-curl':'lying-leg-curl','ham-curl':'lying-leg-curl','rdl':'db-rdl','bb-rdl':'db-rdl','glute-bridge':'hip-thrust','kb-swing':'hip-thrust','bb-curl':'ez-curl','bicep-curl':'ez-curl','db-curl':'ez-curl','bent-row':'cs-row','bb-row':'cs-row','t-row':'cs-row','seated-row':'cable-row','low-row':'cable-row','rear-delt':'face-pull','pull-apart':'face-pull','sh-rear-delt-fly':'face-pull','bird-dog':'bird-dog','bird dog':'bird-dog','pull-through':'pull-through','cable-pull-through':'pull-through','sl-rdl':'sl-rdl','single-leg-rdl':'sl-rdl','seated-calf':'seated-calf','seated-calf-raise':'seated-calf','ohp':'ohp','calf':'calf-stand','calf-raise':'calf-stand','plank':'dead-bug','core':'dead-bug','bird-dog':'dead-bug'};
-  var lookupId=ALIASES[ex.id]||ex.id;
+  // Resolve SWAP_ALTS key: ID match → prefix strip → NAME+MUSCLE pattern
+  var lookupId=ex.id;
   if(!SWAP_ALTS[lookupId]||!SWAP_ALTS[lookupId].length){
-    // Strip equipment prefixes: bb-bench → bench, db-incline → incline etc
-    var stripped=lookupId.replace(/^(bb|db|kb|sm|lp|cf|sh|ll|cc|bf|as|ez|sg|sl)-/,'');
+    var stripped=lookupId.replace(/^(bb|db|kb|sm|lp|cf|sh|ll|cc|bf|as|ez|sg|sl|sp|tr|bw)-/,'');
     if(SWAP_ALTS[stripped]&&SWAP_ALTS[stripped].length){lookupId=stripped;}
     else{
-      // Last resort: find a SWAP_ALTS key that is contained in or contains the id
       var keys=Object.keys(SWAP_ALTS);
-      var found=keys.find(function(k){return lookupId.indexOf(k)>=0||k.indexOf(stripped)>=0;});
-      if(found)lookupId=found;
+      var partial=keys.find(function(k){return lookupId.indexOf(k)>=0||k.indexOf(stripped)>=0;});
+      if(partial)lookupId=partial;
+      else{
+        // Use exercise name + muscles to find best match — works for ANY exercise
+        var nameKey=nameToSwapKey(ex.name,ex.muscles);
+        if(nameKey&&SWAP_ALTS[nameKey])lookupId=nameKey;
+      }
     }
   }
   // Build full candidates list — pre-exclude all exercises already in today's plan
@@ -5133,219 +5350,4 @@ function renderThemePicker(){
   '</div>';
 }
 function renderSettings(){
-  return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;render()}">'+
-    '<div id="settings-panel" style="position:fixed;bottom:0;left:0;right:0;height:95vh;max-height:95vh;background:var(--s1);border-radius:20px 20px 0 0;border-top:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:901;max-width:480px;margin:0 auto">'+
-      '<div ontouchstart="sheetDragStart(event,\'settings-panel\')" ontouchmove="sheetDragMove(event,\'settings-panel\')" ontouchend="sheetDragEnd(event,\'settings-panel\',closeSettings)" style="padding:8px 0 2px;touch-action:none;cursor:grab;flex-shrink:0">'+
-        '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
-      '</div>'+
-      '<div class="food-panel-header" style="flex-shrink:0">'+
-        '<span style="font-weight:700;font-size:1rem">⚙ Settings <span style="font-size:0.6rem;color:var(--muted);font-weight:400">'+(window.APP_VERSION||'')+'</span></span>'+
-        '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
-      '</div>'+
-      '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
-
-        renderThemePicker()+'\n'+
-        '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
-          '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Data Backup</div>'+
-          '<button onclick="backupData()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px">'+
-            '⬇ Download Backup</button>'+
-          '<button onclick="restoreData()" style="width:100%;background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:0.95rem;font-weight:600;cursor:pointer">'+
-            '⬆ Restore from Backup</button>'+
-          '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.5">Save your profile, workouts, meals and progress. Restore anytime if you reset or switch devices.</div>'+
-        '</div>'+
-
-        '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
-          '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Danger Zone</div>'+
-          '<button onclick="S.showSettings=false;resetApp()" style="width:100%;background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);border-radius:10px;padding:13px;color:#ff6b6b;font-size:0.95rem;font-weight:600;cursor:pointer">'+
-            '🗑 Reset All Data</button>'+
-          '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Clears everything and restarts the setup wizard. Cannot be undone.</div>'+
-        '</div>'+
-
-      '</div>'+
-    '</div>'+
-  '</div>';
-}
-
-function toggleArr(field,val){
-  var arr=S.profile[field];
-  if(!arr) arr=S.profile[field]=[];
-  var idx=arr.indexOf(val);
-  if(idx===-1) arr.push(val);
-  else arr.splice(idx,1);
-  render();
-}
-
-function selectAllEquipment(){
-  S.profile.equipment=['barbells','dumbbells','cables','machines','hacksquat','smith','legpress','pendulum','sled','kettlebells','bands','pullup','trx','ghd','trapbar'];
-  render();
-}
-function toggleMeal(id){S.expandedMeal=S.expandedMeal===id?null:id;render();}
-function logWater(idx){
-  S.waterDone=idx<S.waterDone?idx:idx+1;
-  localStorage.setItem('fitos_water',S.waterDone);
-  render();
-}
-
-// ─── SHOP ────────────────────────────────────────────────────────────────
-function toggleShop(key){
-  if(S.shopTicked.has(key)) S.shopTicked.delete(key);
-  else S.shopTicked.add(key);
-  localStorage.setItem('fitos_shop',[...S.shopTicked].join('|'));
-  render();
-}
-function clearShop(){S.shopTicked.clear();localStorage.setItem('fitos_shop','');render();}
-
-// ─── HABITS ──────────────────────────────────────────────────────────────
-function toggleHabit(id){
-  if(S.habitsChecked.has(id)) S.habitsChecked.delete(id);
-  else S.habitsChecked.add(id);
-  localStorage.setItem('fitos_habits',[...S.habitsChecked].join(','));
-  render();
-}
-function stepUp(){S.stepsToday+=500;localStorage.setItem('fitos_steps',S.stepsToday);render();}
-
-// ─── CHECKIN ─────────────────────────────────────────────────────────────
-
-// ─── INTAKE WIZARD ───────────────────────────────────────────────────────
-function wizNext(){
-  if(S.intakeStep<INTAKE_STEPS.length-1){S.intakeStep++;render();}
-  else{
-    try{saveProfile();}catch(e){}
-    try{localStorage.setItem('fitos_steps_goal',S.stepsGoal);}catch(e){}
-    S.showIntake=false;
-    try{generateAndSaveBlock();}catch(e){}
-    var bf=parseFloat(S.profile.bodyFatPct);
-    var gender=S.profile.gender;
-    if(bf>0){
-      var isOver=(gender==='male'&&bf>35)||(gender==='female'&&bf>42);
-      S.gleamBF=bf;S.gleamResult=isOver?'red':'green';S.showGleam=true;
-    }
-    render();
-  }
-}
-function wizBack(){if(S.intakeStep>0){S.intakeStep--;render();}}
-
-// ─── STEP PERMISSION ─────────────────────────────────────────────────────
-function openSetSteps(){
-  var sheet=document.createElement('div');
-  sheet.id='step-set-sheet';
-  sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  var isAndroid=/android/i.test(navigator.userAgent);
-  var hint=isIOS
-    ?'Open <b>Health app</b> → Browse → Activity → Steps → see today\'s count'
-    :isAndroid
-      ?'Open <b>Google Fit</b> or <b>Samsung Health</b> → check today\'s steps'
-      :'Check your fitness tracker or phone\'s health app for today\'s step count';
-  var cur=S.stepsToday||'';
-  sheet.innerHTML='<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.5)">'
-    +'<div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px"></div>'
-    +'<div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Set Today\'s Steps</div>'
-    +'<div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;line-height:1.5">'+hint+'</div>'
-    +'<input id="step-set-input" type="number" placeholder="e.g. 7500" inputmode="numeric"'
-    +' style="width:100%;padding:14px 12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:1.2rem;text-align:center;margin-bottom:12px;box-sizing:border-box"'
-    +' value="'+cur+'"/>'
-    +'<button onclick="confirmSetSteps()" style="width:100%;padding:14px;background:var(--blue);border:none;border-radius:12px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:8px">✅ Save Steps</button>'
-    +'<button onclick="document.getElementById(\'step-set-sheet\').remove()" style="width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.9rem;cursor:pointer">Cancel</button>'
-    +'</div>';
-  document.body.appendChild(sheet);
-  sheet.addEventListener('click',function(e){if(e.target===sheet)sheet.remove();});
-  setTimeout(function(){var inp=document.getElementById('step-set-input');if(inp){inp.focus();inp.select();}},100);
-}
-
-function confirmSetSteps(){
-  var inp=document.getElementById('step-set-input');
-  if(!inp) return;
-  var n=parseInt(inp.value)||0;
-  if(n>=0){S.stepsToday=n;localStorage.setItem('fitos_steps',n);render();}
-  var sheet=document.getElementById('step-set-sheet');
-  if(sheet) sheet.remove();
-}
-
-function toggleStepCounting(){
-  if(S.stepTrackingActive){
-    window.removeEventListener('devicemotion',onMotion);
-    S.stepTrackingActive=false;render();return;
-  }
-  if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
-    DeviceMotionEvent.requestPermission().then(function(r){
-      if(r==='granted'){window.addEventListener('devicemotion',onMotion,{passive:true});S.stepTrackingActive=true;render();}
-      else{alert('Motion access denied. Set steps manually instead.');}
-    }).catch(function(){});
-  } else {
-    window.addEventListener('devicemotion',onMotion,{passive:true});
-    S.stepTrackingActive=true;render();
-  }
-}
-
-function addManualSteps(){
-  var inp=document.getElementById('step-manual');
-  if(!inp) return;
-  var n=parseInt(inp.value)||0;
-  if(n>0){S.stepsToday+=n;localStorage.setItem('fitos_steps',S.stepsToday);inp.value='';render();}
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════════════════
-function initApp(){
-  var _pl=document.getElementById('pre-load');if(_pl){setTimeout(function(){_pl.style.transition='opacity 0.4s';_pl.style.opacity='0';setTimeout(function(){_pl.remove();},400);},1200);}
-  // Load saved personalised block (overwrites default WK if present)
-  try{
-    var savedBlock=localStorage.getItem('fitos_generated_block');
-    if(savedBlock){
-      var block=JSON.parse(savedBlock);
-      Object.assign(WK,block);
-    }
-  }catch(e){}
-  checkDayReset();
-  render();
-  window.APP_VERSION='v49';
-window.onerror=function(msg,src,line,col,err){
-  var el=document.getElementById('screen');
-  if(el&&el.innerHTML.length<200){
-    el.innerHTML='<div style="padding:40px 24px;text-align:center">'+'<div style="font-size:0.9rem;font-weight:700;margin-bottom:8px">Something crashed</div>'+'<div style="font-size:0.75rem;color:#888;margin-bottom:24px">'+msg+'</div>'+'<button onclick="location.reload()" style="background:#00E87A;border:none;border-radius:12px;padding:14px 32px;font-weight:700;font-size:1rem;cursor:pointer">Reload App</button></div>';
-  }
-  return false;
-};
-// Kill stale service workers and caches on every load
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){
-      if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
-        // Only unregister if it's an old cache version
-        caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v49';});
-          if(hasOld){
-            r.unregister().then(function(){
-              caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
-            });
-          }
-        });
-      }
-    });
-  });
-}
-if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  }
-}
-function closeGleam(){S.showGleam=false;try{saveProfile();}catch(e){}render();}
-
-function checkMeal(id){
-  if(S.mealChecked.has(id)) S.mealChecked.delete(id);
-  else S.mealChecked.add(id);
-  saveMeal(); render();
-}
-function saveDailyState(){
-  localStorage.setItem('fitos_foodlog',JSON.stringify(S.foodLog));
-  localStorage.setItem('fitos_meals',[...S.mealChecked].join(','));
-}
-
-function openCoach(){
-  S.showCoach=true;
-  var existing=document.getElementById('coach-overlay-root');
-  if(existing) existing.parentNode.removeChild(existing);
-  var root=document.createElement('div');
-  root.id='coach-overlay-root';
-  root.style.cssText='position:fixed;ins
+  return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;r
