@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v37 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v39 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -1200,124 +1200,200 @@ function startExerciseAnim(key,container){
 // EXERCISE SWAP ALTERNATIVES (same muscle group / movement pattern)
 // ═══════════════════════════════════════════════════════════════════════════
 const SWAP_ALTS={
+  // ── CHEST PRESS ──────────────────────────────────────────────
   "bench":[
-    {id:"db-bench",name:"Dumbbell Flat Bench Press",muscles:["Chest","Front Delt","Triceps"],cue:"Full stretch at bottom. Press in slight arc, meet at top. Neutral or pronated grip. Safer on shoulders.",anim:"bench",yt:"dumbbell+flat+bench+press+form+tutorial"},
-    {id:"machine-press",name:"Machine Chest Press",muscles:["Chest","Front Delt","Triceps"],cue:"Adjust seat so handles are at mid-chest. Full ROM. Good for high reps or when fatigued.",anim:"bench",yt:"machine+chest+press+form+tutorial"},
-    {id:"smith-bench",name:"Smith Machine Bench Press",muscles:["Chest","Front Delt","Triceps"],cue:"Set bar path so it tracks to lower chest. Feet flat. Bar path is fixed so focus on chest squeeze.",anim:"bench",yt:"smith+machine+bench+press+form"},
-    {id:"cable-fly",name:"Cable Chest Fly (Low to High)",muscles:["Chest","Front Delt"],cue:"Cables set low. Arms slightly bent throughout. Squeeze pecs at top — think hugging a tree.",anim:"bench",yt:"cable+chest+fly+low+to+high+form"}
+    {id:"db-bench",name:"DB Flat Bench Press",equip:"dumbbells",muscles:["Chest","Front Delt","Triceps"],cue:"Full stretch at bottom. Press in slight arc. Neutral or pronated grip. Safer on shoulders.",anim:"bench",yt:"dumbbell+flat+bench+press+form+tutorial"},
+    {id:"machine-press",name:"Machine Chest Press",equip:"machines",muscles:["Chest","Front Delt","Triceps"],cue:"Adjust seat so handles are at mid-chest. Full ROM. Great for controlled load.",anim:"bench",yt:"machine+chest+press+form+tutorial"},
+    {id:"smith-bench",name:"Smith Machine Bench Press",equip:"smith",muscles:["Chest","Front Delt","Triceps"],cue:"Step feet forward slightly. Bar path is fixed — focus on chest squeeze.",anim:"bench",yt:"smith+machine+bench+press+form"},
+    {id:"cable-fly",name:"Cable Chest Fly (Low to High)",equip:"cables",muscles:["Chest","Front Delt"],cue:"Cables low. Arms slightly bent throughout. Squeeze pecs at top — think hugging a tree.",anim:"bench",yt:"cable+chest+fly+low+to+high+form"},
+    {id:"push-up-adv",name:"Weighted Push-Up",equip:"bodyweight",muscles:["Chest","Front Delt","Triceps"],cue:"Plate on back or weighted vest. Hands slightly wider than shoulder. Full chest-to-floor ROM.",anim:"bench",yt:"weighted+push+up+form+chest"},
+    {id:"pec-deck",name:"Pec Deck Machine",equip:"machines",muscles:["Chest","Front Delt"],cue:"Sit tall. Arms on pads, elbows at 90°. Squeeze pecs fully at the front. Slow eccentric.",anim:"bench",yt:"pec+deck+fly+machine+chest+form"},
+    {id:"landmine-chest",name:"Landmine Press",equip:"barbells",muscles:["Chest","Front Delt","Triceps"],cue:"Press at 45° angle. Great chest/shoulder option if flat bench isn't available.",anim:"bench",yt:"landmine+press+chest+form+tutorial"}
   ],
   "incline-db":[
-    {id:"incline-bb",name:"Incline Barbell Press",muscles:["Upper Chest","Front Delt","Triceps"],cue:"30° incline. Grip slightly wider than shoulder. Bar to upper chest. Controlled eccentric.",anim:"bench",yt:"incline+barbell+press+form+tutorial"},
-    {id:"incline-machine",name:"Incline Machine Press",muscles:["Upper Chest","Front Delt"],cue:"Adjust seat height. Handles should start at upper chest level. Full extension at top.",anim:"bench",yt:"incline+machine+chest+press+form"},
-    {id:"pec-deck",name:"Pec Deck / Chest Fly Machine",muscles:["Chest","Front Delt"],cue:"Sit tall. Arms on pads, elbows slightly bent. Squeeze pecs at front. Controlled stretch back.",anim:"bench",yt:"pec+deck+fly+machine+chest+form"},
-    {id:"cable-crossover",name:"Cable Crossover (High to Low)",muscles:["Lower Chest","Chest"],cue:"Cables set high. Cross hands at bottom. Keep slight bend in elbows. Squeeze pecs.",anim:"bench",yt:"cable+crossover+chest+form+tutorial"}
+    {id:"incline-bb",name:"Incline Barbell Press",equip:"barbells",muscles:["Upper Chest","Front Delt","Triceps"],cue:"30° incline. Grip slightly wider than shoulder. Bar to upper chest. Controlled eccentric.",anim:"bench",yt:"incline+barbell+press+form+tutorial"},
+    {id:"incline-machine",name:"Incline Machine Press",equip:"machines",muscles:["Upper Chest","Front Delt"],cue:"Adjust seat. Handles at upper chest. Full extension. Great for high reps.",anim:"bench",yt:"incline+machine+chest+press+form"},
+    {id:"cable-crossover",name:"Cable Crossover (High to Low)",equip:"cables",muscles:["Lower Chest","Chest"],cue:"Cables high. Cross hands at bottom. Slight elbow bend. Squeeze pecs fully.",anim:"bench",yt:"cable+crossover+chest+form+tutorial"},
+    {id:"smith-incline",name:"Smith Machine Incline Press",equip:"smith",muscles:["Upper Chest","Front Delt","Triceps"],cue:"Set bench to 30°. Same cues as incline BB. Safety stops let you push hard.",anim:"bench",yt:"smith+machine+incline+press+form"},
+    {id:"cf-pec-deck",name:"Pec Deck (Upper Chest Focus)",equip:"machines",muscles:["Upper Chest","Chest"],cue:"Set handles slightly higher than normal. Feel the upper chest stretch at the bottom.",anim:"bench",yt:"pec+deck+upper+chest+form"},
+    {id:"db-fly",name:"DB Flat Chest Fly",equip:"dumbbells",muscles:["Chest","Front Delt"],cue:"Wide arc, slight bend in elbows throughout. Feel the stretch — this is the whole point.",anim:"bench",yt:"dumbbell+chest+fly+form+tutorial"},
+    {id:"incline-pushup",name:"Incline Push-Up (Feet Elevated)",equip:"bodyweight",muscles:["Upper Chest","Front Delt","Triceps"],cue:"Feet on bench, hands on floor. More upper chest activation. Full range.",anim:"bench",yt:"decline+push+up+upper+chest+form"}
   ],
+  // ── SHOULDERS ─────────────────────────────────────────────────
   "seated-press":[
-    {id:"arnold-press",name:"Arnold Press (DB)",muscles:["Side Delt","Front Delt","Triceps"],cue:"Start palms facing you, rotate to face forward as you press. Hits all three delt heads.",anim:"shoulder-press",yt:"arnold+press+dumbbell+form+tutorial"},
-    {id:"machine-shoulder",name:"Machine Shoulder Press",muscles:["Side Delt","Front Delt","Triceps"],cue:"Adjust seat so handles are at shoulder height. Controlled descent. Great for volume work.",anim:"shoulder-press",yt:"machine+shoulder+press+form"},
-    {id:"bb-ohp",name:"Barbell Overhead Press",muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar rests on upper chest. Drive bar up, head through at top. Core braced. Full lockout.",anim:"shoulder-press",yt:"barbell+overhead+press+form+tutorial"},
-    {id:"landmine-press",name:"Landmine Press (Single Arm)",muscles:["Side Delt","Upper Chest","Triceps"],cue:"Kneel or stand. Press at 45° angle. Great shoulder health option. Alternate arms.",anim:"shoulder-press",yt:"landmine+press+shoulder+form+tutorial"}
+    {id:"arnold-press",name:"Arnold Press",equip:"dumbbells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Start palms facing you, rotate to face forward as you press. Hits all three delt heads.",anim:"shoulder-press",yt:"arnold+press+dumbbell+form+tutorial"},
+    {id:"machine-shoulder",name:"Machine Shoulder Press",equip:"machines",muscles:["Side Delt","Front Delt","Triceps"],cue:"Adjust seat so handles are at shoulder height. Controlled descent. Great for volume.",anim:"shoulder-press",yt:"machine+shoulder+press+form"},
+    {id:"bb-ohp",name:"Barbell Overhead Press",equip:"barbells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar rests on upper chest. Drive bar up, head through at top. Core braced. Full lockout.",anim:"shoulder-press",yt:"barbell+overhead+press+form+tutorial"},
+    {id:"smith-ohp",name:"Smith Machine OHP",equip:"smith",muscles:["Side Delt","Front Delt","Triceps"],cue:"Set the bar in front of face. Press straight up. Great for shoulder stability work.",anim:"shoulder-press",yt:"smith+machine+overhead+press+form"},
+    {id:"cable-ohp",name:"Cable Single-Arm Press (Standing)",equip:"cables",muscles:["Side Delt","Front Delt","Triceps"],cue:"Cable at shoulder height, face away. Press overhead. Core fights rotation — bonus abs.",anim:"shoulder-press",yt:"cable+single+arm+overhead+press+form"},
+    {id:"kb-press",name:"KB Single-Arm Press",equip:"kettlebells",muscles:["Side Delt","Front Delt","Triceps"],cue:"Clean KB to rack position. Press straight up. Wrist straight. Great shoulder stability.",anim:"shoulder-press",yt:"kettlebell+single+arm+press+form"},
+    {id:"landmine-press",name:"Landmine Press (Single Arm)",equip:"barbells",muscles:["Side Delt","Upper Chest","Triceps"],cue:"Kneel or stand. Press at 45° angle. Shoulder-friendly arc. Alternate arms.",anim:"shoulder-press",yt:"landmine+press+shoulder+form+tutorial"}
   ],
   "cable-lateral":[
-    {id:"db-lateral",name:"DB Lateral Raise",muscles:["Side Delt"],cue:"Slight forward lean. Raise to just above shoulder height. Lead with elbow. No shrugging.",anim:"lateral",yt:"dumbbell+lateral+raise+side+delt+form"},
-    {id:"machine-lateral",name:"Machine Lateral Raise",muscles:["Side Delt"],cue:"Elbows on pads. Full stack if needed. Great for constant tension + dropsets.",anim:"lateral",yt:"machine+lateral+raise+form"},
-    {id:"cable-y-raise",name:"Cable Y-Raise",muscles:["Side Delt","Rear Delt","Lower Traps"],cue:"Cables set low. Raise arms into Y shape. Shoulder health + side delt in one.",anim:"lateral",yt:"cable+y+raise+shoulder+form"}
+    {id:"db-lateral",name:"DB Lateral Raise",equip:"dumbbells",muscles:["Side Delt"],cue:"Slight forward lean. Raise to just above shoulder. Lead with elbow. No shrugging.",anim:"lateral",yt:"dumbbell+lateral+raise+side+delt+form"},
+    {id:"machine-lateral",name:"Machine Lateral Raise",equip:"machines",muscles:["Side Delt"],cue:"Elbows on pads. Full stack if needed. Constant tension. Great for dropsets.",anim:"lateral",yt:"machine+lateral+raise+form"},
+    {id:"cable-y-raise",name:"Cable Y-Raise",equip:"cables",muscles:["Side Delt","Rear Delt","Lower Traps"],cue:"Cables low. Raise into Y shape. Shoulder health + side delt in one movement.",anim:"lateral",yt:"cable+y+raise+shoulder+form"},
+    {id:"band-lateral",name:"Band Lateral Raise",equip:"bands",muscles:["Side Delt"],cue:"Stand on band. Same cues as DB version. High reps 20-30. Great finisher.",anim:"lateral",yt:"resistance+band+lateral+raise+form"},
+    {id:"kb-lateral",name:"KB Lateral Raise",equip:"kettlebells",muscles:["Side Delt"],cue:"Hold KB with neutral grip. Slow controlled raise. Feel the side delt at top.",anim:"lateral",yt:"kettlebell+lateral+raise+form"},
+    {id:"leaning-lateral",name:"Leaning DB Lateral Raise",equip:"dumbbells",muscles:["Side Delt"],cue:"Hold a rack with free hand, lean away. Greater stretch at bottom. Better ROM.",anim:"lateral",yt:"leaning+dumbbell+lateral+raise+form"}
   ],
+  // ── TRICEPS ───────────────────────────────────────────────────
   "rope-pushdown":[
-    {id:"bar-pushdown",name:"Straight Bar Pushdown",muscles:["Triceps"],cue:"Elbows pinned. Full extension. Bar stays close to body. Supinate grip for lateral head.",anim:"pushdown",yt:"tricep+straight+bar+pushdown+form"},
-    {id:"db-kickback",name:"DB Tricep Kickback",muscles:["Triceps"],cue:"Hinge forward. Upper arm parallel to floor. Extend fully. Hold 1 sec at lockout.",anim:"pushdown",yt:"dumbbell+tricep+kickback+form+tutorial"},
-    {id:"band-pushdown",name:"Band Tricep Pushdown",muscles:["Triceps"],cue:"Anchor band overhead. Great for warmup or pump work. High reps 20–30.",anim:"pushdown",yt:"resistance+band+tricep+pushdown+form"}
+    {id:"bar-pushdown",name:"Straight Bar Pushdown",equip:"cables",muscles:["Triceps"],cue:"Elbows pinned. Full extension. Bar stays close to body. Supinate grip for lateral head.",anim:"pushdown",yt:"tricep+straight+bar+pushdown+form"},
+    {id:"v-bar-pushdown",name:"V-Bar Pushdown",equip:"cables",muscles:["Triceps"],cue:"Neutral grip on V-bar. Elbows fixed. Full lockout. Squeeze at bottom.",anim:"pushdown",yt:"v+bar+tricep+pushdown+form"},
+    {id:"db-kickback",name:"DB Tricep Kickback",equip:"dumbbells",muscles:["Triceps"],cue:"Hinge forward. Upper arm parallel to floor. Extend fully. Hold 1 sec at lockout.",anim:"pushdown",yt:"dumbbell+tricep+kickback+form+tutorial"},
+    {id:"band-pushdown",name:"Band Tricep Pushdown",equip:"bands",muscles:["Triceps"],cue:"Anchor band overhead. Same cues as rope. High reps 20-30. Great pump.",anim:"pushdown",yt:"resistance+band+tricep+pushdown+form"},
+    {id:"machine-tricep",name:"Tricep Machine (Pushdown/Dip)",equip:"machines",muscles:["Triceps"],cue:"Full lockout. Control the return. Machine provides constant tension.",anim:"pushdown",yt:"tricep+machine+pushdown+form"},
+    {id:"cg-pushup",name:"Close-Grip Push-Up",equip:"bodyweight",muscles:["Triceps","Chest"],cue:"Hands inside shoulder width. Elbows track back — not flared. Full lockout at top.",anim:"pushdown",yt:"close+grip+push+up+tricep+form"}
   ],
   "oh-ext":[
-    {id:"skull-crusher",name:"EZ-Bar Skull Crusher",muscles:["Triceps Long Head"],cue:"Elbows vertical. Lower bar to forehead. Long head stretch is the whole point. Control.",anim:"overhead-ext",yt:"ez+bar+skull+crusher+tricep+form"},
-    {id:"db-oh-ext",name:"DB Overhead Tricep Extension",muscles:["Triceps Long Head"],cue:"Single DB, both hands. Arms straight overhead, lower behind head. Full stretch. Drive up.",anim:"overhead-ext",yt:"dumbbell+overhead+tricep+extension+form"},
-    {id:"close-grip",name:"Close-Grip Bench Press",muscles:["Triceps","Chest"],cue:"Grip shoulder-width or slightly inside. Elbows at 45°. Full press. Tricep-focused.",anim:"bench",yt:"close+grip+bench+press+tricep+form"}
+    {id:"skull-crusher",name:"EZ-Bar Skull Crusher",equip:"barbells",muscles:["Triceps Long Head"],cue:"Elbows vertical. Lower bar to forehead. Long head stretch is the whole point. Control.",anim:"overhead-ext",yt:"ez+bar+skull+crusher+tricep+form"},
+    {id:"db-oh-ext",name:"DB Overhead Tricep Extension",equip:"dumbbells",muscles:["Triceps Long Head"],cue:"Single DB, both hands. Arms straight overhead, lower behind head. Full stretch. Drive up.",anim:"overhead-ext",yt:"dumbbell+overhead+tricep+extension+form"},
+    {id:"close-grip",name:"Close-Grip Bench Press",equip:"barbells",muscles:["Triceps","Chest"],cue:"Grip shoulder-width or inside. Elbows at 45°. Full press. Heavy tricep stimulation.",anim:"bench",yt:"close+grip+bench+press+tricep+form"},
+    {id:"cable-oh-ext",name:"Cable Overhead Extension (Rope)",equip:"cables",muscles:["Triceps Long Head"],cue:"Face away from cable. Arms overhead. Elbows by ears. Extend fully and stretch back.",anim:"overhead-ext",yt:"cable+overhead+tricep+extension+form"},
+    {id:"band-oh-ext",name:"Band Overhead Extension",equip:"bands",muscles:["Triceps Long Head"],cue:"Anchor band behind you. Arms overhead. Same pattern as cable version. High reps.",anim:"overhead-ext",yt:"band+overhead+tricep+extension+form"},
+    {id:"incline-skull",name:"Incline DB Skull Crusher",equip:"dumbbells",muscles:["Triceps Long Head"],cue:"Incline bench 30°. DBs lower behind head. More stretch on long head than flat version.",anim:"overhead-ext",yt:"incline+dumbbell+skull+crusher+form"}
   ],
+  // ── QUADS / LOWER ─────────────────────────────────────────────
   "squat":[
-    {id:"hack-squat",name:"Hack Squat (Machine)",muscles:["Quads","Glutes"],cue:"Feet shoulder-width, slight toe out. Push platform away. Knees track toes. Full depth.",anim:"squat",yt:"hack+squat+machine+form+tutorial"},
-    {id:"goblet-squat",name:"Goblet Squat (DB/KB)",muscles:["Quads","Glutes"],cue:"Hold weight at chest. Elbows inside knees at bottom. Sit INTO it. Great for technique.",anim:"squat",yt:"goblet+squat+form+tutorial"},
-    {id:"smith-squat",name:"Smith Machine Squat",muscles:["Quads","Glutes"],cue:"Step feet forward slightly. Sit back into it. Removes balance demand — load it up.",anim:"squat",yt:"smith+machine+squat+form+tutorial"},
-    {id:"safety-bar",name:"Safety Bar Squat",muscles:["Quads","Glutes","Upper Back"],cue:"Easier on wrists/shoulders. Slightly more upright torso. Same cues as back squat.",anim:"squat",yt:"safety+bar+squat+form+tutorial"}
+    {id:"hack-squat",name:"Hack Squat Machine",equip:"hacksquat",muscles:["Quads","Glutes"],cue:"Feet shoulder-width, slight toe out. Push platform away. Knees track toes. Full depth.",anim:"squat",yt:"hack+squat+machine+form+tutorial"},
+    {id:"goblet-squat",name:"Goblet Squat",equip:"dumbbells",muscles:["Quads","Glutes"],cue:"Hold weight at chest. Elbows inside knees at bottom. Sit INTO it. Great for technique.",anim:"squat",yt:"goblet+squat+form+tutorial"},
+    {id:"smith-squat",name:"Smith Machine Squat",equip:"smith",muscles:["Quads","Glutes"],cue:"Step feet slightly forward. Sit back into it. Fixed path removes balance demand — load it.",anim:"squat",yt:"smith+machine+squat+form+tutorial"},
+    {id:"leg-press",name:"Leg Press (Quad focus)",equip:"legpress",muscles:["Quads","Glutes"],cue:"Feet low and close on plate. High depth. Push through whole foot. Great quad focus.",anim:"leg-press",yt:"leg+press+quad+focus+form+tutorial"},
+    {id:"pendulum-squat",name:"Pendulum Squat",equip:"pendulum",muscles:["Quads","Glutes"],cue:"Best quad-focused machine there is. Sit back in machine. Full ROM. Knees out.",anim:"leg-press",yt:"pendulum+squat+machine+form"},
+    {id:"front-squat",name:"Front Squat",equip:"barbells",muscles:["Quads","Upper Back"],cue:"Bar rests on front delts, cross-arm or clean grip. Stay upright. Knees track over toes.",anim:"squat",yt:"front+squat+form+tutorial+barbell"},
+    {id:"trapbar-squat",name:"Trap Bar Deadlift/Squat",equip:"trapbar",muscles:["Quads","Glutes","Hamstrings"],cue:"Stand in centre. Hip hinge + squat hybrid. Neutral spine. Drive hips through at top.",anim:"squat",yt:"trap+bar+deadlift+squat+form+tutorial"}
   ],
   "leg-press":[
-    {id:"pendulum-squat",name:"Pendulum Squat (Machine)",muscles:["Quads","Glutes"],cue:"More quad-dominant arc. Sit back in machine. Full ROM. Knees out.",anim:"leg-press",yt:"pendulum+squat+machine+form"},
-    {id:"v-squat",name:"V-Squat Machine",muscles:["Quads","Glutes"],cue:"Similar pattern to leg press. Adjust back pad. Full depth without lower back rounding.",anim:"leg-press",yt:"v+squat+machine+form+tutorial"}
+    {id:"hack-squat",name:"Hack Squat Machine",equip:"hacksquat",muscles:["Quads","Glutes"],cue:"Feet shoulder-width. Full depth. Push through whole foot. Knees track toes.",anim:"squat",yt:"hack+squat+machine+form+tutorial"},
+    {id:"pendulum-squat",name:"Pendulum Squat",equip:"pendulum",muscles:["Quads","Glutes"],cue:"Arc-based movement. Great quad isolation. Full ROM every rep.",anim:"leg-press",yt:"pendulum+squat+machine+form"},
+    {id:"smith-squat",name:"Smith Machine Squat",equip:"smith",muscles:["Quads","Glutes"],cue:"Feet forward slightly. Sit back. Fixed bar path lets you load more safely.",anim:"squat",yt:"smith+machine+squat+form+tutorial"},
+    {id:"goblet-squat",name:"Goblet Squat (KB/DB)",equip:"dumbbells",muscles:["Quads","Glutes"],cue:"Weight at chest. Sit deep. Good option if machines are taken.",anim:"squat",yt:"goblet+squat+form+tutorial"},
+    {id:"v-squat",name:"V-Squat Machine",equip:"machines",muscles:["Quads","Glutes"],cue:"Similar arc to leg press. Adjust back pad. Full depth without lower back rounding.",anim:"leg-press",yt:"v+squat+machine+form+tutorial"},
+    {id:"kb-squat",name:"KB Double Front Squat",equip:"kettlebells",muscles:["Quads","Glutes","Core"],cue:"Two KBs in rack position. Stay upright. Core works hard to hold position.",anim:"squat",yt:"kettlebell+front+squat+double+form"}
   ],
   "bss":[
-    {id:"lunges",name:"DB Walking Lunges",muscles:["Quads","Glutes","Hip Flexors"],cue:"Step long enough that front shin is vertical. Drive through front heel to stand. Alternate legs.",anim:"split-squat",yt:"dumbbell+walking+lunge+form+tutorial"},
-    {id:"step-up",name:"Box Step-Up (DB)",muscles:["Quads","Glutes"],cue:"Step onto box, drive through heel. Other leg hangs — don't push off it. Step down controlled.",anim:"split-squat",yt:"box+step+up+dumbbell+glutes+form"},
-    {id:"smith-split",name:"Smith Machine Split Squat",muscles:["Quads","Glutes"],cue:"Same as BSS. Smith removes balance so you can focus on depth and load. Rear foot on bench.",anim:"split-squat",yt:"smith+machine+split+squat+form"}
+    {id:"lunges",name:"DB Walking Lunges",equip:"dumbbells",muscles:["Quads","Glutes","Hip Flexors"],cue:"Step long enough that front shin is vertical. Drive through front heel. Alternate legs.",anim:"split-squat",yt:"dumbbell+walking+lunge+form+tutorial"},
+    {id:"step-up",name:"Box Step-Up (DB)",equip:"dumbbells",muscles:["Quads","Glutes"],cue:"Step onto box, drive through heel. Other leg hangs — don't push off it. Step down controlled.",anim:"split-squat",yt:"box+step+up+dumbbell+glutes+form"},
+    {id:"smith-split",name:"Smith Machine Split Squat",equip:"smith",muscles:["Quads","Glutes"],cue:"Rear foot on bench. Fixed bar removes balance. Focus on depth and load.",anim:"split-squat",yt:"smith+machine+split+squat+form"},
+    {id:"reverse-lunge",name:"Reverse Lunge (DB)",equip:"dumbbells",muscles:["Quads","Glutes"],cue:"Step BACK instead of forward. More knee-friendly. Front shin stays more vertical.",anim:"split-squat",yt:"reverse+lunge+dumbbell+form+glutes"},
+    {id:"single-leg-press",name:"Single-Leg Press",equip:"legpress",muscles:["Quads","Glutes"],cue:"One leg on plate. Same depth as bilateral. Great for identifying imbalances.",anim:"leg-press",yt:"single+leg+press+form+tutorial"},
+    {id:"kb-split",name:"KB Split Squat",equip:"kettlebells",muscles:["Quads","Glutes"],cue:"KBs at sides or in goblet position. Same split squat mechanics. 10-12 reps each.",anim:"split-squat",yt:"kettlebell+split+squat+form+tutorial"}
   ],
   "leg-ext":[
-    {id:"terminal-ext",name:"Terminal Knee Extension (Band)",muscles:["VMO","Quads"],cue:"Band around back of knee. Slight bend, extend to lockout. Rehab-friendly VMO builder.",anim:"leg-ext",yt:"terminal+knee+extension+VMO+rehab"},
-    {id:"sissy-squat",name:"Sissy Squat (Bodyweight/Loaded)",muscles:["Quads","VMO"],cue:"Hold support. Lean back as knees travel far forward. Intense quad stretch. Go slow.",anim:"leg-ext",yt:"sissy+squat+form+tutorial+quads"}
+    {id:"terminal-ext",name:"Terminal Knee Extension (Band)",equip:"bands",muscles:["VMO","Quads"],cue:"Band around back of knee. Slight bend, extend to lockout. Rehab-friendly VMO builder.",anim:"leg-ext",yt:"terminal+knee+extension+VMO+rehab"},
+    {id:"sissy-squat",name:"Sissy Squat",equip:"bodyweight",muscles:["Quads","VMO"],cue:"Hold support. Lean back as knees travel far forward. Intense quad stretch. Go slow.",anim:"leg-ext",yt:"sissy+squat+form+tutorial+quads"},
+    {id:"cable-leg-ext",name:"Cable Leg Extension",equip:"cables",muscles:["Quads","VMO"],cue:"Ankle cuff on low cable. Single leg. Drive foot forward. Hold at extension.",anim:"leg-ext",yt:"cable+leg+extension+form+single+leg"},
+    {id:"wall-sit",name:"Wall Sit (Isometric Hold)",equip:"bodyweight",muscles:["Quads","VMO"],cue:"Back flat against wall. 90° at knee. Hold 45-60 sec. Add plate for progression.",anim:"leg-ext",yt:"wall+sit+hold+quads+form"},
+    {id:"step-down",name:"Step-Down (Eccentric Squat)",equip:"bodyweight",muscles:["Quads","VMO","Glutes"],cue:"Stand on step. Lower opposite heel to floor slowly on one leg. 4-sec eccentric.",anim:"leg-ext",yt:"single+leg+step+down+eccentric+quad+form"}
   ],
-  "calf-stand":[
-    {id:"donkey-calf",name:"Donkey Calf Raise (Machine)",muscles:["Gastrocnemius"],cue:"Hips hinged, load across lower back. This position stretches the gastroc maximally.",anim:"calf",yt:"donkey+calf+raise+machine+form"},
-    {id:"lp-calf",name:"Leg Press Calf Raise",muscles:["Gastrocnemius","Soleus"],cue:"Feet on bottom of plate. Full stretch, full extension. Great for loading bilaterally.",anim:"calf",yt:"leg+press+calf+raise+form"}
-  ],
-  "dead-bug":[
-    {id:"plank",name:"Plank (Forearm)",muscles:["Deep Core","Lumbar Stabilisers"],cue:"Neutral spine. Don't sag hips or pike. Breathe. 30–60 sec holds. Quality over time.",anim:"dead-bug",yt:"plank+form+core+tutorial"},
-    {id:"hollow-hold",name:"Hollow Body Hold",muscles:["Deep Core","Hip Flexors"],cue:"Lower back pressed to floor. Arms overhead or by sides. Legs low but back stays flat.",anim:"dead-bug",yt:"hollow+body+hold+form+gymnastics+core"},
-    {id:"ab-wheel",name:"Ab Wheel Rollout",muscles:["Deep Core","Lats","Lumbar Stabilisers"],cue:"Start on knees. Brace hard. Roll out slowly, pull back with lats. Don't let hips drop.",anim:"dead-bug",yt:"ab+wheel+rollout+form+core"}
-  ],
-  "pull-up":[
-    {id:"lat-pulldown",name:"Lat Pulldown (Wide Grip)",muscles:["Lats","Rhomboids","Biceps"],cue:"Depress scapula before pulling. Pull to upper chest. Elbows drive DOWN. Lean back slightly.",anim:"pull",yt:"lat+pulldown+wide+grip+form+tutorial"},
-    {id:"close-grip-pd",name:"Close-Grip Lat Pulldown",muscles:["Lats","Biceps"],cue:"V-bar or close grip. More bicep involvement. Full stretch at top — don't cut it short.",anim:"pull",yt:"close+grip+lat+pulldown+form"},
-    {id:"straight-arm-pd",name:"Cable Straight-Arm Pulldown",muscles:["Lats","Serratus"],cue:"Arms straight, slight bend. Pull bar to thighs. Hinge at hips. Lat isolation king.",anim:"pull",yt:"cable+straight+arm+pulldown+lat+form"},
-    {id:"assisted-pu",name:"Assisted Pull-Up (Machine)",muscles:["Lats","Rhomboids","Biceps"],cue:"More assistance = easier. Work toward less assistance over weeks. Full dead hang start.",anim:"pull",yt:"assisted+pull+up+machine+form+tutorial"}
-  ],
-  "cs-row":[
-    {id:"machine-row",name:"Seated Machine Row",muscles:["Rhomboids","Lats","Rear Delt"],cue:"Chest against pad. Full stretch forward. Pull elbows back and together. Hold 1 sec.",anim:"row",yt:"seated+machine+row+form+tutorial"},
-    {id:"db-row",name:"Single-Arm DB Row",muscles:["Lats","Rhomboids","Biceps"],cue:"Brace on bench. Let shoulder drop for full stretch. Pull elbow back, not up. Twist slightly.",anim:"row",yt:"single+arm+dumbbell+row+form+tutorial"},
-    {id:"t-bar-row",name:"T-Bar Row",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° hinge. Pull handles to lower chest. Keep chest up. Go heavy on this one.",anim:"row",yt:"t+bar+row+form+back+tutorial"}
-  ],
-  "cable-row":[
-    {id:"bent-over-row",name:"Bent-Over DB Row (Bilateral)",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° forward lean. Both DBs. Elbows back, not flared. Squeeze shoulder blades at top.",anim:"row",yt:"bent+over+dumbbell+row+form"},
-    {id:"iso-row",name:"Iso-Lateral Row (Machine)",muscles:["Mid Back","Lats"],cue:"One arm at a time or both. Full stretch. Great for correcting imbalances.",anim:"row",yt:"iso+lateral+row+machine+form"},
-    {id:"meadows-row",name:"Meadows Row (Landmine)",muscles:["Lats","Rear Delt","Biceps"],cue:"Stand beside landmine. Staggered stance. Pull to hip. Long range of motion.",anim:"row",yt:"meadows+row+landmine+form+tutorial"}
-  ],
-  "face-pull":[
-    {id:"band-pull-apart",name:"Band Pull-Apart",muscles:["Rear Delt","External Rotators"],cue:"Arms straight at chest height. Pull band apart to chest. Squeeze rear delts. 20+ reps.",anim:"face-pull",yt:"band+pull+apart+form+shoulder+health"},
-    {id:"rear-delt-fly",name:"Rear Delt Fly (DB, Prone)",muscles:["Rear Delt","Mid Traps"],cue:"Lie face down on incline bench. Arms hang. Raise with slight elbow bend. Rear delt squeeze.",anim:"face-pull",yt:"prone+rear+delt+fly+dumbbell+form"},
-    {id:"cable-rear-delt",name:"Cable Rear Delt Fly",muscles:["Rear Delt","External Rotators"],cue:"Single cable, pull across body. Or set both cables at face height. Full ROM.",anim:"face-pull",yt:"cable+rear+delt+fly+form"}
-  ],
-  "ez-curl":[
-    {id:"bb-curl",name:"Barbell Curl",muscles:["Biceps","Brachialis"],cue:"Shoulder-width grip. Full supination at top. Long eccentric. Elbows stay forward.",anim:"curl",yt:"barbell+bicep+curl+form+tutorial"},
-    {id:"db-curl",name:"Alternating DB Curl",muscles:["Biceps","Brachialis"],cue:"Supinate at top of each rep. Don't swing. Full stretch at bottom. Alternate arms.",anim:"curl",yt:"alternating+dumbbell+curl+form"},
-    {id:"cable-curl",name:"Cable Curl (Straight Bar)",muscles:["Biceps"],cue:"Cable low. Constant tension — better than free weight at short range. High reps shine here.",anim:"curl",yt:"cable+bicep+curl+form+tutorial"}
-  ],
-  "hammer-curl":[
-    {id:"cable-hammer",name:"Cable Hammer Curl (Rope)",muscles:["Brachialis","Brachioradialis"],cue:"Rope attached low. Neutral grip throughout. Don't supinate. Elbow curl only.",anim:"hammer-curl",yt:"cable+hammer+curl+rope+form"},
-    {id:"cross-body-curl",name:"Cross-Body Hammer Curl",muscles:["Brachialis","Brachioradialis"],cue:"Curl DB across body to opposite shoulder. Brachialis dominant. Alternate arms.",anim:"hammer-curl",yt:"cross+body+hammer+curl+form"},
-    {id:"reverse-curl",name:"Reverse Curl (EZ or BB)",muscles:["Brachialis","Brachioradialis","Forearms"],cue:"Pronated grip. Keeps elbow stable. Builds forearm and brachialis thickness.",anim:"curl",yt:"reverse+curl+brachialis+forearm+form"}
-  ],
-  "hip-thrust":[
-    {id:"glute-bridge",name:"Glute Bridge (Bodyweight / Banded)",muscles:["Glutes","Hamstrings"],cue:"Feet flat, knees at 90°. Drive through heels. Posterior tilt at top. Add band above knees.",anim:"hip-thrust",yt:"glute+bridge+form+tutorial+bodyweight"},
-    {id:"smith-thrust",name:"Smith Machine Hip Thrust",muscles:["Glutes","Hamstrings"],cue:"Same as barbell. Smith keeps bar stable — allows focus on glute squeeze not balance.",anim:"hip-thrust",yt:"smith+machine+hip+thrust+form"},
-    {id:"cable-kickback",name:"Cable Glute Kickback",muscles:["Glutes"],cue:"Ankle cuff attached low. Hinge slightly. Drive leg back and up. Squeeze at top. No momentum.",anim:"hip-thrust",yt:"cable+glute+kickback+form+tutorial"}
+  // ── HAMSTRINGS / GLUTES ───────────────────────────────────────
+  "lying-leg-curl":[
+    {id:"seated-leg-curl",name:"Seated Leg Curl Machine",equip:"machines",muscles:["Hamstrings"],cue:"Seat reclined slightly. Curl through full ROM. Foot flexed. Slow eccentric.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
+    {id:"swiss-curl",name:"Swiss Ball Leg Curl",equip:"bodyweight",muscles:["Hamstrings","Glutes"],cue:"Hips up. Roll ball toward you by bending knees. Hips stay high. Brutal hamstring burn.",anim:"leg-curl",yt:"swiss+ball+leg+curl+form+hamstrings"},
+    {id:"nordic-curl",name:"Nordic Curl (Eccentric)",equip:"bodyweight",muscles:["Hamstrings"],cue:"Feet anchored. Lower your torso forward eccentrically. Hardest bodyweight hamstring exercise.",anim:"leg-curl",yt:"nordic+curl+form+tutorial+hamstrings"},
+    {id:"db-rdl",name:"DB Romanian Deadlift",equip:"dumbbells",muscles:["Hamstrings","Glutes","Lower Back"],cue:"Hip hinge. Soft bend in knees. Feel stretch in hamstrings. Drive hips through at top.",anim:"rdl",yt:"dumbbell+romanian+deadlift+form+tutorial"},
+    {id:"cable-curl",name:"Cable Leg Curl (Ankle Cuff)",equip:"cables",muscles:["Hamstrings"],cue:"Ankle cuff on low cable. Face machine. Curl heel toward glute. Control the return.",anim:"leg-curl",yt:"cable+leg+curl+form+hamstrings"},
+    {id:"good-morning",name:"Good Morning (BB or Cable)",equip:"barbells",muscles:["Hamstrings","Glutes","Lower Back"],cue:"Bar on upper back. Hip hinge forward. Feel hamstring stretch. NOT for bad lower backs.",anim:"rdl",yt:"good+morning+barbell+form+hamstrings"}
   ],
   "seated-leg-curl":[
-    {id:"lying-leg-curl",name:"Lying Leg Curl (Machine)",muscles:["Hamstrings","Biceps Femoris"],cue:"Toes slightly inward. Full stretch at start. Squeeze at top. Dorsiflexed foot = more activation.",anim:"leg-curl",yt:"lying+leg+curl+machine+form"},
-    {id:"nordic-curl",name:"Nordic Curl (Eccentric)",muscles:["Hamstrings"],cue:"Feet anchored. Lower body slowly with just hamstrings. Use hands to push up if needed.",anim:"leg-curl",yt:"nordic+hamstring+curl+form+eccentric"},
-    {id:"swiss-curl",name:"Swiss Ball Leg Curl",muscles:["Hamstrings","Glutes"],cue:"Feet on ball, hips bridged. Curl ball toward hips. Don't let hips drop. Hard but effective.",anim:"leg-curl",yt:"swiss+ball+leg+curl+form+hamstrings"}
+    {id:"lying-leg-curl",name:"Lying Leg Curl Machine",equip:"machines",muscles:["Hamstrings"],cue:"Lie prone. Curl heel toward glute. Foot flexed. Control eccentric.",anim:"leg-curl",yt:"lying+leg+curl+machine+form"},
+    {id:"db-rdl",name:"DB Romanian Deadlift",equip:"dumbbells",muscles:["Hamstrings","Glutes"],cue:"Hip hinge. Soft knees. Hamstring stretch drives the movement. Drive hips at top.",anim:"rdl",yt:"dumbbell+romanian+deadlift+form+tutorial"},
+    {id:"swiss-curl",name:"Swiss Ball Leg Curl",equip:"bodyweight",muscles:["Hamstrings","Glutes"],cue:"Hips up. Pull ball toward you by bending knees. Keep hips up the whole time.",anim:"leg-curl",yt:"swiss+ball+leg+curl+form+hamstrings"},
+    {id:"nordic-curl",name:"Nordic Curl",equip:"bodyweight",muscles:["Hamstrings"],cue:"Feet anchored. Eccentric lower. Pure hamstring strength. Progress slowly.",anim:"leg-curl",yt:"nordic+curl+form+tutorial+hamstrings"},
+    {id:"cable-deadlift",name:"Cable Pull-Through",equip:"cables",muscles:["Hamstrings","Glutes"],cue:"Rope between legs, face away from cable. Hip hinge. Drive hips forward at top.",anim:"rdl",yt:"cable+pull+through+glutes+hamstrings+form"}
   ],
-  "pull-through":[
-    {id:"kb-swing",name:"KB Swing (American or Russian)",muscles:["Glutes","Hamstrings","Erectors"],cue:"Hinge — NOT a squat. Hips drive the swing. Neutral spine. Power from glutes.",anim:"pull-through",yt:"kettlebell+swing+form+tutorial+hinge"},
-    {id:"good-morning",name:"Good Morning (Light BB / Cable)",muscles:["Hamstrings","Glutes","Erectors"],cue:"Bar on back or cable at face. Hinge at hips. Keep spine long. Feel the hamstring stretch.",anim:"pull-through",yt:"good+morning+exercise+form+hamstrings"}
+  "hip-thrust":[
+    {id:"glute-bridge",name:"Weighted Glute Bridge",equip:"barbells",muscles:["Glutes","Hamstrings"],cue:"Bar across hips with pad. Shoulders on bench, drive hips up. Full extension. Squeeze hard.",anim:"hip-thrust",yt:"weighted+glute+bridge+form+tutorial"},
+    {id:"smith-thrust",name:"Smith Machine Hip Thrust",equip:"smith",muscles:["Glutes","Hamstrings"],cue:"Shoulders on bench, set bar across hips. Drive up. Fixed bar = load up safely.",anim:"hip-thrust",yt:"smith+machine+hip+thrust+form"},
+    {id:"cable-kickback",name:"Cable Glute Kickback",equip:"cables",muscles:["Glutes"],cue:"Ankle cuff on low cable. Face machine. Drive heel back and up. Squeeze at top.",anim:"hip-thrust",yt:"cable+glute+kickback+form+tutorial"},
+    {id:"kb-swing",name:"KB Swing (American)",equip:"kettlebells",muscles:["Glutes","Hamstrings","Core"],cue:"Hip hinge, not squat. Drive hips forward explosively. KB overhead at top. Brace core.",anim:"hip-thrust",yt:"kettlebell+american+swing+form+tutorial"},
+    {id:"banded-hip",name:"Banded Hip Thrust (Bodyweight)",equip:"bands",muscles:["Glutes"],cue:"Band across hips. Shoulders on bench. Drive up and squeeze. High reps 20-30.",anim:"hip-thrust",yt:"banded+hip+thrust+form+glutes"},
+    {id:"single-leg-thrust",name:"Single-Leg Hip Thrust",equip:"bodyweight",muscles:["Glutes","Hamstrings"],cue:"One foot on floor, other extended. Drive through single heel. Levels up imbalances.",anim:"hip-thrust",yt:"single+leg+hip+thrust+form+glutes"}
   ],
-  "sl-rdl":[
-    {id:"db-rdl",name:"DB Romanian Deadlift (Both Legs)",muscles:["Hamstrings","Glutes","Erectors"],cue:"Neutral spine. Hinge at hip. Feel hamstring stretch before driving back up. Not a squat.",anim:"single-leg-rdl",yt:"dumbbell+romanian+deadlift+form+tutorial"},
-    {id:"lying-hip-ext",name:"Prone Hip Extension (Bench)",muscles:["Glutes","Hamstrings"],cue:"Lie face down on bench, hips at edge. Raise legs to hip height. Squeeze glutes. Low back safe.",anim:"hip-thrust",yt:"prone+hip+extension+glutes+form"}
+  "db-rdl":[
+    {id:"lying-leg-curl",name:"Lying Leg Curl Machine",equip:"machines",muscles:["Hamstrings"],cue:"Full ROM. Foot flexed. Slow 3-sec eccentric.",anim:"leg-curl",yt:"lying+leg+curl+machine+form"},
+    {id:"seated-leg-curl",name:"Seated Leg Curl Machine",equip:"machines",muscles:["Hamstrings"],cue:"Full stretch at top. Control return. Seated position changes hamstring angle.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
+    {id:"swiss-curl",name:"Swiss Ball Leg Curl",equip:"bodyweight",muscles:["Hamstrings","Glutes"],cue:"Hips bridged high. Pull ball in by bending knees. Keep hips up.",anim:"leg-curl",yt:"swiss+ball+leg+curl+form+hamstrings"},
+    {id:"good-morning",name:"Good Morning (Light BB)",equip:"barbells",muscles:["Hamstrings","Glutes","Lower Back"],cue:"Light load. Hip hinge. Feel hamstring stretch at bottom. NOT for bad lower backs.",anim:"rdl",yt:"good+morning+barbell+form+hamstrings"},
+    {id:"cable-pull-through",name:"Cable Pull-Through",equip:"cables",muscles:["Hamstrings","Glutes"],cue:"Rope between legs, face away. Hip hinge. Drive hips forward explosively at top.",anim:"rdl",yt:"cable+pull+through+glutes+hamstrings+form"},
+    {id:"nordic-curl",name:"Nordic Curl",equip:"bodyweight",muscles:["Hamstrings"],cue:"Feet anchored. Lower body forward eccentrically. Hardest bodyweight hamstring exercise.",anim:"leg-curl",yt:"nordic+curl+form+tutorial+hamstrings"}
   ],
-  "seated-calf":[
-    {id:"lp-calf-seated",name:"Leg Press Calf Raise",muscles:["Soleus","Gastrocnemius"],cue:"Feet on bottom of platform. Full ROM. Hold stretch 1 sec, hold squeeze 1 sec.",anim:"calf",yt:"leg+press+calf+raise+form+soleus"},
-    {id:"smith-calf",name:"Smith Machine Calf Raise",muscles:["Gastrocnemius","Soleus"],cue:"Stand on step/plate. Full stretch. Drive up tall. Slow eccentric.",anim:"calf",yt:"smith+machine+calf+raise+form"}
+  // ── CALVES ────────────────────────────────────────────────────
+  "calf-stand":[
+    {id:"donkey-calf",name:"Donkey Calf Raise Machine",equip:"machines",muscles:["Gastrocnemius"],cue:"Hips hinged. Load across lower back. This position stretches the gastroc maximally.",anim:"calf",yt:"donkey+calf+raise+machine+form"},
+    {id:"lp-calf",name:"Leg Press Calf Raise",equip:"legpress",muscles:["Gastrocnemius","Soleus"],cue:"Feet on bottom edge of plate. Full stretch down, full extension up. Bilateral.",anim:"calf",yt:"leg+press+calf+raise+form"},
+    {id:"seated-calf",name:"Seated Calf Raise",equip:"machines",muscles:["Soleus"],cue:"Knees bent = more soleus. Weight on knees. Full ROM. Slower than standing version.",anim:"calf",yt:"seated+calf+raise+machine+form+soleus"},
+    {id:"smith-calf",name:"Smith Machine Calf Raise",equip:"smith",muscles:["Gastrocnemius","Soleus"],cue:"Toes on plate. Smith holds bar. Load heavily. Full stretch and extension.",anim:"calf",yt:"smith+machine+calf+raise+form"},
+    {id:"bw-calf",name:"Single-Leg Bodyweight Calf Raise",equip:"bodyweight",muscles:["Gastrocnemius"],cue:"Hold wall for balance. One leg. Full hang off step. Max stretch. Slow and controlled.",anim:"calf",yt:"single+leg+calf+raise+bodyweight+form"},
+    {id:"db-calf",name:"DB Single-Leg Calf Raise",equip:"dumbbells",muscles:["Gastrocnemius","Soleus"],cue:"Hold DB, stand on step edge. Full range. Slow eccentric phase for max stimulus.",anim:"calf",yt:"dumbbell+calf+raise+single+leg+form"}
   ],
-  "bird-dog":[
-    {id:"superman",name:"Superman Hold",muscles:["Erectors","Glutes","Lumbar Stabilisers"],cue:"Face down. Lift opposite arm and leg simultaneously. Hold 2–3 sec. Good morning routine.",anim:"bird-dog",yt:"superman+hold+exercise+lower+back+form"},
-    {id:"fire-hydrant",name:"Fire Hydrant (Banded)",muscles:["Glutes","Hip Abductors"],cue:"On all fours. Lift knee out to side. Keep hips square. Band adds resistance.",anim:"bird-dog",yt:"fire+hydrant+exercise+glutes+form"},
-    {id:"glute-bridge-bw",name:"Glute Bridge (Bodyweight Rehab)",muscles:["Glutes","Hamstrings","Core"],cue:"Feet flat, knees bent. Bridge up. PPT at top. Great daily movement for lumbar rehab.",anim:"hip-thrust",yt:"glute+bridge+bodyweight+form+lower+back"}
+  // ── CORE ──────────────────────────────────────────────────────
+  "dead-bug":[
+    {id:"plank",name:"Forearm Plank",equip:"bodyweight",muscles:["Deep Core","Lumbar Stabilisers"],cue:"Neutral spine. Don't sag hips or pike. Breathe. 30-60 sec holds. Quality > time.",anim:"dead-bug",yt:"plank+form+core+tutorial"},
+    {id:"hollow-hold",name:"Hollow Body Hold",equip:"bodyweight",muscles:["Deep Core","Hip Flexors"],cue:"Lower back pressed to floor. Arms overhead or by sides. Legs low but back stays flat.",anim:"dead-bug",yt:"hollow+body+hold+form+gymnastics+core"},
+    {id:"ab-wheel",name:"Ab Wheel Rollout",equip:"bodyweight",muscles:["Deep Core","Lats","Lumbar Stabilisers"],cue:"Start on knees. Brace hard. Roll out slowly, pull back with lats. Don't let hips drop.",anim:"dead-bug",yt:"ab+wheel+rollout+form+core"},
+    {id:"cable-crunch",name:"Cable Crunch (Kneeling)",equip:"cables",muscles:["Rectus Abdominis","Deep Core"],cue:"Kneel facing cable. Crunch elbows to knees. Feel the abs, not the hip flexors.",anim:"dead-bug",yt:"cable+crunch+kneeling+abs+form"},
+    {id:"hanging-knee",name:"Hanging Knee Raise",equip:"pullup",muscles:["Deep Core","Hip Flexors"],cue:"Dead hang. Raise knees to chest. Lower controlled. Don't swing. Progress to leg raises.",anim:"dead-bug",yt:"hanging+knee+raise+abs+form"},
+    {id:"bird-dog",name:"Bird Dog",equip:"bodyweight",muscles:["Deep Core","Lumbar Stabilisers"],cue:"On all fours. Opposite arm + leg. Hold 2 sec. Spine neutral. Great for lower back health.",anim:"dead-bug",yt:"bird+dog+exercise+form+core+lumbar"}
+  ],
+  // ── BACK / PULL ───────────────────────────────────────────────
+  "pull-up":[
+    {id:"lat-pulldown",name:"Lat Pulldown (Wide Grip)",equip:"cables",muscles:["Lats","Rhomboids","Biceps"],cue:"Depress scapula before pulling. Pull to upper chest. Elbows drive DOWN. Lean back slightly.",anim:"pull",yt:"lat+pulldown+wide+grip+form+tutorial"},
+    {id:"close-grip-pd",name:"Close-Grip Lat Pulldown",equip:"cables",muscles:["Lats","Biceps"],cue:"V-bar or close grip. More bicep involvement. Full stretch at top — don't cut it short.",anim:"pull",yt:"close+grip+lat+pulldown+form"},
+    {id:"straight-arm-pd",name:"Straight-Arm Pulldown",equip:"cables",muscles:["Lats","Serratus"],cue:"Arms straight, slight bend. Pull bar to thighs. Hinge at hips. Lat isolation king.",anim:"pull",yt:"cable+straight+arm+pulldown+lat+form"},
+    {id:"assisted-pu",name:"Assisted Pull-Up Machine",equip:"machines",muscles:["Lats","Rhomboids","Biceps"],cue:"More assistance = easier. Reduce assistance over weeks. Full dead hang start.",anim:"pull",yt:"assisted+pull+up+machine+form+tutorial"},
+    {id:"trx-row",name:"TRX/Suspension Row",equip:"trx",muscles:["Lats","Rhomboids","Biceps"],cue:"Body horizontal under handles. Pull chest to hands. Feet further = harder. Full ROM.",anim:"row",yt:"trx+row+form+back+tutorial"},
+    {id:"band-pulldown",name:"Band Pulldown (Kneeling)",equip:"bands",muscles:["Lats"],cue:"Anchor band overhead. Kneel. Pull down to hips with straight arms. Lats do the work.",anim:"pull",yt:"band+lat+pulldown+kneeling+form"},
+    {id:"neutral-pulldown",name:"Neutral Grip Pulldown",equip:"cables",muscles:["Lats","Biceps"],cue:"Palms facing each other. More comfortable for most shoulders. Same lat focus.",anim:"pull",yt:"neutral+grip+lat+pulldown+form+tutorial"}
+  ],
+  "cs-row":[
+    {id:"machine-row",name:"Seated Machine Row",equip:"machines",muscles:["Rhomboids","Lats","Rear Delt"],cue:"Chest against pad. Full stretch forward. Pull elbows back and together. Hold 1 sec.",anim:"row",yt:"seated+machine+row+form+tutorial"},
+    {id:"db-row",name:"Single-Arm DB Row",equip:"dumbbells",muscles:["Lats","Rhomboids","Biceps"],cue:"Brace on bench. Let shoulder drop for full stretch. Pull elbow back, not up.",anim:"row",yt:"single+arm+dumbbell+row+form+tutorial"},
+    {id:"t-bar-row",name:"T-Bar Row",equip:"barbells",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° hinge. Pull handles to lower chest. Keep chest up. Go heavy on this one.",anim:"row",yt:"t+bar+row+form+back+tutorial"},
+    {id:"iso-row",name:"Iso-Lateral Machine Row",equip:"machines",muscles:["Mid Back","Lats"],cue:"One arm at a time. Full stretch. Correct imbalances. Great for mind-muscle.",anim:"row",yt:"iso+lateral+row+machine+form"},
+    {id:"bb-row",name:"Barbell Bent-Over Row",equip:"barbells",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° hinge. Pull bar to belly button. Elbows back, not flared. Don't stand up.",anim:"row",yt:"barbell+bent+over+row+form+tutorial"},
+    {id:"cable-row-close",name:"Seated Cable Row (Close Grip)",equip:"cables",muscles:["Rhomboids","Lats","Rear Delt"],cue:"Sit tall. Full stretch. Pull to lower chest. Squeeze shoulder blades. Slow return.",anim:"row",yt:"seated+cable+row+close+grip+form"}
+  ],
+  "cable-row":[
+    {id:"bent-over-row",name:"Bent-Over DB Row (Bilateral)",equip:"dumbbells",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° forward lean. Both DBs. Elbows back, not flared. Squeeze shoulder blades at top.",anim:"row",yt:"bent+over+dumbbell+row+form"},
+    {id:"machine-row",name:"Seated Machine Row",equip:"machines",muscles:["Mid Back","Lats"],cue:"Full stretch. Pull elbows back. Chest pad keeps torso honest.",anim:"row",yt:"seated+machine+row+form+tutorial"},
+    {id:"meadows-row",name:"Meadows Row (Landmine)",equip:"barbells",muscles:["Lats","Rear Delt","Biceps"],cue:"Stand beside landmine. Staggered stance. Pull to hip. Long range of motion.",anim:"row",yt:"meadows+row+landmine+form+tutorial"},
+    {id:"iso-row",name:"Iso-Lateral Machine Row",equip:"machines",muscles:["Mid Back","Lats"],cue:"One arm at a time or both. Full stretch. Great for imbalance correction.",anim:"row",yt:"iso+lateral+row+machine+form"},
+    {id:"t-bar-row",name:"T-Bar Row",equip:"barbells",muscles:["Mid Back","Lats","Rhomboids"],cue:"45° hinge. Pull to chest. Controlled. Great compound back movement.",anim:"row",yt:"t+bar+row+form+back+tutorial"},
+    {id:"trx-row",name:"TRX Row (Inverted)",equip:"trx",muscles:["Mid Back","Lats","Biceps"],cue:"Feet further forward = harder. Pull chest to handles. Elbows back.",anim:"row",yt:"trx+inverted+row+form+back+tutorial"}
+  ],
+  "face-pull":[
+    {id:"band-pull-apart",name:"Band Pull-Apart",equip:"bands",muscles:["Rear Delt","External Rotators"],cue:"Arms straight at chest height. Pull band apart to chest. Squeeze rear delts. 20+ reps.",anim:"face-pull",yt:"band+pull+apart+form+shoulder+health"},
+    {id:"rear-delt-fly",name:"Rear Delt Fly (DB, Prone)",equip:"dumbbells",muscles:["Rear Delt","Mid Traps"],cue:"Lie face down on incline bench. Arms hang. Raise with slight elbow bend. Rear delt squeeze.",anim:"face-pull",yt:"prone+rear+delt+fly+dumbbell+form"},
+    {id:"cable-rear-delt",name:"Cable Rear Delt Fly",equip:"cables",muscles:["Rear Delt","External Rotators"],cue:"Single cable, pull across body. Or both cables at face height. Full ROM.",anim:"face-pull",yt:"cable+rear+delt+fly+form"},
+    {id:"machine-rear-delt",name:"Pec Deck Reverse Fly",equip:"machines",muscles:["Rear Delt","Mid Traps"],cue:"Face machine. Arms on pads reversed. Open arms wide. Rear delt drives the movement.",anim:"face-pull",yt:"pec+deck+reverse+fly+rear+delt+form"},
+    {id:"db-scarecrow",name:"DB Scarecrow Rotation",equip:"dumbbells",muscles:["Rear Delt","External Rotators"],cue:"Upper arm parallel to floor. Rotate forearm up like a scarecrow. External rotation focus.",anim:"face-pull",yt:"scarecrow+external+rotation+shoulder+health"},
+    {id:"trx-face-pull",name:"TRX Face Pull",equip:"trx",muscles:["Rear Delt","Mid Traps"],cue:"Face TRX anchor. Pull handles to face, elbows high and wide. Great shoulder health.",anim:"face-pull",yt:"trx+face+pull+rear+delt+form"}
+  ],
+  // ── BICEPS ────────────────────────────────────────────────────
+  "ez-curl":[
+    {id:"bb-curl",name:"Barbell Curl",equip:"barbells",muscles:["Biceps","Brachialis"],cue:"Elbows pinned to sides. No swinging. Full supination at top. Slow eccentric.",anim:"curl",yt:"barbell+curl+form+biceps+tutorial"},
+    {id:"db-curl",name:"Alternating DB Curl",equip:"dumbbells",muscles:["Biceps","Brachialis"],cue:"Supinate as you curl (turn palm up). Full range. Alternate arms. No body English.",anim:"curl",yt:"alternating+dumbbell+curl+form+biceps"},
+    {id:"cable-curl2",name:"Cable Curl (Bar or Rope)",equip:"cables",muscles:["Biceps"],cue:"Constant tension at bottom where DBs are weak. Pull to chin level. Slow return.",anim:"curl",yt:"cable+bicep+curl+form+constant+tension"},
+    {id:"machine-curl",name:"Preacher / Machine Curl",equip:"machines",muscles:["Biceps"],cue:"Arms on pad. Full stretch at bottom. Peak contraction squeeze. Elbows stay on pad.",anim:"curl",yt:"preacher+curl+machine+biceps+form"},
+    {id:"hammer-curl2",name:"Hammer Curl (DB)",equip:"dumbbells",muscles:["Brachialis","Brachioradialis"],cue:"Neutral grip (thumbs up). Targets brachialis for arm width. Same strict curl form.",anim:"curl",yt:"hammer+curl+dumbbell+form+tutorial"},
+    {id:"incline-curl",name:"Incline DB Curl",equip:"dumbbells",muscles:["Biceps Long Head"],cue:"Incline bench 45-60°. Arms hang straight down. Full stretch. Long head bias.",anim:"curl",yt:"incline+dumbbell+curl+long+head+biceps+form"},
+    {id:"band-curl",name:"Band Curl",equip:"bands",muscles:["Biceps"],cue:"Stand on band. Curl up. Greatest resistance at top where you're strongest. High reps.",anim:"curl",yt:"resistance+band+bicep+curl+form"}
+  ],
+  "hammer-curl":[
+    {id:"cable-hammer",name:"Cable Hammer Curl (Rope)",equip:"cables",muscles:["Brachialis","Brachioradialis"],cue:"Rope attachment, low pulley. Neutral grip. Pull to shoulders. Squeeze at top.",anim:"curl",yt:"cable+hammer+curl+rope+form+brachialis"},
+    {id:"cross-body-curl",name:"Cross-Body Hammer Curl",equip:"dumbbells",muscles:["Brachialis","Brachioradialis"],cue:"Curl DB across your body to opposite shoulder. Hits brachialis hard.",anim:"curl",yt:"cross+body+hammer+curl+form+brachialis"},
+    {id:"reverse-curl",name:"Reverse Curl (EZ/BB)",equip:"barbells",muscles:["Brachioradialis","Brachialis"],cue:"Overhand grip. Curl up. Hits brachioradialis and forearms. Goes with hammer for arm width.",anim:"curl",yt:"reverse+curl+barbell+brachioradialis+form"},
+    {id:"kb-hammer",name:"KB Hammer Curl",equip:"kettlebells",muscles:["Brachialis","Brachioradialis"],cue:"Hold KB by the handle. Neutral grip. Curl to shoulder. Hold at top.",anim:"curl",yt:"kettlebell+hammer+curl+form+brachialis"},
+    {id:"ez-curl",name:"EZ-Bar Curl",equip:"barbells",muscles:["Biceps","Brachialis"],cue:"Semi-supinated grip on EZ bar. Easier on wrists. Full range. Slow down.",anim:"curl",yt:"ez+bar+curl+form+biceps+tutorial"}
+  ],
+  "cable-curl":[
+    {id:"db-curl",name:"Alternating DB Curl",equip:"dumbbells",muscles:["Biceps"],cue:"Supinate as you curl. No swinging. Full range. Alternate arms.",anim:"curl",yt:"alternating+dumbbell+curl+form+biceps"},
+    {id:"bb-curl",name:"Barbell Curl",equip:"barbells",muscles:["Biceps","Brachialis"],cue:"Supinated grip. Elbows pinned. Strict form. Slow eccentric.",anim:"curl",yt:"barbell+curl+form+biceps+tutorial"},
+    {id:"machine-curl",name:"Machine Preacher Curl",equip:"machines",muscles:["Biceps"],cue:"Arms on pad. Full stretch at bottom crucial. Peak squeeze at top.",anim:"curl",yt:"preacher+curl+machine+biceps+form"},
+    {id:"band-curl",name:"Band Bicep Curl",equip:"bands",muscles:["Biceps"],cue:"Stand on band. Curl up. High resistance at top. Great for pump sets 20-30 reps.",anim:"curl",yt:"resistance+band+bicep+curl+form"},
+    {id:"incline-curl",name:"Incline DB Curl",equip:"dumbbells",muscles:["Biceps Long Head"],cue:"Arms hang at 45-60° incline. Full stretch on long head. Don't let elbows drift.",anim:"curl",yt:"incline+dumbbell+curl+long+head+biceps+form"}
   ]
 };
 
@@ -3019,21 +3095,38 @@ function closeDaySwapSheet(){
   render();
 }
 function getSwapAlts(ex){
-  if(SWAP_ALTS[ex.id]&&SWAP_ALTS[ex.id].length)return SWAP_ALTS[ex.id];
-  var pool=[];var seen={};seen[ex.id]=true;
+  var userEquip=(S.profile&&S.profile.equipment)||[];
+  var hasEquipProfile=userEquip.length>0;
+  function equipOk(a){
+    if(!a.equip||a.equip==='bodyweight')return true;
+    if(!hasEquipProfile)return true;
+    return userEquip.indexOf(a.equip)>=0;
+  }
+  // Build full candidates list
+  var candidates=[];var seen={};seen[ex.id]=true;
+  // 1. From SWAP_ALTS for this exercise
+  if(SWAP_ALTS[ex.id]&&SWAP_ALTS[ex.id].length){
+    SWAP_ALTS[ex.id].forEach(function(a){if(!seen[a.id]){seen[a.id]=true;candidates.push(a);}});
+  }
+  // 2. Muscle-match from other SWAP_ALTS entries
   var exMuscles=ex.muscles||[];
+  Object.values(SWAP_ALTS).forEach(function(alts){alts.forEach(function(a){
+    if(seen[a.id])return;
+    var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
+    if(overlap){seen[a.id]=true;candidates.push(a);}
+  });});
+  // 3. Muscle-match from WK / WK_DAY_LIBRARY exercises
   var allDays=Object.values(WK).concat(Object.values(WK_DAY_LIBRARY));
   allDays.forEach(function(day){(day.exercises||[]).forEach(function(e){
     if(seen[e.id])return;
     var overlap=(e.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
-    if(overlap){seen[e.id]=true;pool.push({id:e.id,name:e.name,muscles:e.muscles||[],cue:e.cue||'',anim:e.anim||'',yt:e.yt||''});}
+    if(overlap){seen[e.id]=true;candidates.push({id:e.id,name:e.name,muscles:e.muscles||[],equip:e.equip||'',cue:e.cue||'',anim:e.anim||'',yt:e.yt||''});}
   });});
-  Object.values(SWAP_ALTS).forEach(function(alts){alts.forEach(function(a){
-    if(seen[a.id])return;
-    var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
-    if(overlap){seen[a.id]=true;pool.push(a);}
-  });});
-  return pool.slice(0,7);
+  // Filter by user equipment
+  var filtered=candidates.filter(equipOk);
+  // Fallback: if equipment filter leaves too few options, show all
+  var result=filtered.length>=3?filtered:candidates;
+  return result.slice(0,8);
 }
 function renderSwapSheet(){
   var ex=curEx();
@@ -3043,12 +3136,19 @@ function renderSwapSheet(){
     <div ontouchstart="sheetDragStart(event,'sub-panel')" ontouchmove="sheetDragMove(event,'sub-panel')" ontouchend="sheetDragEnd(event,'sub-panel',closeSubSheet)" onclick="closeSubSheet()" style="padding:8px 0 4px;touch-action:none;cursor:grab"><div style="width:48px;height:5px;background:rgba(255,255,255,0.25);border-radius:3px;margin:0 auto 12px"></div></div>
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:4px">Swapping out</div>
     <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px">${ex.name}</div>
-    <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Choose alternative</div>
-    ${alts.map(a=>`<button data-sid="${a.id}" onclick="swapExercise(this.dataset.sid)" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
-      <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:3px">${a.name}</div>
-      <div style="font-size:0.72rem;color:rgba(255,255,255,0.4)">${a.muscles.join(' · ')}</div>
-      <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:3px;line-height:1.4">${a.cue}</div>
-    </button>`).join('')}
+    <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">${alts.length} alternatives found</div>
+    <div style="max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px">
+    ${alts.map(a=>{
+      var equipLabel=(!a.equip||a.equip==='bodyweight')?'Bodyweight':a.equip.charAt(0).toUpperCase()+a.equip.slice(1).replace(/-/g,' ');
+      return`<button data-sid="${a.id}" onclick="swapExercise(this.dataset.sid)" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:0.9rem;font-weight:700;color:#fff">${a.name}</div>
+        <div style="font-size:0.62rem;font-weight:700;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:2px 7px;color:rgba(255,255,255,0.5);white-space:nowrap;margin-left:8px;flex-shrink:0">${equipLabel}</div>
+      </div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-bottom:3px">${a.muscles.join(' · ')}</div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.4">${a.cue}</div>
+    </button>`;}).join('')}
+    </div>
     <button onclick="S.showSwapSheet=false;render()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px;color:rgba(255,255,255,0.4);font-size:0.85rem;cursor:pointer;margin-top:4px">Keep ${ex.name}</button>
   </div>
 </div>`;
@@ -4981,7 +5081,7 @@ function renderThemePicker(){
 }
 function renderSettings(){
   return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;render()}">'+
-    '<div id="settings-panel" class="food-panel" style="height:92vh;overflow:hidden">'+
+    '<div id="settings-panel" class="food-panel" style="height:95vh;max-height:95vh;overflow:hidden">'+
       '<div ontouchstart="sheetDragStart(event,\'settings-panel\')" ontouchmove="sheetDragMove(event,\'settings-panel\')" ontouchend="sheetDragEnd(event,\'settings-panel\',closeSettings)" style="padding:8px 0 2px;touch-action:none;cursor:grab;flex-shrink:0">'+
         '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
       '</div>'+
@@ -5147,7 +5247,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v37';
+  window.APP_VERSION='v39';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5162,7 +5262,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v37';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v39';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
@@ -5338,4 +5438,4 @@ function renderCoach(){
 initApp();
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
