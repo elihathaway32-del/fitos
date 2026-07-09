@@ -262,6 +262,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .demo-area{background:var(--s2);border-bottom:1px solid var(--border);padding-bottom:12px}
 .demo-3d-wrap{height:230px;background:#111827;border-radius:10px;overflow:hidden;position:relative}.demo-3d-wrap canvas{display:block;width:100%!important;height:100%!important}
 .yt-embed-wrap{padding:0 14px}
+.swap-ex-btn{display:block;width:calc(100% - 28px);margin:10px 14px 10px;background:linear-gradient(135deg,rgba(255,30,30,0.13) 0%,rgba(180,0,0,0.07) 100%);border:1px solid rgba(255,60,60,0.35);border-radius:14px;padding:14px 20px;color:var(--red);font-size:0.95rem;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 0 18px rgba(255,40,40,0.18),inset 0 1px 0 rgba(255,255,255,0.07);text-align:center;transition:box-shadow .2s,border-color .2s}
+.swap-ex-btn:active{box-shadow:0 0 28px rgba(255,40,40,0.35),inset 0 1px 0 rgba(255,255,255,0.1);border-color:rgba(255,60,60,0.6);transform:scale(0.99)}
+[data-theme="light-clean"] .swap-ex-btn{background:linear-gradient(135deg,rgba(200,0,0,0.07) 0%,rgba(180,0,0,0.03) 100%);border:1px solid rgba(180,0,0,0.25);box-shadow:0 2px 12px rgba(180,0,0,0.1)}
+
 .yt-placeholder{height:220px;background:linear-gradient(145deg,#0f0f0f,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,0,0,0.25);position:relative;overflow:hidden;transition:border-color .2s}
 .yt-placeholder:active{border-color:rgba(255,0,0,0.6);transform:scale(0.99)}
 .yt-placeholder::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(255,0,0,0.08) 0%,transparent 70%)}
@@ -2862,10 +2866,10 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   ${ex._subbedFrom?'<div style="font-size:0.68rem;color:var(--amber);margin-top:4px">\u21c4 Subbed in \u00b7 was '+ex._subbedFrom+'</div>':''}
   <div class="ex-name">${ex.name}</div>
   <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
-  <button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--muted);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Sub</button>
 </div>
 <div class="demo-area">
   <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
+  <button onclick="S.showSwapSheet=true;render()" class="swap-ex-btn">⇄ Swap Exercise</button>
   <div class="yt-embed-wrap" id="yt-wrap-${ex.id}">
     <div class="yt-placeholder" onclick="loadYTDemo('${ex.id}','${ex.yt}')">
       <div class="yt-placeholder-inner">
@@ -2878,9 +2882,9 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   </div>
 </div>
 <div class="cue-box">📋 ${ex.cue}</div>
-${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session — ${fmt(getPrevSession(S.day).date)} · Week ${getPrevSession(S.day).week||'?'}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong style="color:var(--text)">${s.weight}kg×${s.reps}</strong>`).join(' &nbsp;·&nbsp; ')}</div><div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Beat these numbers today 💪</div></div>`:''}
+
 <div class="set-logger">
-  <div class="set-row-header"><div>#</div><div>kg<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>reps<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>Action</div><div></div></div>
+  <div class="set-row-header"><div>#</div><div>kg</div><div>reps</div><div>Action</div><div></div></div>
   ${Array.from({length:ex.sets+(S.extraSets[ex.id]||0)},(_,i)=>{
     const done=logged[i];
     const prevSet=prev[i];
@@ -4977,7 +4981,7 @@ function renderThemePicker(){
 }
 function renderSettings(){
   return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;render()}">'+
-    '<div id="settings-panel" class="food-panel" style="height:85vh;overflow:hidden">'+
+    '<div id="settings-panel" class="food-panel" style="height:92vh;overflow:hidden">'+
       '<div ontouchstart="sheetDragStart(event,\'settings-panel\')" ontouchmove="sheetDragMove(event,\'settings-panel\')" ontouchend="sheetDragEnd(event,\'settings-panel\',closeSettings)" style="padding:8px 0 2px;touch-action:none;cursor:grab;flex-shrink:0">'+
         '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
       '</div>'+
