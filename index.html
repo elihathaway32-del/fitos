@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 /* AI Coach */
 /* Food log / scanner */
 .food-panel-overlay{position:fixed;inset:0;background:#000a;z-index:500;display:flex;align-items:flex-end;justify-content:center}
-.food-panel{background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;border-top:1px solid var(--border)}
+.food-panel{background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:95vh;display:flex;flex-direction:column;border-top:1px solid var(--border);overflow:hidden}
 .food-panel-header{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .food-search-row{padding:12px 16px;display:flex;gap:8px;flex-shrink:0}
 .food-search-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:0.95rem}
@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v39 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v40 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3137,7 +3137,7 @@ function renderSwapSheet(){
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:4px">Swapping out</div>
     <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px">${ex.name}</div>
     <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">${alts.length} alternatives found</div>
-    <div style="max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px">
+    <div style="flex:1;min-height:0;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px">
     ${alts.map(a=>{
       var equipLabel=(!a.equip||a.equip==='bodyweight')?'Bodyweight':a.equip.charAt(0).toUpperCase()+a.equip.slice(1).replace(/-/g,' ');
       return`<button data-sid="${a.id}" onclick="swapExercise(this.dataset.sid)" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
@@ -5089,7 +5089,7 @@ function renderSettings(){
         '<span style="font-weight:700;font-size:1rem">⚙ Settings <span style="font-size:0.6rem;color:var(--muted);font-weight:400">'+(window.APP_VERSION||'')+'</span></span>'+
         '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
       '</div>'+
-      '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
+      '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
 
         renderThemePicker()+'\n'+
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
@@ -5247,7 +5247,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v39';
+  window.APP_VERSION='v40';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5262,7 +5262,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v39';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v40';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
@@ -5438,4 +5438,4 @@ function renderCoach(){
 initApp();
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
