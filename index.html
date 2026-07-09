@@ -1819,7 +1819,7 @@ let S={
 
   // Train tab
   trainScreen:'home',  // home|warmup|workout|rest|cooldown|complete|restday
-  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},
+  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},addDaySheet:false,
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
@@ -1927,7 +1927,8 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];return WK[d];}
+function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');if(cd[d]&&WK_DAY_LIBRARY[cd[d]])return WK_DAY_LIBRARY[cd[d]];return WK[d]||null;}
+function getAllDays(){var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');var all=Object.keys(WK).concat(Object.keys(cd));return all.filter(function(v,i,a){return a.indexOf(v)===i;}).sort();}
 function curEx(){return getWorkoutDay(S.day).exercises[S.exIdx];}
 function totalEx(){return getWorkoutDay(S.day).exercises.length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
@@ -2030,7 +2031,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -2665,13 +2666,13 @@ function renderTrainHome(){
 </div>
 <div style="padding:16px">
 <div class="card-title">Select Day</div>
-<div class="day-grid">${Object.keys(WK).filter(k=>/^[A-F]$/.test(k)).sort().map(d=>{const wd=getWorkoutDay(d);return`
+<div class="day-grid">${getAllDays().map(d=>{const wd=getWorkoutDay(d);return`
   <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')">
     <div class="day-letter" style="color:${wd.color}">Day ${d}</div>
     <div class="day-name">${wd.name}</div>
     <div class="day-tag" style="color:${wd.color}">${wd.tag}</div>
   </div>`;}
-).join('')}</div>
+).join('')}<div class="day-btn" onclick="S.addDaySheet=true;render()" style="border-style:dashed;text-align:center;padding:18px 8px;opacity:0.6"><div style="font-size:1.6rem;line-height:1">+</div><div style="font-size:0.72rem;font-weight:700;margin-top:6px">Add Day</div><div style="font-size:0.62rem;color:var(--muted);margin-top:3px">from library</div></div></div>
 <div class="card-title">Select Week</div>
 <div class="week-row">${[1,2,3,4,5,6,7,8].map(w=>`
   <div class="week-pill${S.week===w?' selected':''}" onclick="selectWeek(${w})"${S.week===w?` style="background:${WEEK_CLR[w-1]};border-color:${WEEK_CLR[w-1]}"`:''}><span style="font-size:0.78rem;font-weight:600">W${w}</span><br><span style="font-size:0.62rem;opacity:.8">${WEEK_PHASE[w-1]}</span></div>`).join('')}
@@ -2860,7 +2861,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   <div class="ex-type-badge ${badgeClass(ex.type)}">${ex.type}</div>
   <div class="ex-name">${ex.name}</div>
   <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
-  ${SWAP_ALTS[ex.id]?`<button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Swap</button>`:''}
+  <button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Sub</button>
 </div>
 <div class="demo-area">
   <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
@@ -2879,7 +2880,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
 ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session — ${fmt(getPrevSession(S.day).date)} · Week ${getPrevSession(S.day).week||'?'}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong style="color:var(--text)">${s.weight}kg×${s.reps}</strong>`).join(' &nbsp;·&nbsp; ')}</div><div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Beat these numbers today 💪</div></div>`:''}
 <div class="set-logger">
   <div class="set-row-header"><div>#</div><div>kg<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>reps<span style="color:#2a2a2a;margin-left:4px">/ last</span></div><div>Action</div><div></div></div>
-  ${Array.from({length:ex.sets},(_,i)=>{
+  ${Array.from({length:ex.sets+(S.extraSets[ex.id]||0)},(_,i)=>{
     const done=logged[i];
     const prevSet=prev[i];
     const isEditing=S.editingSet&&S.editingSet.exId===ex.id&&S.editingSet.idx===i;
@@ -2898,6 +2899,7 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
       ${done&&!isEditing?`<button class="edit-btn" onclick="editSet('${ex.id}',${i})" title="Edit">✏️</button>`:'<div></div>'}
     </div>`;
   }).join('')}
+  <button onclick="addExtraSet('${ex.id}')" style="width:100%;background:transparent;border:1.5px dashed rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:var(--muted);font-size:0.8rem;font-weight:600;cursor:pointer;margin-top:4px">+ Add Set</button>
   ${logged.length?`<div style="margin-top:10px">
     <div style="text-align:right;font-size:0.78rem;color:var(--muted)">Volume: <strong style="color:var(--green)">${logged.reduce((a,s)=>a+(s?s.weight*s.reps:0),0).toLocaleString()}kg</strong></div>
   </div>`:''}
@@ -3012,9 +3014,26 @@ function closeDaySwapSheet(){
   S.swapSheetDay=null;
   render();
 }
+function getSwapAlts(ex){
+  if(SWAP_ALTS[ex.id]&&SWAP_ALTS[ex.id].length)return SWAP_ALTS[ex.id];
+  var pool=[];var seen={};seen[ex.id]=true;
+  var exMuscles=ex.muscles||[];
+  var allDays=Object.values(WK).concat(Object.values(WK_DAY_LIBRARY));
+  allDays.forEach(function(day){(day.exercises||[]).forEach(function(e){
+    if(seen[e.id])return;
+    var overlap=(e.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
+    if(overlap){seen[e.id]=true;pool.push({id:e.id,name:e.name,muscles:e.muscles||[],cue:e.cue||'',anim:e.anim||'',yt:e.yt||''});}
+  });});
+  Object.values(SWAP_ALTS).forEach(function(alts){alts.forEach(function(a){
+    if(seen[a.id])return;
+    var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
+    if(overlap){seen[a.id]=true;pool.push(a);}
+  });});
+  return pool.slice(0,7);
+}
 function renderSwapSheet(){
   var ex=curEx();
-  var alts=SWAP_ALTS[ex.id]||[];
+  var alts=getSwapAlts(ex);
   return`<div style="position:fixed;inset:0;background:#000a;z-index:910" onclick="if(event.target===this){S.showSwapSheet=false;render()}">
   <div style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 16px 24px;z-index:911;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)">
     <div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;cursor:pointer" onclick="S.showSwapSheet=false;render()"></div>
@@ -3032,7 +3051,7 @@ function renderSwapSheet(){
 }
 function swapExercise(altId){
   var ex=curEx();
-  var alts=SWAP_ALTS[ex.id]||[];
+  var alts=getSwapAlts(ex);
   var alt=alts.find(function(a){return a.id===altId;});
   if(!alt)return;
   // Inherit sets/reps/rest from original exercise
@@ -3041,6 +3060,61 @@ function swapExercise(altId){
   S.showSwapSheet=false;
   render();
 }
+
+function addExtraSet(exId){S.extraSets[exId]=(S.extraSets[exId]||0)+1;render();}
+
+function renderAddDaySheet(){
+  var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');
+  var usedKeys=Object.values(cd);
+  var swaps=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
+  var swappedKeys=Object.values(swaps);
+  var letters=['E','F','G','H','I','J'];
+  var nextLetter=letters.find(function(l){return !cd[l];});
+  if(!nextLetter)return'<div style="position:fixed;inset:0;background:#000a;z-index:920;display:flex;align-items:center;justify-content:center;color:#fff">Max days reached (A–J)</div>';
+  var cardsHtml=Object.keys(WK_DAY_LIBRARY).map(function(key){
+    var sp=WK_DAY_LIBRARY[key];
+    var alreadyAdded=usedKeys.indexOf(key)>=0||swappedKeys.indexOf(key)>=0;
+    var exPreview=sp.exercises.slice(0,3).map(function(e){return e.name;}).join(' · ')+(sp.exercises.length>3?' +'+(sp.exercises.length-3)+' more':'');
+    var clickAttr=alreadyAdded?'':('onclick="confirmAddDay(\''+key+'\')"');
+    return '<div '+clickAttr+' style="text-align:left;background:'+(alreadyAdded?'rgba(255,255,255,0.01)':'rgba(255,255,255,0.04)')+';border:1px solid '+(alreadyAdded?'rgba(255,255,255,0.04)':'rgba(255,255,255,0.09)')+';border-radius:14px;padding:14px;margin-bottom:8px;cursor:'+(alreadyAdded?'default':'pointer')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+        '<div style="font-size:0.9rem;font-weight:700;color:'+(alreadyAdded?'rgba(255,255,255,0.22)':'#fff')+'">'+sp.name+'</div>'+
+        (alreadyAdded?
+          '<span style="font-size:0.68rem;color:rgba(255,255,255,0.2)">✓ Already in split</span>':
+          '<span style="font-size:0.7rem;color:rgba(255,255,255,0.38)">Add as Day '+nextLetter+' →</span>')+
+      '</div>'+
+      '<div style="font-size:0.72rem;color:rgba(255,255,255,0.42);margin-bottom:5px">'+sp.tag+'</div>'+
+      '<div style="font-size:0.68rem;color:rgba(255,255,255,0.25)">'+exPreview+'</div>'+
+    '</div>';
+  }).join('');
+  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:920;display:flex;align-items:flex-end" onclick="if(event.target===this)closeAddDaySheet()">'+
+  '<div style="width:100%;max-height:85vh;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;z-index:921;overflow:hidden;animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)">'+
+    '<div style="overflow-y:auto;max-height:85vh;padding:0 16px 24px">'+
+      '<div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;cursor:pointer" onclick="closeAddDaySheet()"></div>'+
+      '<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:2px">Expand Your Split</div>'+
+      '<div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:4px">Add Day '+nextLetter+' to Your Block</div>'+
+      '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:16px;line-height:1.5">Pick a workout to slot in as a bonus training day. Your coach tracks it in check-ins.</div>'+
+      '<div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Choose Split</div>'+
+      cardsHtml+
+      '<button onclick="closeAddDaySheet()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px;color:rgba(255,255,255,0.4);font-size:0.85rem;cursor:pointer;margin-top:4px">Cancel</button>'+
+    '</div>'+
+  '</div>'+
+'</div>';
+}
+
+function confirmAddDay(key){
+  var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');
+  var letters=['E','F','G','H','I','J'];
+  var nextLetter=letters.find(function(l){return !cd[l];});
+  if(!nextLetter)return;
+  cd[nextLetter]=key;
+  localStorage.setItem('fitos_custom_days',JSON.stringify(cd));
+  S.addDaySheet=false;
+  render();
+}
+
+function closeAddDaySheet(){S.addDaySheet=false;render();}
+
 function renderRestSheet(){
   const next=S.exIdx<totalEx()-1?getWorkoutDay(S.day).exercises[S.exIdx+1]:null;
   const r=38;const circ=Math.PI*2*r;
