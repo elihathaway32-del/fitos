@@ -3143,6 +3143,7 @@ function confirmAddDay(key){
 
 function closeAddDaySheet(){S.addDaySheet=false;render();}
 function closeSubSheet(){S.showSwapSheet=false;render();}
+function closeSettings(){S.showSettings=false;render();}
 
 function renderRestSheet(){
   const next=S.exIdx<totalEx()-1?getWorkoutDay(S.day).exercises[S.exIdx+1]:null;
@@ -4976,12 +4977,15 @@ function renderThemePicker(){
 }
 function renderSettings(){
   return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showSettings=false;render()}">'+
-    '<div class="food-panel" style="max-height:60vh">'+
-      '<div class="food-panel-header">'+
+    '<div id="settings-panel" class="food-panel" style="height:85vh;overflow:hidden">'+
+      '<div ontouchstart="sheetDragStart(event,'settings-panel')" ontouchmove="sheetDragMove(event,'settings-panel')" ontouchend="sheetDragEnd(event,'settings-panel',closeSettings)" style="padding:8px 0 2px;touch-action:none;cursor:grab;flex-shrink:0">'+
+        '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
+      '</div>'+
+      '<div class="food-panel-header" style="flex-shrink:0">'+
         '<span style="font-weight:700;font-size:1rem">⚙ Settings</span>'+
         '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
       '</div>'+
-      '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
+      '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
 
         renderThemePicker()+'\n'+
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
