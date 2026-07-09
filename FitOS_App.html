@@ -2890,11 +2890,9 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
       <div class="set-num${done&&!isEditing?' done':''}">${done&&!isEditing?'✓':i+1}</div>
       <div style="display:flex;flex-direction:column;gap:2px">
         <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
-        ${prevSet?`<div style="font-size:0.6rem;color:#363636;text-align:center;line-height:1">${prevSet.weight}kg</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
         <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
-        ${prevSet?`<div style="font-size:0.6rem;color:#363636;text-align:center;line-height:1">${prevSet.reps}r</div>`:''}
       </div>
       <button class="log-btn${done&&!isEditing?' done-btn':''}" onclick="logSet(${i})">${done&&!isEditing?'✓ Done':isEditing?'Save':'Log'}</button>
       ${done&&!isEditing?`<button class="edit-btn" onclick="editSet('${ex.id}',${i})" title="Edit">✏️</button>`:'<div></div>'}
