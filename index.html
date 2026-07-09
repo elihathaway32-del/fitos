@@ -1230,6 +1230,70 @@ const WK={
   ]}
 };
 
+
+const WK_DAY_LIBRARY={
+  "arms-shoulders":{name:"Arms \u0026 Shoulders",color:"#9b59b6",tag:"Biceps \u00b7 Triceps \u00b7 Side Delts \u00b7 Rear Delts",exercises:[
+    {id:"as-ohp",name:"Barbell Overhead Press",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar rests on upper chest. Drive up, head through at top. Core braced. Full lockout.",anim:"shoulder-press",yt:"barbell+overhead+press+form+tutorial"},
+    {id:"cable-lateral",name:"Cable Lateral Raise",type:"Isolation",sets:4,lo:15,hi:20,rest:60,muscles:["Side Delt"],cue:"Cable low, slight lean. Lead with elbow, thumb pointing down. No shrugging.",anim:"lateral",yt:"cable+lateral+raise+side+delt+form"},
+    {id:"ez-curl",name:"EZ-Bar Curl",type:"Isolation",sets:4,lo:8,hi:10,rest:90,muscles:["Biceps","Brachialis"],cue:"Elbows fixed. Supinate at top. Full stretch at bottom \u2014 honour it.",anim:"curl",yt:"ez+bar+curl+bicep+form+tutorial"},
+    {id:"hammer-curl",name:"Incline DB Hammer Curl",type:"Isolation",sets:3,lo:10,hi:12,rest:60,muscles:["Brachialis","Brachioradialis"],cue:"Incline bench 45\u201360\u00b0. Neutral grip. Long head loaded from stretch. 3-sec eccentric.",anim:"hammer-curl",yt:"incline+dumbbell+hammer+curl+form"},
+    {id:"rope-pushdown",name:"Tricep Rope Pushdown",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Triceps"],cue:"Elbows pinned to sides. Flare rope out at full extension. Slow return.",anim:"pushdown",yt:"tricep+rope+pushdown+form+tutorial"},
+    {id:"face-pull",name:"Face Pull",type:"Rotator cuff",sets:3,lo:15,hi:20,rest:60,muscles:["Rear Delt","External Rotators"],cue:"External rotation at end. Elbows at or ABOVE shoulder. Bulletproofs the shoulders.",anim:"face-pull",yt:"face+pull+form+shoulder+health+rotator+cuff"}
+  ]},
+  "chest-focus":{name:"Chest Focus",color:"#4a90d9",tag:"Upper \u00b7 Mid \u00b7 Lower Chest \u00b7 Triceps",exercises:[
+    {id:"bench",name:"Barbell Bench Press",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Chest","Front Delt","Triceps"],cue:"Retract scapula, slight arch, feet drive into floor. Bar to lower chest. Elbows 45\u201370\u00b0.",anim:"bench",yt:"barbell+bench+press+proper+form+tutorial"},
+    {id:"incline-db",name:"Incline Dumbbell Press",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Upper Chest","Front Delt","Triceps"],cue:"30\u201345\u00b0 incline. 3 sec eccentric. Full stretch at bottom. Upper chest focus.",anim:"bench",yt:"incline+dumbbell+press+form+tutorial"},
+    {id:"cf-pec-deck",name:"Pec Deck / Chest Fly Machine",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Chest"],cue:"Sit tall. Arms on pads, elbows slightly bent. Squeeze pecs at front. Controlled stretch back.",anim:"bench",yt:"pec+deck+fly+machine+chest+form"},
+    {id:"cf-cable-cross",name:"Cable Crossover (High to Low)",type:"Isolation",sets:3,lo:15,hi:15,rest:60,muscles:["Lower Chest"],cue:"Cables set high. Cross hands at bottom. Slight bend in elbows. Squeeze pecs.",anim:"bench",yt:"cable+crossover+chest+form+tutorial"},
+    {id:"rope-pushdown",name:"Tricep Rope Pushdown",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Triceps"],cue:"Elbows pinned. Flare out at full extension. Burn out the tris after all that chest work.",anim:"pushdown",yt:"tricep+rope+pushdown+form+tutorial"}
+  ]},
+  "back-focus":{name:"Back Focus",color:"#1D9E75",tag:"Lats \u00b7 Mid Back \u00b7 Biceps \u00b7 Rear Delts",exercises:[
+    {id:"pull-up",name:"Weighted Pull-Up / Lat Pulldown",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Lats","Rhomboids","Biceps"],cue:"Dead hang start. Depress scapula BEFORE pulling. Drive elbows to hips. Chest to bar.",anim:"pull",yt:"weighted+pull+up+lat+pulldown+form+tutorial"},
+    {id:"cs-row",name:"Chest-Supported DB Row",type:"Secondary compound",sets:4,lo:8,hi:10,rest:120,muscles:["Rhomboids","Lats","Rear Delt"],cue:"Chest on bench. Full stretch. Pull elbows back and together. Go heavy.",anim:"row",yt:"chest+supported+dumbbell+row+form"},
+    {id:"cable-row",name:"Seated Cable Row (Wide Neutral)",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Mid Back","Lats"],cue:"Full stretch forward. Pull to lower chest. Max 10\u00b0 lean back. Lumbar stable.",anim:"cable-row",yt:"seated+cable+row+wide+neutral+grip+form"},
+    {id:"bf-straight-arm",name:"Cable Straight-Arm Pulldown",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Lats","Serratus"],cue:"Arms straight, slight bend. Pull bar to thighs. Hinge at hips. Lat isolation king.",anim:"pull",yt:"cable+straight+arm+pulldown+lat+form"},
+    {id:"face-pull",name:"Face Pull",type:"Rotator cuff",sets:3,lo:15,hi:20,rest:60,muscles:["Rear Delt","External Rotators","Mid Traps"],cue:"External rotation at end. Elbows at or ABOVE shoulder. Every pull day \u2014 no exceptions.",anim:"face-pull",yt:"face+pull+form+shoulder+health+rotator+cuff"}
+  ]},
+  "shoulders":{name:"Shoulder Focus",color:"#f5a623",tag:"All Three Delt Heads \u00b7 Rotator Cuff",exercises:[
+    {id:"sh-bb-ohp",name:"Barbell Overhead Press",type:"Primary compound",sets:4,lo:5,hi:6,rest:180,muscles:["Side Delt","Front Delt","Triceps"],cue:"Bar rests on upper chest. Drive up, head through at top. This is the shoulder builder.",anim:"shoulder-press",yt:"barbell+overhead+press+form+tutorial"},
+    {id:"sh-db-lateral",name:"DB Lateral Raise",type:"Isolation",sets:5,lo:15,hi:20,rest:60,muscles:["Side Delt"],cue:"Slight forward lean. Raise to just above shoulder height. Lead with elbow. High volume side delt work.",anim:"lateral",yt:"dumbbell+lateral+raise+side+delt+form"},
+    {id:"cable-lateral",name:"Cable Lateral Raise",type:"Isolation",sets:3,lo:20,hi:25,rest:45,muscles:["Side Delt"],cue:"Cable low, slight lean. Constant tension. Superset-ready with DB laterals for max side delt pump.",anim:"lateral",yt:"cable+lateral+raise+side+delt+form"},
+    {id:"face-pull",name:"Face Pull",type:"Rotator cuff",sets:4,lo:15,hi:20,rest:60,muscles:["Rear Delt","External Rotators","Mid Traps"],cue:"External rotation at end. Elbows ABOVE shoulder. Bulletproofs your rotator cuff.",anim:"face-pull",yt:"face+pull+form+shoulder+health+rotator+cuff"},
+    {id:"sh-rear-delt-fly",name:"Rear Delt Fly (Prone DB)",type:"Isolation",sets:3,lo:15,hi:20,rest:60,muscles:["Rear Delt","Mid Traps"],cue:"Face down on incline bench. Arms hang. Raise with slight elbow bend. Squeeze rear delts hard.",anim:"face-pull",yt:"prone+rear+delt+fly+dumbbell+form"}
+  ]},
+  "core-conditioning":{name:"Core & Conditioning",color:"#00b4d8",tag:"Deep Core \u00b7 Stability \u00b7 Conditioning",exercises:[
+    {id:"dead-bug",name:"Dead Bug",type:"Core rehab",sets:4,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Lower back FLAT on floor. Breathe out as you extend. Slow and controlled. Medicine for your back.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"},
+    {id:"cc-ab-wheel",name:"Ab Wheel Rollout",type:"Core",sets:4,lo:8,hi:12,rest:90,muscles:["Deep Core","Lats","Lumbar Stabilisers"],cue:"Start on knees. Brace hard. Roll out slowly, pull back with lats. Don't let hips drop.",anim:"dead-bug",yt:"ab+wheel+rollout+form+core"},
+    {id:"bird-dog",name:"Bird-Dog",type:"Core rehab",sets:3,lo:12,hi:12,rest:60,muscles:["Deep Core","Lumbar Stabilisers","Glutes"],cue:"Opposite arm + leg extends simultaneously. DON'T rotate hips. Hold 2 sec. Motor control.",anim:"bird-dog",yt:"bird+dog+exercise+form+lumbar+back+rehab"},
+    {id:"cc-hollow-hold",name:"Hollow Body Hold",type:"Core",sets:3,lo:30,hi:45,rest:60,muscles:["Deep Core","Hip Flexors"],cue:"Lower back pressed to floor. Arms overhead or by sides. Legs low but back flat. 30\u201345 sec.",anim:"dead-bug",yt:"hollow+body+hold+form+gymnastics+core"},
+    {id:"cc-plank",name:"Forearm Plank",type:"Core",sets:3,lo:45,hi:60,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Neutral spine. Don't sag hips or pike. Breathe. 45\u201360 sec holds. Quality over time.",anim:"dead-bug",yt:"plank+form+core+tutorial"},
+    {id:"cc-kb-swing",name:"KB Swing",type:"Conditioning",sets:4,lo:15,hi:20,rest:60,muscles:["Glutes","Hamstrings","Erectors"],cue:"Hinge \u2014 NOT a squat. Hips drive the swing. Neutral spine. Power from glutes. Gets that heart rate up.",anim:"pull-through",yt:"kettlebell+swing+form+tutorial+hinge"}
+  ]},
+  "push-heavy":{name:"Push (Heavy)",color:"#e91e63",tag:"Chest \u00b7 Shoulders \u00b7 Triceps",exercises:[
+    {id:"bench",name:"Barbell Bench Press",type:"Primary compound",sets:5,lo:4,hi:6,rest:180,muscles:["Chest","Front Delt","Triceps"],cue:"Retract scapula, slight arch, feet drive. Bar to lower chest. Elbows 45\u201370\u00b0. HEAVY today.",anim:"bench",yt:"barbell+bench+press+proper+form+tutorial"},
+    {id:"incline-db",name:"Incline Dumbbell Press",type:"Secondary compound",sets:4,lo:8,hi:10,rest:120,muscles:["Upper Chest","Front Delt","Triceps"],cue:"30\u201345\u00b0 incline. Full stretch. Upper chest prioritised.",anim:"bench",yt:"incline+dumbbell+press+form+tutorial"},
+    {id:"seated-press",name:"Seated DB Shoulder Press",type:"Secondary compound",sets:4,lo:8,hi:10,rest:90,muscles:["Side Delt","Front Delt","Triceps"],cue:"Back supported. Start at ear height. Full lockout without shrugging.",anim:"shoulder-press",yt:"seated+dumbbell+shoulder+press+form+tutorial"},
+    {id:"cable-lateral",name:"Cable Lateral Raise",type:"Isolation",sets:3,lo:15,hi:20,rest:60,muscles:["Side Delt"],cue:"Cable low. Lead with elbow. Side delt finish after all that heavy pressing.",anim:"lateral",yt:"cable+lateral+raise+side+delt+form"},
+    {id:"rope-pushdown",name:"Tricep Rope Pushdown",type:"Isolation",sets:4,lo:12,hi:15,rest:60,muscles:["Triceps"],cue:"Elbows pinned. Flare out at full extension. Finish the tris.",anim:"pushdown",yt:"tricep+rope+pushdown+form+tutorial"},
+    {id:"oh-ext",name:"Overhead Cable Tricep Extension",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Triceps Long Head"],cue:"Long head stretch. Arms overhead. Drive up. Tricep finisher.",anim:"overhead-ext",yt:"overhead+cable+tricep+extension+form"}
+  ]},
+  "pull-heavy":{name:"Pull (Heavy)",color:"#3f51b5",tag:"Back \u00b7 Biceps \u00b7 Rear Delts",exercises:[
+    {id:"pull-up",name:"Weighted Pull-Up / Lat Pulldown",type:"Primary compound",sets:5,lo:4,hi:6,rest:180,muscles:["Lats","Rhomboids","Biceps"],cue:"Dead hang start. Depress scapula BEFORE pulling. Drive elbows to hips. HEAVY today.",anim:"pull",yt:"weighted+pull+up+lat+pulldown+form+tutorial"},
+    {id:"cs-row",name:"Barbell Row / Chest-Supported (Wk3+)",type:"Secondary compound",sets:4,lo:6,hi:8,rest:120,muscles:["Rhomboids","Lats","Rear Delt"],cue:"Wk 1\u20132: chest-supported. Wk 3+: barbell. Pull elbows back together. HEAVY.",anim:"row",yt:"chest+supported+dumbbell+row+form"},
+    {id:"cable-row",name:"Seated Cable Row",type:"Secondary compound",sets:3,lo:8,hi:10,rest:90,muscles:["Mid Back","Lats"],cue:"Full stretch forward. Pull to lower chest. Max 10\u00b0 lean back.",anim:"cable-row",yt:"seated+cable+row+wide+neutral+grip+form"},
+    {id:"ez-curl",name:"EZ-Bar Curl",type:"Isolation",sets:4,lo:8,hi:10,rest:90,muscles:["Biceps","Brachialis"],cue:"Elbows fixed. Supinate at top. Full stretch at bottom.",anim:"curl",yt:"ez+bar+curl+bicep+form+tutorial"},
+    {id:"hammer-curl",name:"Incline DB Hammer Curl",type:"Isolation",sets:3,lo:10,hi:12,rest:60,muscles:["Brachialis","Brachioradialis"],cue:"Incline bench 45\u201360\u00b0. Neutral grip. Long head loaded from stretch.",anim:"hammer-curl",yt:"incline+dumbbell+hammer+curl+form"},
+    {id:"face-pull",name:"Face Pull",type:"Rotator cuff",sets:3,lo:15,hi:20,rest:60,muscles:["Rear Delt","External Rotators"],cue:"External rotation at end. Elbows ABOVE shoulder. Non-negotiable on pull days.",anim:"face-pull",yt:"face+pull+form+shoulder+health+rotator+cuff"}
+  ]},
+  "legs-light":{name:"Legs (Recovery)",color:"#26a69a",tag:"Quads \u00b7 Glutes \u00b7 Calves \u00b7 Low Intensity",exercises:[
+    {id:"ll-goblet",name:"Goblet Squat (DB/KB)",type:"Compound",sets:3,lo:15,hi:20,rest:60,muscles:["Quads","Glutes"],cue:"Hold weight at chest. Elbows inside knees at bottom. Light load, high reps. Flush those legs.",anim:"squat",yt:"goblet+squat+form+tutorial"},
+    {id:"leg-ext",name:"Leg Extension (Light)",type:"Isolation",sets:3,lo:20,hi:25,rest:60,muscles:["Quads","VMO"],cue:"Light weight. 2-sec hold at top. High reps \u2014 blood flow work, not strength.",anim:"leg-ext",yt:"leg+extension+machine+form+VMO"},
+    {id:"leg-press",name:"Leg Press (Recovery Load)",type:"Compound",sets:3,lo:15,hi:20,rest:60,muscles:["Quads","Glutes"],cue:"Use about 50% of your normal load. Focus on full ROM. Active recovery \u2014 not a PR day.",anim:"leg-press",yt:"leg+press+form+tutorial"},
+    {id:"seated-leg-curl",name:"Seated Leg Curl (Light)",type:"Isolation",sets:3,lo:20,hi:20,rest:45,muscles:["Hamstrings"],cue:"Light load. Long eccentric (4 sec). Gets blood moving through those hammies after DOMS.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
+    {id:"calf-stand",name:"Standing Calf Raise",type:"Isolation",sets:4,lo:20,hi:25,rest:45,muscles:["Gastrocnemius"],cue:"Full stretch at bottom. Full squeeze at top. Calves respond to volume. Easy to do with DOMS.",anim:"calf",yt:"standing+calf+raise+form+gastrocnemius"},
+    {id:"dead-bug",name:"Dead Bug (Core Rehab)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Back flat. Breathe out as you extend. Medicine for your back. Always.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"}
+  ]}
+};
 const WEEK_RIR=[3,3,2,2,1,1,0,0];
 const WEEK_PHASE=["Volume","Volume","Volume+","Deload","Intensity","Intensity","Intensity+","Peak/Test"];
 const WEEK_CLR=["#4a90d9","#4a90d9","#4a90d9","#f0a030","#1D9E75","#1D9E75","#1D9E75","#e05050"];
@@ -1661,6 +1725,7 @@ let S={
   showSettings: false,
   showRestSheet: false,
   showSwapSheet: false,
+  swapSheetDay: null,
   logDate: new Date().toDateString(),
   viewDate: todayStr(),
   snapshots: loadJSON('fitos_snapshots',{}),
@@ -1736,8 +1801,9 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-function curEx(){return WK[S.day].exercises[S.exIdx];}
-function totalEx(){return WK[S.day].exercises.length;}
+function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];return WK[d];}
+function curEx(){return getWorkoutDay(S.day).exercises[S.exIdx];}
+function totalEx(){return getWorkoutDay(S.day).exercises.length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
 function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
 function getPrevSession(day){return S.gymHistory.slice().reverse().find(h=>h.day===day)||null;}
@@ -1838,7 +1904,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -2473,22 +2539,18 @@ function renderTrainHome(){
 </div>
 <div style="padding:16px">
 <div class="card-title">Select Day</div>
-<div class="day-grid">${Object.keys(WK).filter(k=>/^[A-F]$/.test(k)).sort().map(d=>`
+<div class="day-grid">${Object.keys(WK).filter(k=>/^[A-F]$/.test(k)).sort().map(d=>{const wd=getWorkoutDay(d);return`
   <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')">
-    <div class="day-letter" style="color:${WK[d].color}">Day ${d}</div>
-    <div class="day-name">${WK[d].name}</div>
-    <div class="day-tag" style="color:${WK[d].color}">${WK[d].tag}</div>
-  </div>`).join('')}</div>
+    <div class="day-letter" style="color:${wd.color}">Day ${d}</div>
+    <div class="day-name">${wd.name}</div>
+    <div class="day-tag" style="color:${wd.color}">${wd.tag}</div>
+  </div>`;}
+).join('')}</div>
 <div class="card-title">Select Week</div>
 <div class="week-row">${[1,2,3,4,5,6,7,8].map(w=>`
   <div class="week-pill${S.week===w?' selected':''}" onclick="selectWeek(${w})"${S.week===w?` style="background:${WEEK_CLR[w-1]};border-color:${WEEK_CLR[w-1]}"`:''}><span style="font-size:0.78rem;font-weight:600">W${w}</span><br><span style="font-size:0.62rem;opacity:.8">${WEEK_PHASE[w-1]}</span></div>`).join('')}
 </div>
-${S.day?`<div class="card" style="border-color:${WK[S.day].color}40;margin-bottom:14px">
-  <div class="card-title">Day ${S.day} — ${WK[S.day].name}</div>
-  ${WK[S.day].exercises.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.85rem"><span>${e.name}</span><span style="color:var(--muted);font-size:0.78rem">${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div>`).join('')}
-  <div style="padding-top:8px;font-size:0.78rem;color:var(--muted)">Week ${S.week} RIR: <strong style="color:var(--green)">${WEEK_RIR[S.week-1]} reps in reserve</strong></div>
-</div>
-<button class="btn btn-green" onclick="goToWarmup()">▶ Start Day ${S.day} — Week ${S.week}</button>`
+${S.day?renderDayPreviewCard(S.day)+`<button class="btn btn-green" onclick="goToWarmup()">▶ Start Day ${S.day} — Week ${S.week}</button>`
 :`<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.9rem">Select a training day above to begin</div>`}
 <div style="margin-top:16px">
   <div class="card-title">Rest Day / Recovery</div>
@@ -2505,7 +2567,7 @@ ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</
   const totalVol=Math.round(Object.values(h.sets||{}).reduce((a,sets)=>a+sets.reduce((b,s)=>b+(s.weight*s.reps),0),0));
   return`<div class="hist-item" onclick="viewSession(${gIdx})" style="cursor:pointer;active:opacity(0.7)">
     <div>
-      <strong style="color:${WK[h.day]?.color||'var(--green)'}">${WK[h.day]?.name||'Day '+h.day}</strong><br>
+      <strong style="color:${getWorkoutDay(h.day)?.color||'var(--green)'}">${getWorkoutDay(h.day)?.name||'Day '+h.day}</strong><br>
       <span style="color:var(--muted);font-size:0.75rem">${fmt(h.date)} · Wk ${h.week}${h.duration?' · '+h.duration+' min':''}</span>
     </div>
     <div style="text-align:right">
@@ -2518,10 +2580,10 @@ ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</
 
 function viewSession(gIdx){
   var h=S.gymHistory[gIdx];if(!h)return;
-  var dayExs=(WK[h.day]&&WK[h.day].exercises)||[];
+  var dayExs=((WK[h.day]&&WK[h.day].exercises)||[]).concat((getWorkoutDay(h.day)&&getWorkoutDay(h.day).exercises)||[]);
   var exName={};dayExs.forEach(function(e){exName[e.id]=e.name;});
-  var dayColor=(WK[h.day]&&WK[h.day].color)||'var(--green)';
-  var dayName=(WK[h.day]&&WK[h.day].name)||'Day '+h.day;
+  var dayColor=(getWorkoutDay(h.day)&&getWorkoutDay(h.day).color)||'var(--green)';
+  var dayName=(getWorkoutDay(h.day)&&getWorkoutDay(h.day).name)||'Day '+h.day;
   var dateStr=new Date(h.date).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   var totalSets=Object.values(h.sets||{}).reduce(function(a,s){return a+s.length;},0);
   var totalVol=Math.round(Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.reduce(function(b,s){return b+(s.weight*s.reps);},0);},0));
@@ -2566,8 +2628,8 @@ function viewSession(gIdx){
 }
 
 function getWarmupItems(){
-  const tag=(WK[S.day]?.tag||'').toLowerCase();
-  const nm=(WK[S.day]?.name||'').toLowerCase();
+  const _gwd=getWorkoutDay(S.day);const tag=(_gwd?.tag||'').toLowerCase();
+  const nm=(_gwd?.name||'').toLowerCase();
   if(tag.includes('chest')||tag.includes('shoulder')||tag.includes('tricep')||nm.includes('push')) return WARMUP_BY_DAY.upper_push;
   if(tag.includes('back')||tag.includes('bicep')||tag.includes('rear delt')||nm.includes('pull')) return WARMUP_BY_DAY.upper_pull;
   if(tag.includes('ham')||tag.includes('posterior')||nm.includes('posterior')||nm.includes('hinge')) return WARMUP_BY_DAY.lower_post;
@@ -2575,7 +2637,7 @@ function getWarmupItems(){
   return WARMUP_BY_DAY.upper_push;
 }
 function renderWarmup(){
-  const day=WK[S.day];
+  const day=getWorkoutDay(S.day);
   const dayItems=getWarmupItems();
   const injuryRehab=getInjuryRehab(S.profile);
   const allRehab=injuryRehab.reduce(function(a,p){return a.concat(p.items);},[]);
@@ -2615,7 +2677,7 @@ function renderWarmup(){
 
 function renderWorkout(){
   const ex=curEx();
-  const day=WK[S.day];
+  const day=getWorkoutDay(S.day);
   const logged=S.loggedSets[ex.id]||[];
   const prev=getPrevSets(S.day,ex.id);
   const rir=WEEK_RIR[S.week-1];
@@ -2684,7 +2746,7 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
 </div>
 <div style="padding:0 16px 6px">
   <div class="card-title">Coming up</div>
-  ${WK[S.day].exercises.slice(S.exIdx+1,S.exIdx+4).map(e=>`
+  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map(e=>`
   <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${e.name} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`).join('')}
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
 </div>
@@ -2694,6 +2756,94 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
 </div>`;
 }
 
+
+function renderDayPreviewCard(d){
+  var curDay=getWorkoutDay(d);
+  var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
+  var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
+  var isSwapped=!!sw[d];
+  var isLocked=!!lk[d];
+  var swapBtnHtml=isLocked?
+    '<div style="font-size:0.72rem;display:flex;align-items:center;gap:5px"><span style="color:'+curDay.color+'">\u2713 Swapped</span>&nbsp;<span style="color:var(--muted)">\ud83d\udd12 Locked</span></div>':
+    '<button onclick="S.swapSheetDay=\''+d+'\';render()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;color:rgba(255,255,255,0.65);font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap">\u21c4 Swap Out</button>';
+  return '<div class="card" style="border-color:'+curDay.color+'40;margin-bottom:14px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+      '<div class="card-title" style="margin:0">Day '+d+' \u2014 '+curDay.name+'</div>'+
+      swapBtnHtml+
+    '</div>'+
+    curDay.exercises.map(function(e){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.85rem">'+
+        '<span>'+e.name+'</span>'+
+        '<span style="color:var(--muted);font-size:0.78rem">'+e.sets+'\u00d7'+e.lo+(e.lo!==e.hi?'\u2013'+e.hi:'')+'</span>'+
+      '</div>';
+    }).join('')+
+    '<div style="padding-top:8px;font-size:0.78rem;color:var(--muted)">Week '+S.week+' RIR: <strong style="color:var(--green)">'+WEEK_RIR[S.week-1]+' reps in reserve</strong></div>'+
+  '</div>';
+}
+
+function renderDaySwapSheet(){
+  var d=S.swapSheetDay;
+  if(!d)return'';
+  var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
+  var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
+  var currentKey=sw[d]||null;
+  var isLocked=!!lk[d];
+  var origDay=WK[d];
+  // Build option list: original + all library splits
+  var splitOptions=[{key:'__original__',sp:origDay,isOrig:true}];
+  Object.keys(WK_DAY_LIBRARY).forEach(function(k){splitOptions.push({key:k,sp:WK_DAY_LIBRARY[k],isOrig:false});});
+  var cardsHtml=splitOptions.map(function(item){
+    var isCurrent=(item.isOrig&&!currentKey)||(item.key===currentKey);
+    var sp=item.sp;
+    var label=item.isOrig?'\u21a9 Keep Original: '+sp.name:sp.name;
+    var clickable=!isLocked&&!isCurrent;
+    var action=clickable?'onclick="confirmDaySwap(\''+d+'\',\''+item.key+'\');"':'';
+    var exPreview=sp.exercises.slice(0,3).map(function(e){return e.name;}).join(' \u00b7 ')+(sp.exercises.length>3?' +'+(sp.exercises.length-3)+' more':'');
+    return '<div '+action+' style="text-align:left;background:'+(isCurrent?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)')+';border:'+(isCurrent?'1.5px solid rgba(255,255,255,0.28)':'1px solid rgba(255,255,255,0.08)')+';border-radius:14px;padding:14px;margin-bottom:8px;cursor:'+(clickable?'pointer':'default')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+        '<div style="font-size:0.9rem;font-weight:700;color:#fff">'+label+'</div>'+
+        (isCurrent?'<span style="font-size:0.7rem;color:var(--green);font-weight:600">\u2713 Current</span>':
+         isLocked?'<span style="font-size:0.7rem;color:rgba(255,255,255,0.2)">\ud83d\udd12</span>':
+         '<span style="font-size:0.7rem;color:rgba(255,255,255,0.35)">Select \u2192</span>')+
+      '</div>'+
+      '<div style="font-size:0.72rem;color:rgba(255,255,255,0.45);margin-bottom:5px">'+sp.tag+'</div>'+
+      '<div style="font-size:0.7rem;color:rgba(255,255,255,0.28)">'+exPreview+'</div>'+
+    '</div>';
+  }).join('');
+  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:920;display:flex;align-items:flex-end" onclick="if(event.target===this)closeDaySwapSheet()">'+
+  '<div style="width:100%;max-height:85vh;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;z-index:921;overflow:hidden;animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)">'+
+    '<div style="overflow-y:auto;max-height:85vh;padding:0 16px 24px">'+
+      '<div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;cursor:pointer" onclick="closeDaySwapSheet()"></div>'+
+      '<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:2px">Swap Out Workout</div>'+
+      '<div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:16px">Day '+d+' \u2014 '+origDay.name+'</div>'+
+      (isLocked?'<div style="background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.22);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:0.78rem;color:var(--amber)">\ud83d\udd12 Locked for this cycle. This split is now your Day '+d+' for the rest of the 8-week block. Your coach tracks this for progress assessment.</div>':
+       '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:12px;line-height:1.5">Select a replacement split. Once chosen, it locks in for the rest of this training cycle so your coach can properly track your progress.</div>')+
+      '<div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Choose Your Split</div>'+
+      cardsHtml+
+      '<button onclick="closeDaySwapSheet()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px;color:rgba(255,255,255,0.4);font-size:0.85rem;cursor:pointer;margin-top:4px">Cancel</button>'+
+    '</div>'+
+  '</div>'+
+'</div>';
+}
+
+function confirmDaySwap(d,key){
+  var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
+  var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
+  if(lk[d])return;
+  if(key!=='__original__'){
+    sw[d]=key;
+    lk[d]=true;
+    localStorage.setItem('fitos_day_swaps',JSON.stringify(sw));
+    localStorage.setItem('fitos_day_swap_locked',JSON.stringify(lk));
+  }
+  S.swapSheetDay=null;
+  render();
+}
+
+function closeDaySwapSheet(){
+  S.swapSheetDay=null;
+  render();
+}
 function renderSwapSheet(){
   var ex=curEx();
   var alts=SWAP_ALTS[ex.id]||[];
@@ -2719,12 +2869,12 @@ function swapExercise(altId){
   if(!alt)return;
   // Inherit sets/reps/rest from original exercise
   var swapped=Object.assign({},ex,{id:ex.id+'_swap',name:alt.name,muscles:alt.muscles,cue:alt.cue,anim:alt.anim,yt:alt.yt,_swappedFrom:ex.name});
-  WK[S.day].exercises[S.exIdx]=swapped;
+  getWorkoutDay(S.day).exercises[S.exIdx]=swapped;
   S.showSwapSheet=false;
   render();
 }
 function renderRestSheet(){
-  const next=S.exIdx<totalEx()-1?WK[S.day].exercises[S.exIdx+1]:null;
+  const next=S.exIdx<totalEx()-1?getWorkoutDay(S.day).exercises[S.exIdx+1]:null;
   const r=38;const circ=Math.PI*2*r;
   const dashOff=circ*(1-S.restLeft/Math.max(S.restTotal,1));
   const pct=Math.round(S.restLeft/Math.max(S.restTotal,1)*100);
@@ -2762,8 +2912,8 @@ function renderRestSheet(){
 function renderRest(){return'';}
 
 function renderCooldown(){
-  const day=WK[S.day];
-  const _tag=(WK[S.day]?.tag||'').toLowerCase();const _nm=(WK[S.day]?.name||'').toLowerCase();
+  const day=getWorkoutDay(S.day);
+  const _tag=(day?.tag||'').toLowerCase();const _nm=(day?.name||'').toLowerCase();
   let _cdKey='upper_push';
   if(_tag.includes('back')||_tag.includes('bicep')||_tag.includes('rear delt')||_nm.includes('pull')) _cdKey='upper_pull';
   else if(_tag.includes('ham')||_tag.includes('posterior')||_nm.includes('posterior')) _cdKey='lower_post';
@@ -3984,7 +4134,8 @@ function generateCheckinDispatch(){
     'Improve: '+(c.toImprove||'—'),
     '',
     '═══════════════════════════════════',
-  ].concat((function(){
+  ].concat((function(){var _sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');var _sl=[];Object.keys(_sw).forEach(function(d){var lib=WK_DAY_LIBRARY[_sw[d]];if(lib)_sl.push('\u2022 Day '+d+' \u2192 '+lib.name+' ('+lib.tag+') \u2014 locked for cycle');});return _sl.length?['','DAY SWAP MODIFICATIONS (assess against these splits):'].concat(_sl):[];})()
+  ).concat((function(){
     var wn=[];var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
     (S.gymHistory||[]).forEach(function(h){
       if(!h.notes||new Date(h.date)<cutoff) return;
