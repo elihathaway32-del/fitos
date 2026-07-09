@@ -2859,6 +2859,7 @@ function renderWorkout(){
 ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
 <div class="ex-header" style="position:relative">
   <div class="ex-type-badge ${badgeClass(ex.type)}">${ex.type}</div>
+  ${ex._subbedFrom?'<div style="font-size:0.68rem;color:var(--amber);margin-top:4px">\u21c4 Subbed in \u00b7 was '+ex._subbedFrom+'</div>':''}
   <div class="ex-name">${ex.name}</div>
   <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
   <button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Sub</button>
@@ -2916,8 +2917,8 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
 </div>
 <div style="padding:0 16px 80px">
   <div class="card-title">Coming up</div>
-  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map(e=>`
-  <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${e.name} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`).join('')}
+  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(S.exSwaps[S.day+'_'+idx]||e).name;return`
+  <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${nm} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`;}).join('')}
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
 </div>
 <div class="bottom-actions">
@@ -4645,7 +4646,7 @@ function abandonWorkout(){
     S.trainScreen='home';
     S.day=null;
     S.exIdx=0;
-    S.loggedSets={};S.exerciseNotes={};
+    S.loggedSets={};S.exerciseNotes={};S.exSwaps={};S.extraSets={};
     S.warmupChecked=new Set();
     S.cooldownChecked=new Set();
     S.workoutStart=null;
