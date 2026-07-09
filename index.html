@@ -126,6 +126,19 @@
 [data-theme="light-clean"] .check-item{background:var(--s1)!important;border-color:var(--border)!important}
 [data-theme="light-clean"] .wizard-overlay{background:var(--bg)!important}
 [data-theme="light-clean"] .wizard-input,[data-theme="light-clean"] .wizard-select{color:var(--text)!important}
+/* THEMED CARDS */
+.devo-card{background:linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%);border-radius:16px;padding:16px;margin-top:12px}
+.targets-card{background:linear-gradient(135deg,#0a1a10 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;margin:12px 16px 0}
+.checkin-cta{background:linear-gradient(135deg,#0d1a2a 0%,#0d0d0d 100%);border-radius:14px;padding:16px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.checkin-cta-sunday{background:linear-gradient(135deg,#1a0a1a 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;cursor:pointer}
+[data-theme="light-clean"] .devo-card{background:linear-gradient(135deg,#fffbf0 0%,#ffffff 100%);border:1px solid rgba(192,119,0,0.25)!important}
+[data-theme="light-clean"] .targets-card{background:linear-gradient(135deg,#f0faf5 0%,#ffffff 100%);border:1px solid rgba(0,168,107,0.2)!important}
+[data-theme="light-clean"] .checkin-cta{background:linear-gradient(135deg,#f0f5ff 0%,#ffffff 100%);border:1px solid rgba(41,121,213,0.2)!important}
+[data-theme="light-clean"] .checkin-cta-sunday{background:linear-gradient(135deg,#fdf5ff 0%,#ffffff 100%);border:1px solid rgba(240,160,48,0.25)!important}
+[data-theme="dark-adrenaline"] .devo-card{background:linear-gradient(135deg,#1a1200 0%,#0c1528 100%)}
+[data-theme="dark-adrenaline"] .targets-card{background:linear-gradient(135deg,#0a1020 0%,#070d1a 100%)}
+[data-theme="dark-adrenaline"] .checkin-cta{background:linear-gradient(135deg,#0d1628 0%,#070d1a 100%)}
+[data-theme="dark-adrenaline"] .checkin-cta-sunday{background:linear-gradient(135deg,#140828 0%,#070d1a 100%)}
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;overscroll-behavior:none}
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
@@ -2422,7 +2435,7 @@ function renderDevotional(){
   const faith = S.profile && S.profile.faithProfile;
   if(faith !== 'christian') return '';
   const d = getDailyDevo();
-  return `<div style="margin-top:12px;background:linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%);border:1px solid var(--amber)40;border-radius:16px;padding:16px">
+  return `<div class="devo-card" style="border:1px solid var(--amber)40">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
       <div style="font-size:1.2rem">✝️</div>
       <div>
@@ -2606,12 +2619,12 @@ function renderToday(){
     </div>
 
     <!-- Weekly check-in CTA -->
-    ${(()=>{const now=new Date();const isSunday=now.getDay()===0;return isSunday?`<div style="margin:0 16px 12px;background:linear-gradient(135deg,#1a0a1a 0%,#0d0d0d 100%);border:1px solid var(--amber)50;border-radius:14px;padding:14px 16px;cursor:pointer" onclick="openCheckin()">
+    ${(()=>{const now=new Date();const isSunday=now.getDay()===0;return isSunday?`<div class="checkin-cta-sunday" style="margin:0 16px 12px;border:1px solid var(--amber)50" onclick="openCheckin()">
   <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">☀️ Sunday Check-in</div>
   <div style="font-size:0.9rem;font-weight:700">Week ${S.week} Review is ready</div>
   <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week's plan →</div>
 </div>`:''})()}
-<div style="margin-top:8px;background:linear-gradient(135deg,#0d1a2a 0%,#0d0d0d 100%);border:1px solid var(--blue)40;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCheckin()">
+<div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
       <div>
         <div style="font-weight:700;font-size:0.95rem">📋 Weekly Check-in</div>
         <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Review your week · get next week dialled</div>
@@ -3182,7 +3195,7 @@ function renderEat(){
   <div><div class="top-title">Eat</div><div class="top-sub">Target: ${T.cal} cal · ${T.protein}g protein</div></div>
 </div>
 ${hasProfile&&tdeeData?`
-<div style="margin:12px 16px 0;background:linear-gradient(135deg,#0a1a10 0%,#0d0d0d 100%);border:1px solid var(--green)30;border-radius:14px;padding:14px 16px">
+<div class="targets-card" style="border:1px solid var(--green)30">
   <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:10px">⚡ Your Personalised Targets</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
     <div style="text-align:center"><div style="font-size:1.35rem;font-weight:800;color:var(--green)">${tdeeData.tdee}</div><div style="font-size:0.65rem;color:var(--muted)">TDEE kcal</div></div>
