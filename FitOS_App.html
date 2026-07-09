@@ -1819,7 +1819,7 @@ let S={
 
   // Train tab
   trainScreen:'home',  // home|warmup|workout|rest|cooldown|complete|restday
-  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},addDaySheet:false,
+  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},exSwaps:{},addDaySheet:false,
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
@@ -1929,7 +1929,7 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 // ═══════════════════════════════════════════════════════════════════════════
 function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');if(cd[d]&&WK_DAY_LIBRARY[cd[d]])return WK_DAY_LIBRARY[cd[d]];return WK[d]||null;}
 function getAllDays(){var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');var all=Object.keys(WK).concat(Object.keys(cd));return all.filter(function(v,i,a){return a.indexOf(v)===i;}).sort();}
-function curEx(){return getWorkoutDay(S.day).exercises[S.exIdx];}
+function curEx(){var k=S.day+'_'+S.exIdx;return(S.exSwaps&&S.exSwaps[k])||getWorkoutDay(S.day).exercises[S.exIdx];}
 function totalEx(){return getWorkoutDay(S.day).exercises.length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
 function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
@@ -2862,7 +2862,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   ${ex._subbedFrom?'<div style="font-size:0.68rem;color:var(--amber);margin-top:4px">\u21c4 Subbed in \u00b7 was '+ex._subbedFrom+'</div>':''}
   <div class="ex-name">${ex.name}</div>
   <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
-  <button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.5);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Sub</button>
+  <button onclick="S.showSwapSheet=true;render()" style="position:absolute;top:0;right:0;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--muted);font-size:0.72rem;font-weight:600;cursor:pointer">⇄ Sub</button>
 </div>
 <div class="demo-area">
   <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
@@ -2917,7 +2917,7 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
 </div>
 <div style="padding:0 16px 80px">
   <div class="card-title">Coming up</div>
-  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(S.exSwaps[S.day+'_'+idx]||e).name;return`
+  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;return`
   <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${nm} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`;}).join('')}
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
 </div>
@@ -3042,7 +3042,7 @@ function renderSwapSheet(){
     <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:4px">Swapping out</div>
     <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px">${ex.name}</div>
     <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Choose alternative</div>
-    ${alts.map(a=>`<button onclick="swapExercise('${a.id}')" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
+    ${alts.map(a=>`<button data-sid="${a.id}" onclick="swapExercise(this.dataset.sid)" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:block">
       <div style="font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:3px">${a.name}</div>
       <div style="font-size:0.72rem;color:rgba(255,255,255,0.4)">${a.muscles.join(' · ')}</div>
       <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:3px;line-height:1.4">${a.cue}</div>
@@ -3052,13 +3052,13 @@ function renderSwapSheet(){
 </div>`;
 }
 function swapExercise(altId){
+  var origEx=getWorkoutDay(S.day).exercises[S.exIdx];
   var ex=curEx();
   var alts=getSwapAlts(ex);
   var alt=alts.find(function(a){return a.id===altId;});
-  if(!alt)return;
-  // Inherit sets/reps/rest from original exercise
-  var swapped=Object.assign({},ex,{id:ex.id+'_swap',name:alt.name,muscles:alt.muscles,cue:alt.cue,anim:alt.anim,yt:alt.yt,_swappedFrom:ex.name});
-  getWorkoutDay(S.day).exercises[S.exIdx]=swapped;
+  if(!alt){alert('Couldn\'t find that one mate. Try another.');return;}
+  var k=S.day+'_'+S.exIdx;
+  S.exSwaps[k]=Object.assign({},origEx,{id:origEx.id+'_sub',name:alt.name,muscles:alt.muscles||[],cue:alt.cue||'',anim:alt.anim||origEx.anim,yt:alt.yt||origEx.yt,_subbedFrom:origEx.name});
   S.showSwapSheet=false;
   render();
 }
@@ -4526,7 +4526,7 @@ function copyCheckinDispatch(){
 function switchTab(id){S.tab=id;render();window.scrollTo(0,0);}
 
 // ─── TRAIN ───────────────────────────────────────────────────────────────
-function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};render();}
+function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};render();}
 function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();render();}
 
 function goToWarmup(){
