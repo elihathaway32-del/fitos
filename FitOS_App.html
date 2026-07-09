@@ -16,8 +16,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root,[data-theme="dark-electric"]{
-  --bg:#0d0d0f;--s1:#161622;--s2:#1e1e2e;--s3:#26263a;
-  --border:#2a2a3e;--text:#f0efed;--muted:#6a6a8a;
+  --bg:#090909;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
+  --border:rgba(255,255,255,0.09);--text:#f0efed;--muted:#777;
   --green:#00E87A;--blue:#4a90d9;--amber:#f0a030;--red:#ff4757;--purple:#9b59b6;
   --tab-h:64px;
 }
@@ -34,6 +34,83 @@
   --tab-h:64px;
 }
 /* THEME OVERRIDES */
+/* GLASS MORPHISM - dark-electric */
+[data-theme="dark-electric"] body{
+  background:radial-gradient(ellipse 90% 40% at 50% 0%,rgba(0,232,122,0.07) 0%,transparent 70%),radial-gradient(ellipse 60% 30% at 80% 80%,rgba(74,144,217,0.05) 0%,transparent 70%),#090909;
+}
+[data-theme="dark-electric"] .card{
+  background:rgba(255,255,255,0.04)!important;
+  border:1px solid rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(16px) saturate(180%);
+  -webkit-backdrop-filter:blur(16px) saturate(180%);
+  box-shadow:0 4px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.07),inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+[data-theme="dark-electric"] .day-btn{
+  background:rgba(255,255,255,0.04)!important;
+  border:1px solid rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 2px 12px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.06);
+}
+[data-theme="dark-electric"] .day-btn.selected{
+  background:rgba(0,232,122,0.1)!important;
+  border-color:rgba(0,232,122,0.35)!important;
+  box-shadow:0 0 20px rgba(0,232,122,0.15),inset 0 1px 0 rgba(0,232,122,0.15);
+}
+[data-theme="dark-electric"] .stat-card,[data-theme="dark-electric"] .step-card,[data-theme="dark-electric"] .streak-card{
+  background:rgba(255,255,255,0.04)!important;
+  border:1px solid rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+}
+[data-theme="dark-electric"] .streak-card{
+  background:rgba(240,160,48,0.06)!important;
+  border-color:rgba(240,160,48,0.2)!important;
+}
+[data-theme="dark-electric"] .habit-item{
+  background:rgba(255,255,255,0.04)!important;
+  border-color:rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 2px 10px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+[data-theme="dark-electric"] .tab-bar{
+  background:rgba(9,9,9,0.75)!important;
+  border-top:1px solid rgba(255,255,255,0.07)!important;
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+}
+[data-theme="dark-electric"] .top-bar{
+  background:rgba(9,9,9,0.7)!important;
+  border-bottom:1px solid rgba(255,255,255,0.06)!important;
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+}
+[data-theme="dark-electric"] .food-panel,[data-theme="dark-electric"] .rest-sheet{
+  background:rgba(12,12,12,0.92)!important;
+  border-color:rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+[data-theme="dark-electric"] .set-logger .set-row{
+  background:rgba(255,255,255,0.03);
+  border-radius:10px;
+  margin-bottom:4px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+[data-theme="dark-electric"] .cue-box{
+  background:rgba(0,232,122,0.06)!important;
+  border-color:rgba(0,232,122,0.2)!important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+[data-theme="dark-electric"] .week-pill{
+  background:rgba(255,255,255,0.04)!important;
+  border-color:rgba(255,255,255,0.08)!important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
 [data-theme="dark-adrenaline"] .today-hero{background:linear-gradient(135deg,#0d2040 0%,#070d1a 100%)!important}
 [data-theme="dark-adrenaline"] .streak-card{background:linear-gradient(135deg,#1a1200 0%,#0c1528 100%)!important;border-color:rgba(255,140,0,0.3)}
 [data-theme="dark-adrenaline"] .consequence-card{background:linear-gradient(135deg,#1a0a0a 0%,#0c1528 100%)!important}
@@ -4770,7 +4847,7 @@ function renderThemePicker(){
     var active=cur===t.key;
     var textCol=t.key==='light-clean'?'#1c1c1e':'#ffffff';
     var glow=active?'0 0 12px '+t.accent+'99':'0 0 4px '+t.accent+'44';
-    return '<button onclick="setTheme('+JSON.stringify(t.key)+')" style="background:'+t.bg+';border:'+(active?'2px solid '+t.accent:'2px solid rgba(128,128,128,0.15)')+';border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:100%">'+
+    return '<button data-theme-key='+t.key+' onclick="setTheme(this.dataset.themeKey)" style="background:'+t.bg+';border:'+(active?'2px solid '+t.accent:'2px solid rgba(128,128,128,0.15)')+';border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:100%">'+
       '<div style="width:28px;height:28px;border-radius:50%;background:'+t.accent+';box-shadow:'+glow+'"></div>'+
       '<div style="font-size:0.62rem;font-weight:700;color:'+textCol+';text-align:center;line-height:1.3">'+t.label+'</div>'+
       '<div style="font-size:0.58rem;color:'+(active?t.accent:'rgba(128,128,128,0.45)')+'">'+(active?'ACTIVE':'tap')+'</div>'+
