@@ -2915,7 +2915,7 @@ ${prev.length?`<div class="prev-box"><div class="prev-title">↩ Last session �
 </div>
 <div style="padding:0 16px 80px">
   <div class="card-title">Coming up</div>
-  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;return`
+  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(function(){try{return((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;}catch(er){return e.name;}})();return`
   <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${nm} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`;}).join('')}
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
 </div>
@@ -4982,7 +4982,7 @@ function renderSettings(){
         '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
       '</div>'+
       '<div class="food-panel-header" style="flex-shrink:0">'+
-        '<span style="font-weight:700;font-size:1rem">⚙ Settings</span>'+
+        '<span style="font-weight:700;font-size:1rem">⚙ Settings <span style="font-size:0.6rem;color:var(--muted);font-weight:400">'+(window.APP_VERSION||'')+'</span></span>'+
         '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
       '</div>'+
       '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
@@ -5142,7 +5142,15 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  if('serviceWorker' in navigator){
+  window.APP_VERSION='v35';
+window.onerror=function(msg,src,line,col,err){
+  var el=document.getElementById('screen');
+  if(el&&el.innerHTML.length<200){
+    el.innerHTML='<div style="padding:40px 24px;text-align:center">'+'<div style="font-size:0.9rem;font-weight:700;margin-bottom:8px">Something crashed</div>'+'<div style="font-size:0.75rem;color:#888;margin-bottom:24px">'+msg+'</div>'+'<button onclick="location.reload()" style="background:#00E87A;border:none;border-radius:12px;padding:14px 32px;font-weight:700;font-size:1rem;cursor:pointer">Reload App</button></div>';
+  }
+  return false;
+};
+if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 }
