@@ -1801,7 +1801,7 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];return WK[d];}
+function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];return WK[d];}
 function curEx(){return getWorkoutDay(S.day).exercises[S.exIdx];}
 function totalEx(){return getWorkoutDay(S.day).exercises.length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
