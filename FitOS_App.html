@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v43 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v44 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3102,11 +3102,24 @@ function getSwapAlts(ex){
     if(!hasEquipProfile)return true;
     return userEquip.indexOf(a.equip)>=0;
   }
+  // Resolve the best SWAP_ALTS key for this exercise
+  var lookupId=ex.id;
+  if(!SWAP_ALTS[lookupId]||!SWAP_ALTS[lookupId].length){
+    // Strip equipment prefixes: bb-bench → bench, db-incline → incline etc
+    var stripped=lookupId.replace(/^(bb|db|kb|sm|lp|cf|sh|ll|cc|bf|as|ez|sg|sl)-/,'');
+    if(SWAP_ALTS[stripped]&&SWAP_ALTS[stripped].length){lookupId=stripped;}
+    else{
+      // Last resort: find a SWAP_ALTS key that is contained in or contains the id
+      var keys=Object.keys(SWAP_ALTS);
+      var found=keys.find(function(k){return lookupId.indexOf(k)>=0||k.indexOf(stripped)>=0;});
+      if(found)lookupId=found;
+    }
+  }
   // Build full candidates list
   var candidates=[];var seen={};seen[ex.id]=true;
   // 1. From SWAP_ALTS for this exercise
-  if(SWAP_ALTS[ex.id]&&SWAP_ALTS[ex.id].length){
-    SWAP_ALTS[ex.id].forEach(function(a){if(!seen[a.id]){seen[a.id]=true;candidates.push(a);}});
+  if(SWAP_ALTS[lookupId]&&SWAP_ALTS[lookupId].length){
+    SWAP_ALTS[lookupId].forEach(function(a){if(!seen[a.id]){seen[a.id]=true;candidates.push(a);}});
   }
   // 2. Muscle-match from other SWAP_ALTS entries
   var exMuscles=ex.muscles||[];
@@ -5248,7 +5261,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v43';
+  window.APP_VERSION='v44';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5263,7 +5276,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v43';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v44';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
@@ -5439,4 +5452,4 @@ function renderCoach(){
 initApp();
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
