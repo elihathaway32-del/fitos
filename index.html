@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v50 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v51 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -1970,6 +1970,8 @@ let S={
   pendingFood: null,
   expandedRecipe: null,
   showSettings: false,
+  showDevPanel: false,
+  _verTaps: 0,
   showRestSheet: false,
   showSwapSheet: false,
   swapSheetDay: null,
@@ -2156,7 +2158,7 @@ function render(){
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
     document.getElementById('screen').innerHTML=mainHTML;
     // Coach FAB — floating button always visible (not in intake/gleam/checkin)
     var existFab=document.getElementById('coach-fab');
@@ -5356,7 +5358,7 @@ function renderSettings(){
         '<div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div>'+
       '</div>'+
       '<div class="food-panel-header" style="flex-shrink:0">'+
-        '<span style="font-weight:700;font-size:1rem">⚙ Settings <span style="font-size:0.6rem;color:var(--muted);font-weight:400">'+(window.APP_VERSION||'')+'</span></span>'+
+        '<span style="font-weight:700;font-size:1rem">⚙ Settings <span onclick="S._verTaps=(S._verTaps||0)+1;if(S._verTaps>=3){S._verTaps=0;S.showSettings=false;S.showDevPanel=true;render();}" style="font-size:0.6rem;color:var(--muted);font-weight:400;cursor:pointer">'+(window.APP_VERSION||'')+'</span></span>'+
         '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
       '</div>'+
       '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
@@ -5382,6 +5384,86 @@ function renderSettings(){
     '</div>'+
   '</div>';
 }
+
+// ── DEV / TEST PANEL ─────────────────────────────────────────────────────────
+var DEV_AVATARS=[
+  {emoji:'🟦',label:'Beginner Brad',sub:'Male · 3 days · Fat Loss · Bodyweight only',p:{
+    name:'Brad',age:'28',gender:'male',weight:'95',height:'180',bodyFatPct:'28',
+    goal:'lose weight and burn fat',experience:'beginner',daysPerWeek:'3',
+    gymType:'home gym no equipment',equipment:['bands'],
+    sessionLength:'45',injuries:[],coachName:'Coach Alex',coachGender:'male'
+  }},
+  {emoji:'🟥',label:'Gym Mum Rachel',sub:'Female · 4 days · Body Recomp · Commercial gym',p:{
+    name:'Rachel',age:'38',gender:'female',weight:'72',height:'165',bodyFatPct:'32',
+    goal:'body recomp — tone up and lose fat',experience:'intermediate',daysPerWeek:'4',
+    gymType:'commercial gym',equipment:['barbells','dumbbells','cables','machines'],
+    sessionLength:'60',injuries:[],coachName:'Coach Sam',coachGender:'female'
+  }},
+  {emoji:'🟩',label:'Strength Steve',sub:'Male · 5 days · Strength · Commercial gym',p:{
+    name:'Steve',age:'32',gender:'male',weight:'85',height:'178',bodyFatPct:'18',
+    goal:'get stronger and build strength',experience:'advanced',daysPerWeek:'5',
+    gymType:'commercial gym',equipment:['barbells','dumbbells','cables','machines','smith','legpress'],
+    sessionLength:'75',injuries:[],coachName:'Coach Alex',coachGender:'male'
+  }},
+  {emoji:'🟪',label:'Home Hannah',sub:'Female · 3 days · Tone · Dumbbells only',p:{
+    name:'Hannah',age:'25',gender:'female',weight:'60',height:'162',bodyFatPct:'26',
+    goal:'tone up and build lean muscle',experience:'beginner',daysPerWeek:'3',
+    gymType:'home gym',equipment:['dumbbells','bands','pullup'],
+    sessionLength:'40',injuries:[],coachName:'Coach Sam',coachGender:'female'
+  }},
+  {emoji:'🟧',label:'Hyrox Hunter',sub:'Male · 6 days · Athletic/Hyrox · Elite gym',p:{
+    name:'Hunter',age:'29',gender:'male',weight:'80',height:'182',bodyFatPct:'14',
+    goal:'hyrox performance and athletic conditioning',experience:'advanced',daysPerWeek:'6',
+    gymType:'elite performance gym',equipment:['barbells','dumbbells','cables','machines','kettlebells','sled','ghd'],
+    sessionLength:'90',injuries:[],coachName:'Coach Alex',coachGender:'male'
+  }},
+  {emoji:'⬛',label:'Reset to Eli',sub:'Your actual profile — reloads from saved data',p:null}
+];
+function loadTestProfile(idx){
+  var av=DEV_AVATARS[idx];
+  if(!av) return;
+  if(!av.p){
+    // Reset to Eli — reload saved profile
+    var saved=localStorage.getItem('fitos_profile');
+    if(saved){try{S.profile=JSON.parse(saved);}catch(e){}}
+  } else {
+    S.profile=Object.assign({},av.p);
+    localStorage.setItem('fitos_profile',JSON.stringify(S.profile));
+  }
+  try{generateAndSaveBlock();}catch(e){console.error('generateAndSaveBlock error',e);}
+  S.showDevPanel=false;
+  S.tab='train';
+  S.trainScreen='days';
+  render();
+}
+function renderDevPanel(){
+  var cards=DEV_AVATARS.map(function(av,i){
+    return '<button onclick="loadTestProfile('+i+')" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;margin-bottom:10px">'+
+      '<span style="font-size:2rem;flex-shrink:0">'+av.emoji+'</span>'+
+      '<div>'+
+        '<div style="font-weight:700;font-size:0.9rem;color:var(--text)">'+av.label+'</div>'+
+        '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">'+av.sub+'</div>'+
+      '</div>'+
+    '</button>';
+  }).join('');
+  return '<div class="food-panel-overlay" onclick="if(event.target===this){S.showDevPanel=false;render()}">'+
+    '<div style="position:fixed;bottom:0;left:0;right:0;max-height:92vh;background:var(--s1);border-radius:20px 20px 0 0;border-top:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:910;max-width:480px;margin:0 auto">'+
+      '<div style="padding:8px 0 2px;flex-shrink:0"><div style="width:48px;height:5px;background:var(--border);border-radius:3px;margin:0 auto"></div></div>'+
+      '<div style="flex-shrink:0;padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between">'+
+        '<div>'+
+          '<div style="font-weight:700;font-size:1rem">🧪 Test Profiles</div>'+
+          '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Load an avatar → see their generated training block</div>'+
+        '</div>'+
+        '<button onclick="S.showDevPanel=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">×</button>'+
+      '</div>'+
+      '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 24px">'+
+        cards+
+        '<div style="font-size:0.68rem;color:var(--muted);text-align:center;margin-top:4px">Hidden dev tool — triple-tap version number in Settings to reopen</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function toggleArr(field,val){
   var arr=S.profile[field];
@@ -5517,7 +5599,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v50';
+  window.APP_VERSION='v51';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5532,7 +5614,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v50';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v51';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
