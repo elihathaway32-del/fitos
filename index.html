@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v60 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v61 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -945,7 +945,7 @@ function pickEx(available,pattern,used,seed,isFemale){
 function simpleHash(str){var h=5381;for(var i=0;i<str.length;i++){h=((h<<5)+h)+str.charCodeAt(i);h=h&h;}return Math.abs(h);}
 
 // Generate a full training block for a profile
-function buildBlock(p){
+function buildBlock(p,progData){
   const days=parseInt(p.daysPerWeek)||3;
   const style=goalStyle(p);
   const mod=profileModality(p);
@@ -1306,10 +1306,87 @@ function shouldRegenBlock(p){
 }
 
 // Generate + save block, called after intake or when profile changes
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROGRESSION ENGINE — reads gymHistory, feeds smart weight suggestions
+// ═══════════════════════════════════════════════════════════════════════════
+function getProgressionData(){
+  // Returns: { [exerciseId]: { best: kg, last: kg, trend: 'up'|'flat'|'down', sessions: n } }
+  var hist=S.gymHistory||[];
+  var data={};
+  hist.forEach(function(session){
+    Object.entries(session.sets||{}).forEach(function(entry){
+      var exId=entry[0]; var sets=entry[1];
+      if(!sets||!sets.length) return;
+      var topSet=sets.reduce(function(best,s){return s&&s.weight>best?s.weight:best;},0);
+      if(topSet<=0) return;
+      if(!data[exId]) data[exId]={sessions:[],best:0,last:0,trend:'flat'};
+      data[exId].sessions.push({date:session.date,week:session.week,topSet:topSet,
+        avgReps:sets.reduce(function(a,s){return a+(s?s.reps:0);},0)/Math.max(sets.length,1)});
+      if(topSet>data[exId].best) data[exId].best=topSet;
+      data[exId].last=topSet;
+    });
+  });
+  // Compute trend: compare last 2 sessions
+  Object.keys(data).forEach(function(id){
+    var d=data[id];
+    if(d.sessions.length>=2){
+      var last2=d.sessions.slice(-2);
+      var delta=last2[1].topSet-last2[0].topSet;
+      d.trend=delta>0?'up':delta<0?'down':'flat';
+      d.weeklyGain=delta;
+    }
+  });
+  return data;
+}
+
+function getSmartWeight(exId){
+  // Returns suggested kg for next session, or null if no history
+  var prog=getProgressionData();
+  var d=prog[exId];
+  if(!d||d.sessions.length===0) return null;
+  // If trending up: add 2.5kg. Flat for 2+ sessions: add 1.25kg. Down: keep same.
+  var suggestion=d.last;
+  if(d.trend==='up') suggestion=d.last+2.5;
+  else if(d.trend==='flat'&&d.sessions.length>=2) suggestion=d.last+1.25;
+  return Math.round(suggestion*4)/4; // round to nearest 0.25kg
+}
+
+function renderProgressionCard(){
+  var prog=getProgressionData();
+  var keys=Object.keys(prog);
+  if(keys.length===0) return '';
+  // Top 5 lifts by best weight
+  var top=keys.sort(function(a,b){return prog[b].best-prog[a].best;}).slice(0,6);
+  var rows=top.map(function(id){
+    var d=prog[id];
+    var trend=d.trend==='up'?'<span style="color:var(--green)">↑</span>':
+              d.trend==='down'?'<span style="color:var(--red)">↓</span>':'<span style="color:var(--muted)">→</span>';
+    var exName=id.replace(/-/g,' ').replace(/\w/g,function(c){return c.toUpperCase();});
+    // Try to get name from WK
+    Object.values(WK||{}).forEach(function(day){
+      if(day&&day.exercises) day.exercises.forEach(function(e){if(e.id===id) exName=e.name;});
+    });
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="font-size:0.82rem;color:var(--text)">'+exName+'</div>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="font-size:0.75rem;color:var(--muted)">'+d.sessions.length+' sessions</div>'+
+        '<div style="font-size:0.9rem;font-weight:700;color:var(--blue)">'+d.best+'kg</div>'+
+        '<div style="font-size:1.0rem">'+trend+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  return '<div class="card-title" style="margin-top:8px">Strength Progress</div>'+
+    '<div class="card" style="padding:10px 14px">'+
+      '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Top set per exercise — across all logged sessions</div>'+
+      rows+
+    '</div>';
+}
 function generateAndSaveBlock(){
   var p=S.profile;
   if(!p||!p.goal) return;
-  var block=buildBlock(p);
+  var prog=getProgressionData();
+  var block=buildBlock(p,prog);
   localStorage.setItem('fitos_generated_block',JSON.stringify(block));
   localStorage.setItem('fitos_block_profile',JSON.stringify({goal:p.goal,daysPerWeek:p.daysPerWeek,gymType:p.gymType,experience:p.experience}));
   // Clear old day keys first so a 3-day user doesn't inherit a 6-day split
@@ -2348,7 +2425,7 @@ function saveHabits(){
   var dayLog=S.foodLog.filter(function(f){return f.date===td;});
   var snapCal=dayLog.reduce(function(a,f){return a+(f.cal||0);},0);
   var snapProt=dayLog.reduce(function(a,f){return a+(f.p||0);},0);
-  var eaten=MEALS.filter(function(m){return S.mealChecked.has(m.id);});
+  var eaten=getPersonalisedMeals().filter(function(m){return S.mealChecked.has(m.id);});
   snapCal+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.cal;},0);},0);
   snapProt+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.p;},0);},0);
   S.snapshots[td]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,cal:snapCal,protein:snapProt};
@@ -2753,6 +2830,35 @@ function renderIntake(){
         ${[['emotional-eating','\u{1F355} Emotional eating'],['smoking','\u{1F6AC} Smoking'],['weed','\u{1F33F} Weed'],['alcohol','\u{1F37A} Alcohol'],['vaping','\u{1F4A8} Vaping'],['aclass','\u{1F48A} A-class substances'],['porn','\u{1F4F5} Porn']].map(([v,l])=>`<div class="chip${p.addictions.includes(v)?' selected':''}" onclick="toggleArr('addictions','${v}');render()">${l}</div>`).join('')}
       </div>
       ${p.addictions.length>0?'<div style="margin-top:8px;padding:10px 12px;background:var(--s2);border-radius:10px;border-left:3px solid var(--green);font-size:0.82rem;color:var(--muted)">\u{1F4AA} Solid. Your Habits tab will include a private tracker for each one — day streaks, triggers, and replacement behaviours. You\'re already doing the hard part by naming it.</div>':''}
+    </div>
+    <div class="wizard-step" style="margin-top:16px;border:1px solid rgba(245,166,35,0.35);background:rgba(245,166,35,0.06)">
+      <div class="wizard-label" style="color:var(--amber)">&#x26A0;&#xFE0F; PAR-Q Health Screen</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;line-height:1.6">Answer YES or NO. If you answer YES to any question, consult your doctor before starting this program.</div>
+      ${(function(){
+        var qs=[
+          ['parq1','Has your doctor ever said your heart condition means you should only do physical activity recommended by a doctor?'],
+          ['parq2','Do you feel pain in your chest when you do physical activity?'],
+          ['parq3','In the past month, have you had chest pain when NOT doing physical activity?'],
+          ['parq4','Do you lose your balance because of dizziness or do you ever lose consciousness?'],
+          ['parq5','Do you have a bone or joint problem that could be made worse by physical activity?'],
+          ['parq6','Is your doctor currently prescribing medication for blood pressure or a heart condition?'],
+          ['parq7','Do you know of any other reason you should not do physical activity?']
+        ];
+        var anyYes=qs.some(function(q){return p[q[0]]==='yes';});
+        var html=qs.map(function(q,qi){
+          var ans=p[q[0]]||'no'; var isYes=ans==='yes';
+          return '<div style="margin-bottom:10px;padding:10px 12px;background:var(--s2);border-radius:10px;border-left:3px solid '+(isYes?'var(--amber)':'var(--border)')+'">'
+            +'<div style="font-size:0.8rem;color:var(--text);margin-bottom:8px;line-height:1.5">'+(qi+1)+'. '+q[1]+'</div>'
+            +'<div style="display:flex;gap:8px">'
+            +'<button onclick="S.profile.'+q[0]+'=\'no\';render()" style="padding:6px 18px;background:'+(ans==='no'?'var(--green)':'var(--s3)')+';border:1px solid '+(ans==='no'?'var(--green)':'var(--border)')+';border-radius:8px;color:'+(ans==='no'?'#fff':'var(--muted)')+';font-size:0.82rem;font-weight:700;cursor:pointer">No</button>'
+            +'<button onclick="S.profile.'+q[0]+'=\'yes\';render()" style="padding:6px 18px;background:'+(isYes?'var(--amber)':'var(--s3)')+';border:1px solid '+(isYes?'var(--amber)':'var(--border)')+';border-radius:8px;color:'+(isYes?'#000':'var(--muted)')+';font-size:0.82rem;font-weight:700;cursor:pointer">Yes</button>'
+            +'</div></div>';
+        }).join('');
+        html+=anyYes
+          ?'<div style="margin-top:10px;padding:12px;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.4);border-radius:10px;font-size:0.82rem;color:var(--amber);line-height:1.6"><strong>&#x26A0;&#xFE0F; Please consult your doctor before starting.</strong> FitOS will still build you a smart program — medical clearance recommended.</div>'
+          :'<div style="margin-top:10px;padding:10px 12px;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.3);border-radius:10px;font-size:0.8rem;color:var(--green)">&#x2705; All clear to train!</div>';
+        return html;
+      })()}
     </div>`;
 
   // ── Step 7: Photos ──
@@ -2783,6 +2889,20 @@ function renderIntake(){
         ${p.name||'—'}, ${p.age||'—'}yr ${p.gender} · ${p.height||'—'}cm / ${p.weight||'—'}kg${p.bodyFatPct?' · '+p.bodyFatPct+'% BF':''}<br>
         Goal: <strong style="color:var(--text)">${p.goal}</strong> · ${p.daysPerWeek} days/wk · ${p.sessionLength}min · ${p.gymType}<br>
         Level: ${p.experience}${p.benchKg?' · Bench '+p.benchKg+'kg×8':''}${p.squatKg?' · Squat '+p.squatKg+'kg×8':''}
+      </div>
+      <div style="margin-top:16px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.7;margin-bottom:12px">
+          <strong style="color:var(--text)">\u{1F4CB} Health & Liability Disclaimer</strong><br>
+          FitOS provides general fitness information and AI-generated training programs. It is <strong>not a substitute for medical advice</strong> from a qualified healthcare professional. By using FitOS you acknowledge that:<br><br>
+          • You participate in exercise at your own risk<br>
+          • FitOS is not liable for any injury, illness, or adverse outcome<br>
+          • You should consult a doctor if you have any medical concerns<br>
+          • The AI cannot replace a registered exercise professional for clinical needs
+        </div>
+        <div onclick="S.profile.waiverAccepted=!S.profile.waiverAccepted;render()" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 12px;background:${p.waiverAccepted?'rgba(29,158,117,0.12)':'var(--s3)'};border:1px solid ${p.waiverAccepted?'var(--green)':'var(--border)'};border-radius:10px">
+          <div style="width:22px;height:22px;border-radius:6px;background:${p.waiverAccepted?'var(--green)':'transparent'};border:2px solid ${p.waiverAccepted?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.9rem">${p.waiverAccepted?'✓':''}</div>
+          <div style="font-size:0.82rem;color:var(--text);line-height:1.5">I understand and accept the above. I am at least 16 years old and have answered the PAR-Q honestly.</div>
+        </div>
       </div>
     </div>`;
 
@@ -2927,7 +3047,7 @@ function renderWeightTrend(){
 function getDateData(dateStr){
   var isT=dateStr===todayStr();
   var log=S.foodLog.filter(function(f){return f.date===dateStr;});
-  var eaten=S.mealChecked&&isT?MEALS.filter(function(m){return S.mealChecked.has(m.id);}):[];
+  var eaten=S.mealChecked&&isT?getPersonalisedMeals().filter(function(m){return S.mealChecked.has(m.id);}):[];
   var cal=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.cal;},0);},0)+log.reduce(function(a,f){return a+(f.cal||0);},0);
   var protein=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.p;},0);},0)+log.reduce(function(a,f){return a+(f.p||0);},0);
   var carbs=log.reduce(function(a,f){return a+(f.c||0);},0);
@@ -2963,7 +3083,8 @@ function renderToday(){
   const stepPct=pct(data.steps,S.stepsGoal);
   const waterPct=pct(data.water,T.water);
   const todayWorkout=data.workout;
-  const habitsTotal=4;
+  const _todayHabits=getPersonalisedHabits();
+  const habitsTotal=_todayHabits.length;
   const habitsDone=data.habitsCount;
   const isFuture=false;
   const canGoForward=new Date(vd)<new Date(new Date().toDateString());
@@ -3046,8 +3167,8 @@ function renderToday(){
     <!-- Habits summary -->
     <div class="card-title" style="margin-top:8px">Habits — ${habitsDone}/${habitsTotal} done</div>
     <div class="card" style="cursor:pointer" onclick="switchTab('habits')">
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        ${['💧','🥗','🏃','😴'].map((e,i)=>`<div style="width:36px;height:36px;border-radius:8px;background:${i<habitsDone?'var(--green)':'var(--s3)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:background .3s">${e}</div>`).join('')}
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+        ${_todayHabits.slice(0,6).map((h,i)=>`<div style="width:36px;height:36px;border-radius:8px;background:${i<habitsDone?'var(--green)':'var(--s3)'};display:flex;align-items:center;justify-content:center;font-size:1.05rem;transition:background .3s">${h.icon}</div>`).join('')}
       </div>
       <div style="font-size:0.78rem;color:var(--muted)">Tap to log your habits →</div>
     </div>
@@ -3058,7 +3179,9 @@ function renderToday(){
   <div style="font-size:0.9rem;font-weight:700">Week ${S.week} Review is ready</div>
   <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week's plan →</div>
 </div>`:''})()}
-<div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
+${renderWeekSummary()}
+    ${renderProgressionCard()}
+    <div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
       <div>
         <div style="font-weight:700;font-size:0.95rem">📋 Weekly Check-in</div>
         <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Review your week · get next week dialled</div>
@@ -3332,6 +3455,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   ${Array.from({length:ex.sets+(S.extraSets[ex.id]||0)},(_,i)=>{
     const done=logged[i];
     const prevSet=prev[i];
+    const smartWt=!prevSet&&i===0?getSmartWeight(ex.id):null;
     const isEditing=S.editingSet&&S.editingSet.exId===ex.id&&S.editingSet.idx===i;
     const editable=!done||isEditing;
     return`<div class="set-row">
@@ -3979,11 +4103,293 @@ function renderRestDay(){
 </div>`;
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONALISED MEAL + GROCERY ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function getPersonalisedMeals(){
+  var p=S.profile||{};
+  if(!p.weight||!p.height||!p.age) return MEALS; // no profile — use defaults
+  var t=calcTDEE();
+  var goal=(p.goal||'').toLowerCase();
+  var diet=p.dietStyle||[];
+  var allergies=p.allergies||[];
+  var isVegan=diet.includes('vegan');
+  var isVeget=diet.includes('vegetarian');
+  var isDF=diet.includes('dairy-free');
+  var isGF=diet.includes('gluten-free');
+  var noNuts=allergies.includes('nuts');
+  var noShell=allergies.includes('shellfish');
+  var isFatLoss=goal.match(/fat|lose|lean|cut/);
+  var isBuild=goal.match(/build|muscle|bulk/);
+  var isAthlete=goal.match(/athlet|hyrox/);
+  var targetCal=t.targetCal;
+  var protG=t.proteinG;
+  var gender=p.gender||'male';
+
+  // ── Breakfast ──────────────────────────────────────────────────────────
+  var bk;
+  if(isVegan){
+    bk={id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🥣',cookTime:'5 min',prepTime:'5 min',serves:1,
+      items:[
+        {name:'Rolled oats (80g)',cal:300,p:10,c:54,f:6},
+        {name:'Soy protein powder (30g)',cal:120,p:24,c:3,f:1},
+        {name:'Banana (medium)',cal:90,p:1,c:23,f:0},
+        {name:'Chia seeds (15g)',cal:72,p:3,c:6,f:4}
+      ],
+      recipe:[
+        {s:'Cook oats in 180ml water or oat milk on medium heat for 3–4 min, stirring until thick.'},
+        {s:'Stir in soy protein powder off the heat — keeps it from clumping.'},
+        {s:'Slice banana on top, sprinkle chia seeds. Optional: drizzle maple syrup and cinnamon.'},
+        {s:'This hits ~24g protein from plants — solid start to the day.'}
+      ]};
+  } else if(isGF){
+    bk={id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🍳',cookTime:'8 min',prepTime:'3 min',serves:1,
+      items:[
+        {name:'Eggs (3 whole)',cal:210,p:18,c:1,f:15},
+        {name:'Smoked salmon (80g)',cal:117,p:18,c:0,f:5},
+        {name:'Avocado (half)',cal:120,p:1,c:6,f:11},
+        {name:'Spinach (40g, wilted)',cal:12,p:2,c:1,f:0}
+      ],
+      recipe:[
+        {s:'Wilt spinach in a hot non-stick pan with a drop of olive oil — 60 seconds. Season and set aside.'},
+        {s:'Scramble 3 eggs in the same pan on low-medium heat. Remove when just set — carryover cooks them.'},
+        {s:'Plate eggs, top with smoked salmon and avocado slices. Season with lemon juice + cracked pepper.'},
+        {s:'GF, high protein, high omega-3. No grain needed when you have this fuel.'}
+      ]};
+  } else if(isFatLoss){
+    bk={id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🥚',cookTime:'10 min',prepTime:'2 min',serves:1,
+      items:[
+        {name:'Eggs (3 whole)',cal:210,p:18,c:1,f:15},
+        {name:'Greek yoghurt plain (150g)',cal:90,p:15,c:6,f:0},
+        {name:'Blueberries (80g)',cal:46,p:1,c:11,f:0}
+      ],
+      recipe:[
+        {s:'Scramble 3 eggs with a tiny spray of oil. High protein, low carb — sets the tone for the day.'},
+        {s:'Pair with Greek yoghurt (plain, not flavoured — flavoured has added sugar). Top with blueberries.'},
+        {s:'This breakfast keeps insulin low and satiety high — exactly what fat loss needs in the morning.'},
+        {s:'Don\'t skip breakfast trying to fast — unless you\'re running an actual IF protocol, you\'ll just be hungrier later.'}
+      ]};
+  } else {
+    bk={id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🍳',cookTime:'10 min',prepTime:'5 min',serves:1,
+      items:[
+        {name:'Eggs (3 whole)',cal:210,p:18,c:1,f:15},
+        {name:'Oats (80g dry)',cal:300,p:10,c:54,f:6},
+        {name:'Blueberries (100g)',cal:57,p:1,c:14,f:0}
+      ],
+      recipe:[
+        {s:'Cook oats in 160ml water on medium heat, stirring for 3–4 min until creamy.'},
+        {s:'Cook 3 eggs your way — scramble or sunny side up. Season well.'},
+        {s:'Bowl of oats with blueberries, eggs on the side. Simple, high protein, high carb for energy.'},
+        {s:'Optional: add cinnamon to oats (insulin sensitivity) and a small drizzle of honey.'}
+      ]};
+  }
+
+  // ── Pre-training snack ─────────────────────────────────────────────────
+  var pre={id:'m2',name:'Pre-Training',time:'10:30 AM',icon:'⚡',cookTime:'0 min',prepTime:'2 min',serves:1,
+    items: isVegan?[
+        {name:'Banana (large)',cal:120,p:1,c:31,f:0},
+        {name:'Medjool dates (2)',cal:133,p:1,c:36,f:0}
+      ]:[
+        {name:'Banana (large)',cal:120,p:1,c:31,f:0},
+        {name:'Rice cakes (2)',cal:70,p:1,c:15,f:0}
+      ],
+    recipe:[
+      {s:'Eat 45–60 min before training. Fast-digesting carbs to top up muscle glycogen.'},
+      {s:'Don\'t eat fats or heavy protein right before — slows digestion, tanks performance.'},
+      {s:'If skipping this (early session), make sure breakfast was carb-loaded enough.'}
+    ]};
+
+  // ── Post-training lunch ────────────────────────────────────────────────
+  var lunch;
+  var lunchProt=isVegan?[
+    {name:'Tofu firm (180g)',cal:158,p:19,c:3,f:8},
+    {name:'Edamame (100g)',cal:122,p:11,c:10,f:5}
+  ]:[
+    {name:'Chicken breast (200g)',cal:330,p:62,c:0,f:7}
+  ];
+  lunch={id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🍗',cookTime:'15 min',prepTime:'5 min',serves:1,
+    items:[
+      ...lunchProt,
+      {name:'White rice (200g cooked)',cal:260,p:5,c:57,f:0},
+      {name:'Broccoli (150g)',cal:51,p:4,c:10,f:0}
+    ],
+    recipe:[
+      {s:'Post-workout: high GI carbs (white rice) + fast-digesting protein. Insulin spike here is actually good — it drives aminos into muscle.'},
+      {s:isVegan?'Press tofu for 10 min, cube and stir-fry in soy sauce + garlic until golden. Add edamame at the end.':'Season chicken with salt, garlic powder, pepper. Pan-fry 5–6 min each side until cooked through. Slice.'},
+      {s:'Steam or microwave broccoli 3–4 min. Serve over rice with chicken/tofu.'},
+      {s:'Eat within 60 min of finishing training. This is your most important meal of the day.'}
+    ]};
+
+  // ── Afternoon snack ────────────────────────────────────────────────────
+  var snack={id:'m4',name:'Afternoon Snack',time:'3:30 PM',icon:'🧀',cookTime:'0 min',prepTime:'2 min',serves:1,
+    items:isVegan?[
+      {name:'Soy yoghurt (200g)',cal:130,p:8,c:16,f:3},
+      {name:'Mixed nuts (25g)',cal:155,p:4,c:5,f:14}
+    ]:isDF?[
+      {name:'Protein shake (1 scoop)',cal:120,p:25,c:3,f:2},
+      {name:'Almonds (30g)',cal:174,p:6,c:6,f:15}
+    ]:[
+      {name:'Greek yoghurt plain (200g)',cal:130,p:20,c:8,f:0},
+      {name:'Almonds (25g)',cal:145,p:5,c:5,f:13}
+    ],
+    recipe:[
+      {s:'No cooking. Grab, eat, move on. This keeps you out of the 3pm energy crash.'},
+      {s:'The protein + fat combo keeps blood sugar stable between lunch and dinner.'},
+      noNuts?{s:'No nuts in yours — check other snack options like seeds or a rice cake with avocado.'}:{s:'Weigh your nuts — they\'re calorie-dense. 25–30g is your sweet spot.'}
+    ]};
+
+  // ── Dinner ─────────────────────────────────────────────────────────────
+  var dinner;
+  var caseinHint=isBuild||isAthlete;
+  if(isVegan){
+    dinner={id:'m5',name:'Dinner',time:'7:00 PM',icon:'🥗',cookTime:'20 min',prepTime:'10 min',serves:1,
+      items:[
+        {name:'Lentils cooked (200g)',cal:230,p:18,c:40,f:1},
+        {name:'Chickpeas (100g)',cal:164,p:9,c:27,f:3},
+        {name:'Sweet potato (200g)',cal:172,p:3,c:40,f:0},
+        {name:'Spinach (80g)',cal:18,p:2,c:2,f:0}
+      ],
+      recipe:[
+        {s:'Boil or roast sweet potato (200°C for 25 min, or microwave 5 min).'},
+        {s:'Heat lentils and chickpeas with cumin, coriander, garlic, and a splash of lemon juice.'},
+        {s:'Wilt spinach in the pan at the end. Season well — bland plant food is the enemy.'},
+        {s:'Lentils + chickpeas = complete amino acid profile when combined. You\'re covered.'}
+      ]};
+  } else if(isFatLoss){
+    dinner={id:'m5',name:'Dinner',time:'7:00 PM',icon:'🐟',cookTime:'15 min',prepTime:'5 min',serves:1,
+      items:[
+        {name:'Salmon fillet (180g)',cal:357,p:40,c:0,f:20},
+        {name:'Sweet potato (150g)',cal:129,p:2,c:30,f:0},
+        {name:'Asparagus (100g)',cal:20,p:2,c:4,f:0}
+      ],
+      recipe:[
+        {s:'Season salmon with lemon, dill, salt, pepper. Pan-fry skin-down on medium-high 4 min, flip 2 min.'},
+        {s:'Roast sweet potato wedges at 200°C for 25 min — or microwave 5 min if short on time.'},
+        {s:'Blanch asparagus 2 min in boiling water, or char 3 min in the same pan as salmon.'},
+        {s:'Omega-3 from salmon reduces cortisol + inflammation — directly supports fat loss. This is your dinner.'}
+      ]};
+  } else {
+    dinner={id:'m5',name:'Dinner',time:'7:00 PM',icon:'🥩',cookTime:'20 min',prepTime:'10 min',serves:1,
+      items:[
+        {name:'Beef mince 90% lean (200g)',cal:280,p:44,c:0,f:11},
+        {name:'Sweet potato (200g)',cal:172,p:3,c:40,f:0},
+        {name:'Mixed veg (150g)',cal:75,p:4,c:14,f:1}
+      ],
+      recipe:[
+        {s:'Brown mince in a hot pan, breaking it up. Add garlic, Italian herbs, salt, pepper. Cook 8–10 min.'},
+        {s:'Roast sweet potato wedges at 200°C for 25 min, or nuke 5 min in microwave.'},
+        {s:'Steam or microwave veg 3–4 min. Plate everything up.'},
+        {s:caseinHint?'Optional: casein shake before bed — slow-digesting protein drip-feeds muscles overnight.':'Batch-cook mince for 2 nights — saves you prep tomorrow.'}
+      ]};
+  }
+
+  // ── Optional casein / final meal ───────────────────────────────────────
+  var meals=[bk,pre,lunch,snack,dinner];
+
+  // Adjust meal cal density roughly to target
+  // (advanced: could scale item quantities but that's V2 — for now the meal mix is already goal-tuned)
+  return meals;
+}
+
+function getPersonalisedGrocery(){
+  var p=S.profile||{};
+  if(!p.goal&&!p.dietStyle) return GROCERY;
+  var goal=(p.goal||'').toLowerCase();
+  var diet=p.dietStyle||[];
+  var allergies=p.allergies||[];
+  var isVegan=diet.includes('vegan');
+  var isVeget=diet.includes('vegetarian');
+  var isDF=diet.includes('dairy-free');
+  var isGF=diet.includes('gluten-free');
+  var noNuts=allergies.includes('nuts');
+  var isFatLoss=goal.match(/fat|lose|lean|cut/);
+  var isBuild=goal.match(/build|muscle|bulk/);
+
+  var protein=isVegan?[
+    {id:'g1',name:'Firm tofu',detail:'2 × 300g blocks — press and batch cook'},
+    {id:'g2',name:'Tempeh',detail:'300g — higher protein than tofu, great stir-fried'},
+    {id:'g3',name:'Lentils (red + green)',detail:'500g bag each — dried or canned both fine'},
+    {id:'g4',name:'Chickpeas (canned)',detail:'3 × 400g cans — salads, curries, roasted snack'},
+    {id:'g5',name:'Edamame (frozen)',detail:'500g — easy protein snack'},
+    {id:'g6',name:'Soy protein powder',detail:'Check stock — 2 scoops/day target'}
+  ]:isVeget?[
+    {id:'g1',name:'Eggs (free range)',detail:'2 dozen — versatile, high quality protein'},
+    {id:'g2',name:'Greek yoghurt (plain)',detail:'1kg tub — 10g protein per 100g'},
+    {id:'g3',name:'Cottage cheese',detail:'500g — casein protein, great before bed'},
+    {id:'g4',name:'Canned tuna',detail:'4 × 95g cans'},
+    {id:'g5',name:'Whey protein',detail:'Check stock'}
+  ]:[
+    {id:'g1',name:'Chicken breast',detail:'1.5kg — week supply, batch cook Sunday'},
+    {id:'g2',name:'Beef mince 90% lean',detail:'800g — 2 dinners'},
+    {id:'g3',name:'Eggs (free range)',detail:'1 dozen'},
+    {id:'g4',name:'Salmon fillets',detail:'400g — omega-3, anti-inflammatory'},
+    {id:'g5',name:isDF?'Soy/oat milk (1L)':'Greek yoghurt (plain)',detail:isDF?'For cooking + protein shake':'1kg tub'},
+    {id:'g6',name:'Canned tuna in spring water',detail:'4 × 95g cans'},
+    {id:'g7',name:'Whey or casein protein',detail:'Check stock — 5 serves min'}
+  ];
+
+  var carbs=isGF?[
+    {id:'g8',name:'White rice',detail:'2kg — GF staple, cook in bulk'},
+    {id:'g9',name:'Sweet potato',detail:'1kg — roast in batches'},
+    {id:'g10',name:'Rice cakes (plain)',detail:'GF brand — check label'},
+    {id:'g11',name:'Quinoa',detail:'500g — complete protein + GF carb'},
+    {id:'g12',name:'Banana',detail:'1 bunch'}
+  ]:[
+    {id:'g8',name:'White rice',detail:'2kg bag'},
+    {id:'g9',name:'Rolled oats',detail:'1kg — 5 breakfasts'},
+    {id:'g10',name:'Sweet potato',detail:'1kg'},
+    {id:'g11',name:'Rice cakes (plain)',detail:'1 pack'},
+    {id:'g12',name:'Banana',detail:'1 bunch — pre-training fuel'},
+    isFatLoss?null:{id:'g13',name:'Sourdough bread',detail:'1 loaf — post-workout option'}
+  ].filter(Boolean);
+
+  var veg=[
+    {id:'g14',name:'Broccoli',detail:'500g — blanch and freeze for week'},
+    {id:'g15',name:'Baby spinach',detail:'200g bag'},
+    {id:'g16',name:'Mixed frozen veg',detail:'1kg bag'},
+    {id:'g17',name:'Blueberries',detail:'250g — antioxidants'},
+    {id:'g18',name:'Cherry tomatoes',detail:'250g punnet'},
+    isAthlete||isBuild?{id:'g18b',name:'Asparagus',detail:'1 bunch — folate, recovery'}:null
+  ].filter(Boolean);
+  var isAthlete=goal.match(/athlet|hyrox/);
+
+  var fats=noNuts?[
+    {id:'g19',name:'Avocado',detail:'3–4 — healthy fat, fibre'},
+    {id:'g20',name:'Pumpkin seeds',detail:'200g — nut-free omega source'},
+    {id:'g21',name:'Olive oil (EVOO)',detail:'Check stock'},
+    {id:'g22',name:'Sunflower butter',detail:'Nut-free spread — check label'}
+  ]:[
+    {id:'g19',name:'Almonds (raw)',detail:'250g — 30g serve'},
+    {id:'g20',name:'Peanut butter (natural)',detail:'No added sugar'},
+    {id:'g21',name:'Olive oil (EVOO)',detail:'Check stock'},
+    {id:'g22',name:'Avocado',detail:'2–3'}
+  ];
+
+  var pantry=[
+    {id:'g23',name:'Creatine monohydrate',detail:'5g/day — check stock'},
+    {id:'g24',name:'Turmeric + black pepper',detail:'Anti-inflammatory stack'},
+    isVegan?null:{id:'g25',name:'Low-sodium soy sauce / tamari',detail:'GF tamari if needed — flavour staple'},
+    {id:'g26',name:'Canned chickpeas',detail:'2 × 400g — fibre + plant protein'},
+    isBuild?{id:'g27',name:'Casein protein',detail:'Before bed — slow-digesting overnight feed'}:null,
+    {id:'g28',name:'Apple cider vinegar',detail:'1 tbsp before meals — insulin sensitivity'}
+  ].filter(Boolean);
+
+  return [
+    {cat:'🥩 Protein',items:protein},
+    {cat:'🌾 Carbs',items:carbs},
+    {cat:'🥦 Veg & Fruit',items:veg},
+    {cat:'🥑 Fats',items:fats},
+    {cat:'🧂 Pantry & Supps',items:pantry}
+  ];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // EAT TAB
 // ═══════════════════════════════════════════════════════════════════════════
 function renderEat(){
-  const eaten=MEALS.filter(m=>S.mealChecked.has(m.id));
+  const ACTIVE_MEALS=getPersonalisedMeals();
+  const eaten=ACTIVE_MEALS.filter(m=>S.mealChecked.has(m.id));
   const todayLog=S.foodLog.filter(f=>f.date===todayStr());
   const totCal=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.cal,0),0)+todayLog.reduce((a,f)=>a+f.cal,0);
   const totProt=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.p,0),0)+todayLog.reduce((a,f)=>a+f.p,0);
@@ -4117,7 +4523,7 @@ ${hasProfile&&tdeeData?`
   </div>
 
   <!-- Meals -->
-  ${MEALS.map(m=>{
+  ${ACTIVE_MEALS.map(m=>{
     const isChecked=S.mealChecked.has(m.id);
     const isOpen=S.expandedMeal===m.id;
     const mCal=m.items.reduce((a,i)=>a+i.cal,0);
@@ -4161,7 +4567,8 @@ ${hasProfile&&tdeeData?`
 // SHOP TAB
 // ═══════════════════════════════════════════════════════════════════════════
 function renderShop(){
-  const total=GROCERY.reduce((a,c)=>a+c.items.length,0);
+  const ACTIVE_GROCERY=getPersonalisedGrocery();
+  const total=ACTIVE_GROCERY.reduce((a,c)=>a+c.items.length,0);
   const ticked=S.shopTicked.size;
   return`<div class="top-bar">
   <div><div class="top-title">Shop</div><div class="top-sub">Weekly grocery list · ${ticked}/${total} items</div></div>
@@ -4174,7 +4581,7 @@ function renderShop(){
   <div style="font-size:0.72rem;color:var(--muted)">${ticked} of ${total} items ticked</div>
 </div>
 <div>
-${GROCERY.map(cat=>`
+${ACTIVE_GROCERY.map(cat=>`
 <div class="shop-category">
   <div class="shop-cat-title">${cat.name}</div>
   ${cat.items.map((item,idx)=>{
@@ -4194,22 +4601,173 @@ ${GROCERY.map(cat=>`
 </div>`;
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEEKLY PERFORMANCE SUMMARY (Today tab)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderWeekSummary(){
+  var T=getTargets();
+  var today=new Date();
+  var weekDays=[];
+  for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(d.getDate()-i);weekDays.push(d.toDateString());}
+  var calTotal=0,protTotal=0,sessionsLogged=0,daysWithData=0;
+  weekDays.forEach(function(dateStr){
+    var dd=getDateData(dateStr);
+    var cal=dd.cal||0; var prot=dd.protein||0;
+    if(cal>0||prot>0) daysWithData++;
+    calTotal+=cal; protTotal+=prot;
+    if(dd.workout) sessionsLogged++;
+  });
+  if(daysWithData===0) return ''; // nothing to show yet
+
+  var avgCal=daysWithData>0?Math.round(calTotal/daysWithData):0;
+  var avgProt=daysWithData>0?Math.round(protTotal/daysWithData):0;
+  var calAdh=Math.round(pct(avgCal,T.cal));
+  var protAdh=Math.round(pct(avgProt,T.protein));
+  var p=S.profile||{};
+  var goal=(p.goal||'').toLowerCase();
+
+  // Adaptive feedback line
+  var feedback='';
+  if(sessionsLogged===0&&daysWithData>=3){feedback='No sessions logged yet this week — the block is written, go execute it.';}
+  else if(sessionsLogged>=3&&protAdh>=85){feedback='Solid week. Consistency is the whole game — keep stacking.';}
+  else if(protAdh<70&&(goal.match(/build|muscle|bulk/))){feedback='Protein is under target — muscle growth stalls without it. Hit '+T.protein+'g today.';}
+  else if(calAdh>115&&goal.match(/fat|lose|lean|cut/)){feedback='Calories over target this week — tighten the food log. The deficit is doing the work.';}
+  else if(sessionsLogged>=4&&calAdh>=85){feedback='You\'re putting in the work. Progression is happening — trust the process.';}
+  else if(daysWithData>=3){feedback='Keep logging — the more data, the smarter your next block gets.';}
+
+  var barW=function(v,max){return Math.min(100,Math.round(v/max*100));};
+
+  return '<div class="card-title" style="margin-top:8px">This Week</div>'+
+    '<div class="card" style="padding:14px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:1.5rem;font-weight:700;color:var(--green)">'+sessionsLogged+'</div>'+
+          '<div style="font-size:0.68rem;color:var(--muted)">Sessions</div>'+
+        '</div>'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:1.5rem;font-weight:700;color:var(--blue)">'+calAdh+'%</div>'+
+          '<div style="font-size:0.68rem;color:var(--muted)">Cal adherence</div>'+
+        '</div>'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:1.5rem;font-weight:700;color:var(--amber)">'+protAdh+'%</div>'+
+          '<div style="font-size:0.68rem;color:var(--muted)">Protein hit</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="height:3px;background:var(--s3);border-radius:2px;margin-bottom:4px">'+
+        '<div style="height:100%;width:'+barW(avgCal,T.cal)+'%;background:var(--green);border-radius:2px;transition:width .5s ease"></div>'+
+      '</div>'+
+      '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:8px">Avg '+avgCal+'kcal / '+T.cal+'kcal target</div>'+
+      '<div style="height:3px;background:var(--s3);border-radius:2px;margin-bottom:4px">'+
+        '<div style="height:100%;width:'+barW(avgProt,T.protein)+'%;background:var(--blue);border-radius:2px;transition:width .5s ease"></div>'+
+      '</div>'+
+      '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:10px">Avg '+avgProt+'g protein / '+T.protein+'g target</div>'+
+      (feedback?'<div style="padding:9px 11px;background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:9px;font-size:0.8rem;color:var(--text);line-height:1.5">💬 '+feedback+'</div>':'')+
+    '</div>';
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONALISED HABITS ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function getPersonalisedHabits(){
+  var p=S.profile||{};
+  var T=getTargets();
+  var goal=(p.goal||'').toLowerCase();
+  var exp=(p.experience||'').toLowerCase();
+  var lifestyle=(p.lifestyle||'').toLowerCase();
+  var diet=(p.dietStyle||[]);
+  var isBegin=exp.match(/begin|new|starter/);
+  var isBuild=goal.match(/build|muscle|bulk/);
+  var isFatLoss=goal.match(/fat|lose|lean|cut/);
+  var isAthlete=goal.match(/athlet|hyrox|perform|sport/);
+  var isRecomp=goal.match(/recomp/);
+  var isDeskWorker=lifestyle.match(/desk|office|sedent|sit/);
+  var isTradie=lifestyle.match(/trade|labour|physical|builder|electrician|plumb/);
+  var hasDiabetes=(p.medicalConditions||'').toLowerCase().match(/diabet/);
+  var isVegan=diet.includes('vegan');
+  var isVeget=diet.includes('vegetarian');
+  var daysPerWeek=parseInt(p.daysPerWeek)||4;
+  var waterGoal=MEAL_TARGETS.water||8;
+  var habits=[];
+
+  // Core: always present
+  habits.push({id:'h-water',icon:'💧',name:'Drink '+waterGoal+' glasses of water',detail:'Every system in your body runs on hydration. Non-negotiable.'});
+  habits.push({id:'h-protein',icon:'🥩',name:'Hit your protein target — '+T.protein+'g',detail:isVegan?'Legumes, tofu, tempeh, seitan — stack them up.':isVeget?'Eggs, dairy + plant sources all count.':'Distribute across 3–4 meals for peak muscle protein synthesis.'});
+
+  // Training vs rest day
+  var todayIdx=new Date().getDay();
+  var block=S.currentBlock;
+  var todayIsTrainDay=block&&block.days&&block.days.some(function(d){return d.dayIndex===todayIdx;});
+  if(todayIsTrainDay){
+    habits.push({id:'h-train',icon:'🏋️',name:"Complete today's workout",detail:'The block is written. Go execute it.'});
+  } else {
+    habits.push({id:'h-recover',icon:'🧘',name:'Active recovery today',detail:'10–20 min walk + foam roll. Move without destroying yourself.'});
+  }
+
+  // Sleep — goal-specific framing
+  habits.push({id:'h-sleep',icon:'💤',name:'Sleep 7–9 hours',detail:isBuild?'GH peaks in deep sleep — your gains literally happen here.':isFatLoss?'Sleep deprivation spikes cortisol + ghrelin. Wrecks fat loss.':'Recovery, cognition, mood — all downstream of sleep quality.'});
+
+  // Fat loss / recomp extras
+  if(isFatLoss||isRecomp){
+    habits.push({id:'h-deficit',icon:'📊',name:'Stay in your calorie target — '+T.calories+'kcal',detail:'Deficit is already engineered. No need to go lower — just hit the number.'});
+    habits.push({id:'h-steps',icon:'👟',name:'Hit '+(Math.round(S.stepsGoal/1000))+'K steps',detail:'NEAT accounts for 300–600kcal/day. Walk it in. It compounds.'});
+  }
+  // Build extras
+  if(isBuild||isRecomp){
+    habits.push({id:'h-meals',icon:'🍜',name:'Eat every 3–4 hours',detail:'MPS stays elevated for ~4hrs post-meal. Keep the machinery fed.'});
+  }
+  // Athlete extras
+  if(isAthlete){
+    habits.push({id:'h-mobility',icon:'🤸',name:'10 min mobility work',detail:'Hip flexors, thoracic spine, ankles — athletic output depends on range of motion.'});
+    if(!habits.find(function(h){return h.id==='h-steps';})){
+      habits.push({id:'h-steps',icon:'👟',name:'Hit '+(Math.round(S.stepsGoal/1000))+'K steps',detail:'NEAT + aerobic base. Move between sessions.'});
+    }
+  }
+  // Beginner extras
+  if(isBegin){
+    habits.push({id:'h-form',icon:'🎯',name:'Watch 1 exercise tutorial today',detail:'YouTube: Jeff Nippard or Alan Thrall. Technique compounds like interest.'});
+  }
+  // Desk worker extras
+  if(isDeskWorker){
+    habits.push({id:'h-standup',icon:'🖥️',name:'Stand up every 60 minutes',detail:'Prolonged sitting compresses lumbar discs + tanks insulin sensitivity. Set a timer.'});
+    if(!habits.find(function(h){return h.id==='h-steps';})){
+      habits.push({id:'h-steps',icon:'👟',name:'Hit '+(Math.round(S.stepsGoal/1000))+'K steps',detail:'Counteracts the desk. Break into 2–3 walk breaks through the day.'});
+    }
+  }
+  // Tradie extras
+  if(isTradie){
+    habits.push({id:'h-stretch',icon:'🧘',name:'5 min stretch post-shift',detail:'Hips, hammies, lower back — trades wreck the posterior chain. Protect it daily.'});
+  }
+  // Medical extras
+  if(hasDiabetes){
+    habits.push({id:'h-glucose',icon:'🩸',name:'Monitor blood glucose today',detail:'Exercise significantly impacts glucose levels. Log pre + post training.'});
+  }
+  if(daysPerWeek>=5){
+    habits.push({id:'h-recovery-active',icon:'🛤️',name:'Prioritise recovery — high volume week',detail:'Foam roll, contrast shower, 8hrs sleep. You train hard — recover harder.'});
+  }
+
+  // Deduplicate
+  var seen={};
+  habits=habits.filter(function(h){
+    if(!h||!h.id) return false;
+    if(seen[h.id]) return false;
+    seen[h.id]=true;
+    return true;
+  });
+
+  return habits;
+}
 // ═══════════════════════════════════════════════════════════════════════════
 // HABITS TAB
 // ═══════════════════════════════════════════════════════════════════════════
 function renderHabits(){
   const hour=new Date().getHours();
   const T=getTargets();
-  const habits=[
-    {id:'h-water',icon:'💧',name:'Drink 8 glasses of water',detail:'Hydration is non-negotiable'},
-    {id:'h-protein',icon:'🥗',name:'Hit your protein target',detail:T.protein+'g protein today'},
-    {id:'h-train',icon:'🏃',name:"Complete today's workout",detail:'Train hard, recover smart'},
-    {id:'h-sleep',icon:'😴',name:'Sleep 7–9 hours',detail:'Recovery happens when you sleep'}
-  ];
+  const habits=getPersonalisedHabits();
   const done=habits.filter(h=>S.habitsChecked.has(h.id)).length;
   const stepPct=pct(S.stepsToday,S.stepsGoal);
   return`<div class="top-bar">
-  <div><div class="top-title">Habits</div><div class="top-sub">${done}/4 done · ${S.streak} day streak 🔥</div></div>
+  <div><div class="top-title">Habits</div><div class="top-sub">${done}/${habits.length} done · ${S.streak} day streak 🔥</div></div>
 </div>
 ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
   <div class="streak-num">${S.streak}</div>
@@ -5254,6 +5812,8 @@ function renderCheckin(){
     '</div>'
   :'')+
 
+  // PROGRESSION CARD
+  (function(){return renderProgressionCard();})()+ 
   // DISPATCH BUTTON
   '<div style="padding:20px 16px 0">'+
     '<button class="btn btn-green" onclick="generateCheckinDispatch()">&#x26A1; Generate Week '+weekNum+' Dispatch</button>'+
@@ -5333,6 +5893,40 @@ function generateCheckinDispatch(){
   })()).concat([
     '',
     '═══════════════════════════════════',
+    'LOGGED SETS THIS WEEK',
+  ].concat((function(){
+    var lines=[]; var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-7);
+    var weekSessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=cutoff;});
+    if(!weekSessions.length) return ['• No sessions logged this week'];
+    weekSessions.forEach(function(h){
+      lines.push('');
+      lines.push('Day '+h.day+' (W'+h.week+') — '+(new Date(h.date).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})));
+      Object.entries(h.sets||{}).forEach(function(entry){
+        var exId=entry[0]; var sets=entry[1];
+        if(!sets||!sets.length) return;
+        var exName=exId;
+        Object.values(WK||{}).forEach(function(day){
+          if(day&&day.exercises) day.exercises.forEach(function(e){if(e.id===exId) exName=e.name;});
+        });
+        var setStr=sets.filter(Boolean).map(function(s){return s.weight+'kg×'+s.reps;}).join(', ');
+        lines.push('• '+exName+': '+setStr);
+      });
+    });
+    var prog=getProgressionData();
+    var topKeys=Object.keys(prog).sort(function(a,b){return prog[b].best-prog[a].best;}).slice(0,5);
+    if(topKeys.length){
+      lines.push('');
+      lines.push('STRENGTH BESTS (all-time top sets)');
+      topKeys.forEach(function(id){
+        var d=prog[id];
+        var nm=id; Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===id)nm=e.name;});});
+        lines.push('• '+nm+': '+d.best+'kg ('+d.sessions.length+' sessions, trend: '+d.trend+')');
+      });
+    }
+    return lines;
+  })()).concat([
+    '',
+    '═══════════════════════════════════',
     'AI COACH — PLEASE:',
     '1. Assess recovery & adjust training load if needed',
     '2. Flag red flags (low sleep + high stress = reduce volume?)',
@@ -5340,7 +5934,7 @@ function generateCheckinDispatch(){
     '4. Confirm progressive overload targets for Week '+(weekNum+1),
     '5. Give me ONE key focus for next week',
     '═══════════════════════════════════'
-  ]).filter(function(l){return l!==undefined&&l!==null;}).join('\n');
+  ])).filter(function(l){return l!==undefined&&l!==null;}).join('\n');
   S.checkinDispatch=dispatch;
   // Save snapshot to history (keep last 16 weeks)
   if(c.bodyWeight){
@@ -6038,6 +6632,7 @@ function stepUp(){S.stepsToday+=500;localStorage.setItem('fitos_steps',S.stepsTo
 // ─── INTAKE WIZARD ───────────────────────────────────────────────────────
 function wizNext(){
   if(S.intakeStep<INTAKE_STEPS.length-1){S.intakeStep++;render();}
+  else if(!S.profile.waiverAccepted){alert('Please read and accept the Health & Liability Disclaimer to continue.');return;}
   else{
     try{saveProfile();}catch(e){}
     try{localStorage.setItem('fitos_steps_goal',S.stepsGoal);}catch(e){}
@@ -6130,7 +6725,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v60';
+  window.APP_VERSION='v61';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -6196,28 +6791,90 @@ function getCoachName(){return S.profile.coachName||'Coach Alex';}
 function getCoachEmoji(){return S.profile.coachGender==='female'?'👩':'🧑';}
 
 function buildCoachContext(){
-  var p=S.profile;
+  var p=S.profile||{};
   var t=calcTDEE?calcTDEE():{tdee:2400,targetCal:2000,proteinG:180};
   var style=p.coachStyle||'mate';
-  var styleDesc=style==='drill'?'tough love, direct, no excuses, military PT energy':
-    style==='science'?'scientific, evidence-based, calm, precise, cite studies':
-    'casual Australian PT — warm, funny, real, encouraging but no BS';
+  var styleDesc=style==='drill'?'You are a tough-love military-style PT. Direct, no excuses, zero softness. Push them hard.':
+    style==='science'?'You are a science-based evidence-first coach. Reference studies. Be precise and calm.':
+    'You are a casual Australian personal trainer — warm, funny, real talk, encouraging but zero BS. Use Aussie slang occasionally. Call them champ/mate/legend when it fits.';
+
+  // Today's nutrition
   var todayLog=S.foodLog?S.foodLog.filter(function(f){return f.date===todayStr();}):[];
   var calToday=todayLog.reduce(function(a,f){return a+f.cal;},0);
+  var protToday=todayLog.reduce(function(a,f){return a+(f.p||0);},0);
+
+  // This week's performance
+  var today=new Date(); var weekSessions=0; var weekCalTotal=0; var weekDays=0;
+  for(var i=6;i>=0;i--){
+    var d=new Date(today); d.setDate(d.getDate()-i);
+    var dd=getDateData(d.toDateString());
+    if(dd.cal>0){weekCalTotal+=dd.cal;weekDays++;}
+    if(dd.workout) weekSessions++;
+  }
+  var avgCalWeek=weekDays>0?Math.round(weekCalTotal/weekDays):0;
+
+  // Current block info
+  var block=S.currentBlock;
+  var blockName=block?(block.goal||'custom block'):'no block yet';
+  var blockDays=block&&block.days?block.days.length:0;
+
+  // Recent gym history (last 3 sessions)
+  var recentSessions=(S.gymHistory||[]).slice(-3).map(function(h){
+    var vol=Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.reduce(function(b,s){return b+(s.weight||0)*(s.reps||0);},0);},0);
+    return 'Day '+h.day+' W'+h.week+' ('+new Date(h.date).toLocaleDateString('en-AU',{weekday:'short'})+') — '+Math.round(vol)+'kg total volume';
+  }).join('; ')||'none yet';
+
+  // Progression highlights — top lifts
+  var topLifts='';
+  if(S.gymHistory&&S.gymHistory.length>0){
+    var bests={};
+    S.gymHistory.forEach(function(h){
+      Object.entries(h.sets||{}).forEach(function(e){
+        var exName=e[0]; var sets=e[1];
+        sets.forEach(function(s){
+          if(!bests[exName]||s.weight>bests[exName]) bests[exName]=s.weight;
+        });
+      });
+    });
+    topLifts=Object.entries(bests).slice(0,5).map(function(e){return e[0]+': '+e[1]+'kg';}).join(', ')||'none recorded';
+  }
+
+  // PAR-Q flags
+  var parqYes=['parq1','parq2','parq3','parq4','parq5','parq6','parq7'].filter(function(k){return p[k]==='yes';});
+
+  // Currently doing exercise
   var ex=null;try{ex=curEx&&curEx();}catch(e){}
-  return 'You are '+getCoachName()+', a personal trainer AI. Your style: '+styleDesc+'.\n'+
+
+  var ctx='You are '+getCoachName()+', an AI personal trainer inside FitOS. '+styleDesc+'\n\n'+
     'ATHLETE PROFILE:\n'+
-    '- Name: '+(p.name||'Athlete')+', '+(p.age||'?')+'yo '+(p.gender||'male')+'\n'+
-    '- Weight: '+(p.weight||'?')+'kg | Height: '+(p.height||'?')+'cm\n'+
+    '- Name: '+(p.name||'Athlete')+' | Age: '+(p.age||'?')+' | Gender: '+(p.gender||'male')+'\n'+
+    '- Weight: '+(p.weight||'?')+'kg | Height: '+(p.height||'?')+'cm | BF%: '+(p.bodyFatPct||'?')+'%\n'+
     '- Goal: '+(p.goal||'body recomp')+' | Experience: '+(p.experience||'intermediate')+'\n'+
-    '- Training: '+(p.daysPerWeek||4)+' days/week | Gym type: '+(p.gymType||'commercial gym')+'\n'+
-    '- TDEE: '+t.tdee+' cal | Target: '+t.targetCal+' cal | Protein: '+t.proteinG+'g\n'+
-    (p.injuries&&p.injuries.length?'- Injuries/limitations: '+p.injuries.join(', ')+'\n':'')+
-    'TODAY:\n'+
-    '- Calories logged: '+calToday+' / '+t.targetCal+'\n'+
-    '- Week: '+(S.week||1)+' of 8-week block\n'+
-    (ex?'- Currently doing: '+ex.name+' | Cue: '+ex.cue+'\n':'')+
-    '\nBe concise (2-4 sentences unless they ask for detail). Use their name occasionally. Stay in character.';
+    '- Training: '+(p.daysPerWeek||4)+' days/week | '+(p.sessionLength||60)+'min sessions | '+(p.gymType||'commercial gym')+'\n'+
+    '- TDEE: '+t.tdee+' cal | Target: '+t.targetCal+' cal | Protein target: '+t.proteinG+'g | Fat: '+t.fatG+'g | Carbs: '+t.carbG+'g\n'+
+    (p.injuries&&p.injuries.length?'- INJURIES (IMPORTANT — always modify accordingly): '+p.injuries.join(', ')+'\n':'')+
+    (parqYes.length?'- PAR-Q flags (medical — be careful, suggest doctor where relevant): PAR-Q '+parqYes.join(', ')+' answered YES\n':'')+
+    (p.dietStyle&&p.dietStyle.length?'- Diet: '+p.dietStyle.join(', ')+'\n':'')+
+    (p.allergies&&p.allergies.length?'- Allergies: '+p.allergies.join(', ')+'\n':'')+
+    (p.addictions&&p.addictions.length?'- Elimination goals: '+p.addictions.join(', ')+'\n':'')+
+    '\nCURRENT PROGRAM:\n'+
+    '- Block: '+blockName+' ('+blockDays+' training days)\n'+
+    '- Current week: '+(S.week||1)+' of 8\n'+
+    '- Streak: '+S.streak+' days\n'+
+    '\nTHIS WEEK:\n'+
+    '- Sessions completed: '+weekSessions+'\n'+
+    '- Avg daily calories: '+avgCalWeek+' / '+t.targetCal+' target\n'+
+    '- Recent sessions: '+recentSessions+'\n'+
+    '- Top lifts logged: '+topLifts+'\n'+
+    '\nTODAY:\n'+
+    '- Calories: '+calToday+' / '+t.targetCal+'\n'+
+    '- Protein: '+protToday+'g / '+t.proteinG+'g\n'+
+    '- Water: '+S.waterDone+' glasses\n'+
+    '- Habits done: '+(S.habitsChecked?[...S.habitsChecked].length:0)+'\n'+
+    (ex?'- Currently mid-workout doing: '+ex.name+' | Coach cue: '+ex.cue+'\n':'')+
+    '\nRESPONSE RULES: Be concise — 2–4 sentences unless detail is asked for. Use their first name '+(p.name?'('+p.name+') ':'')+' occasionally. Never recommend exercises that conflict with their listed injuries. If they ask about something medical, give fitness guidance but recommend they consult a professional.';
+
+  return ctx;
 }
 
 async function sendCoachMessage(){
@@ -6273,7 +6930,8 @@ function setApiKey(){
   if(key&&key.trim()){
     localStorage.setItem('fitos_claude_key',key.trim());
     if(!S.coachMessages.length){
-      var greeting='Hey '+( S.profile.name||'champ')+'! '+getCoachName()+' here. Ready to help you crush your goals. Ask me anything — form checks, meal ideas, how to push through a plateau, anything.';
+      var _cp=S.profile||{}; var _ct=calcTDEE?calcTDEE():{targetCal:2000,proteinG:180};
+    var greeting='Hey '+(_cp.name||'champ')+'! '+getCoachName()+'. '+(_cp.goal?'Goal: '+_cp.goal+' \u2014 I\'ve got you. ':'')+"Target today: "+_ct.targetCal+" cal, "+_ct.proteinG+"g protein. Ask me anything \u2014 form, meals, how to break a plateau. Let's get after it.";
       S.coachMessages.push({role:'assistant',content:greeting,ts:Date.now()});
       saveCoachHistory();
     }
