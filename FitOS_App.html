@@ -250,8 +250,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .week-pill.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
 .hist-swipe-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:8px;}
 .hist-swipe-wrap:last-child{margin-bottom:0}
-.hist-delete-zone{position:absolute;right:0;top:0;bottom:0;width:72px;background:#ff4757;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:0.7rem;font-weight:700;cursor:pointer;z-index:0;}
-.hist-item{position:relative;z-index:1;background:var(--s1);transition:transform 0.22s cubic-bezier(.22,1,.36,1);border-radius:12px;}
+/* hist-delete-zone removed — velocity swipe replaces it */
+.hist-item{position:relative;background:var(--s1);transition:transform 0.22s cubic-bezier(.22,1,.36,1),opacity .2s;border-radius:12px;}
 .hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
 .hist-item:last-child{border:none}
 .ex-header{padding:16px;border-bottom:1px solid var(--border)}
@@ -317,9 +317,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .food-results-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:0 16px 80px}
 .food-result-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
 .food-result-item:active,.food-result-item.pressed{background:var(--s2);box-shadow:inset 0 2px 6px rgba(0,0,0,0.18);transform:scale(0.99);}
-.food-log-item{position:relative;overflow:hidden;border-radius:12px;touch-action:pan-y;}
-.food-log-inner{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:transform .2s cubic-bezier(.22,1,.36,1);will-change:transform;}
-.food-log-delete-bg{position:absolute;right:0;top:6px;bottom:6px;width:56px;display:flex;align-items:center;justify-content:center;background:#e03030;border-radius:0 10px 10px 0;font-size:1rem;color:#fff;}
+.food-log-item{position:relative;border-radius:12px;touch-action:pan-y;overflow:hidden;}
+.food-log-inner{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:transform .18s cubic-bezier(.22,1,.36,1),opacity .18s;will-change:transform,opacity;}
 .food-memory-section{padding:0 0 8px}
 .food-memory-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 0 6px;display:flex;align-items:center;gap:6px;}
 .food-memory-label::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -536,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v58 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v60 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3127,7 +3126,6 @@ ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</
   const totalSets=Object.values(h.sets||{}).reduce((a,s)=>a+s.length,0);
   const totalVol=Math.round(Object.values(h.sets||{}).reduce((a,sets)=>a+sets.reduce((b,s)=>b+(s.weight*s.reps),0),0));
   return`<div class="hist-swipe-wrap" id="hsw-${gIdx}">
-    <div class="hist-delete-zone" onclick="deleteSession(${gIdx})">​🗑️<span>Delete</span></div>
     <div class="hist-item" id="hi-${gIdx}"
       ontouchstart="swipeHistStart(event,${gIdx})"
       ontouchmove="swipeHistMove(event,${gIdx})"
@@ -3149,37 +3147,53 @@ ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</
 var _shd={};
 function swipeHistStart(e,i){
   var t=e.touches[0];
-  _shd[i]={x:t.clientX,y:t.clientY,moved:false};
+  _shd[i]={x:t.clientX,y:t.clientY,t:Date.now(),dx:0,dead:false,locked:false};
 }
 function swipeHistMove(e,i){
-  var d=_shd[i];if(!d)return;
+  var d=_shd[i];if(!d||d.dead)return;
   var t=e.touches[0];
-  var dx=t.clientX-d.x,dy=Math.abs(t.clientY-d.y);
-  if(dy>20){delete _shd[i];return;}
-  if(dx<-10){e.preventDefault();d.moved=true;}
+  var dx=t.clientX-d.x;
+  var dy=t.clientY-d.y;
+  if(!d.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10){d.dead=true;return;}
+  if(dx>=0)return;
+  d.locked=true;
+  d.dx=dx;
+  e.preventDefault();
   var el=document.getElementById('hi-'+i);
-  if(el&&dx<0)el.style.transform='translateX('+Math.max(dx,-72)+'px)';
+  if(el){
+    var tx=Math.max(dx*0.85,-160);
+    el.style.transition='none';
+    el.style.transform='translateX('+tx+'px)';
+    el.style.opacity=Math.max(0.3,1+tx/200);
+  }
 }
 function swipeHistEnd(e,i){
   var d=_shd[i];if(!d)return;
-  var t=e.changedTouches[0];
-  var dx=t.clientX-d.x;
+  var dx=d.dx||0;
+  var dt=Date.now()-d.t;
+  var velocity=Math.abs(dx)/Math.max(dt,1)*1000;
+  delete _shd[i];
   var el=document.getElementById('hi-'+i);
-  if(!el)return;
-  el.style.transition='transform 0.22s cubic-bezier(.22,1,.36,1)';
-  if(dx<-50){
-    el.style.transform='translateX(-72px)';
-    d.swiped=true;
-  }else{
-    el.style.transform='';
-    delete _shd[i];
+  if(velocity>400||dx<-110){
+    if(el){
+      el.style.transition='transform .2s cubic-bezier(.4,0,1,1),opacity .2s';
+      el.style.transform='translateX(-110%)';
+      el.style.opacity='0';
+    }
+    haptic([15,8,25]);
+    setTimeout(function(){deleteSession(i);},200);
+  } else {
+    if(el){
+      el.style.transition='transform .25s cubic-bezier(.22,1,.36,1),opacity .25s';
+      el.style.transform='translateX(0)';
+      el.style.opacity='1';
+    }
   }
 }
 function deleteSession(gIdx){
   S.gymHistory.splice(gIdx,1);
   localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));
-  _shd={};
-  render();
+  _shd={};render();
 }
 function viewSession(gIdx){
   var h=S.gymHistory[gIdx];if(!h)return;
@@ -4076,7 +4090,6 @@ ${hasProfile&&tdeeData?`
           ontouchstart="swipeStart(event,'${f.id}')"
           ontouchmove="swipeMove(event,'${f.id}')"
           ontouchend="swipeEnd(event,'${f.id}')">
-          <div class="food-log-delete-bg">🗑️</div>
           <div class="food-log-inner" id="fli-inner-${f.id}">
             <div style="flex:1;min-width:0">
               <div class="food-log-name">${f.name}${f.brand?` <span style="color:var(--muted);font-weight:400;font-size:0.72rem">${f.brand}</span>`:''}</div>
@@ -5046,42 +5059,55 @@ function removeFoodLog(id){
   }
 }
 
-// ── Swipe-to-delete food log rows ──
+// ── Swipe-to-delete food log rows — velocity-based, no red background ──
 var _sw={};
 function swipeStart(e,id){
   var t=e.touches[0];
-  _sw[id]={x:t.clientX,y:t.clientY,dx:0,locked:false};
+  _sw[id]={x:t.clientX,y:t.clientY,t:Date.now(),dx:0,locked:false,dead:false};
 }
 function swipeMove(e,id){
-  var s=_sw[id];if(!s)return;
+  var s=_sw[id];if(!s||s.dead)return;
   var t=e.touches[0];
   var dx=t.clientX-s.x;
   var dy=t.clientY-s.y;
-  // If scrolling vertically, ignore
-  if(!s.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){s.dead=true;return;}
-  if(s.dead)return;
+  // Lock to vertical scroll if that's the dominant direction early on
+  if(!s.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10){s.dead=true;return;}
+  if(dx>=0)return; // only left
   s.locked=true;
   s.dx=dx;
-  // Only allow left swipe
-  if(dx<0){
-    e.preventDefault();
-    var el=document.getElementById('fli-inner-'+id);
-    if(el) el.style.transform='translateX('+Math.max(dx,-90)+'px)';
+  e.preventDefault();
+  var el=document.getElementById('fli-inner-'+id);
+  if(el){
+    // Follow finger with slight resistance
+    var tx=Math.max(dx*0.85,-160);
+    el.style.transition='none';
+    el.style.transform='translateX('+tx+'px)';
+    el.style.opacity=Math.max(0.3,1+tx/200);
   }
 }
 function swipeEnd(e,id){
   var s=_sw[id];if(!s){return;}
   var dx=s.dx||0;
+  var dt=Date.now()-s.t;
+  var velocity=Math.abs(dx)/Math.max(dt,1)*1000; // px/s
   delete _sw[id];
   var el=document.getElementById('fli-inner-'+id);
-  if(dx<-70){
-    // Commit delete
-    if(el){el.style.transition='transform .18s ease';el.style.transform='translateX(-100%)';}
-    haptic([20,10,30]);
-    setTimeout(function(){removeFoodLog(id);},180);
+  // Dismiss if: fast swipe (>400px/s) OR dragged far enough (>110px)
+  if(velocity>400||dx<-110){
+    if(el){
+      el.style.transition='transform .2s cubic-bezier(.4,0,1,1),opacity .2s';
+      el.style.transform='translateX(-110%)';
+      el.style.opacity='0';
+    }
+    haptic([15,8,25]);
+    setTimeout(function(){removeFoodLog(id);},200);
   } else {
     // Snap back
-    if(el){el.style.transition='transform .2s cubic-bezier(.22,1,.36,1)';el.style.transform='translateX(0)';}
+    if(el){
+      el.style.transition='transform .25s cubic-bezier(.22,1,.36,1),opacity .25s';
+      el.style.transform='translateX(0)';
+      el.style.opacity='1';
+    }
   }
 }
 
@@ -6104,7 +6130,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v58';
+  window.APP_VERSION='v60';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
