@@ -148,6 +148,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px)}
 .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
 .tab-item.active{color:var(--green)}
+.tab-item:active{transform:scale(0.88);opacity:0.75;transition:transform .08s,opacity .08s;}
+button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .tab-item svg{width:22px;height:22px}
 .tab-label{font-size:0.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 
@@ -160,9 +162,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .prog-wrap{height:3px;background:var(--s3);position:sticky;top:49px;z-index:99}
 .prog-fill{height:100%;background:var(--green);transition:width .4s ease}
 
-/* ── BUTTONS ── */
-.btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;transition:transform .1s}
-.btn:active{transform:scale(0.97)}
+/* ── BUTTONS + 3D PRESS ── */
+.btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;
+  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s cubic-bezier(.22,1,.36,1),filter .1s;
+  box-shadow:0 4px 0 rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);}
+.btn:active{transform:scale(0.96) translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.25),0 0 4px rgba(0,0,0,0.1);filter:brightness(0.92);}
 .btn-green{background:var(--green);color:#fff}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
@@ -236,7 +240,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 /* ── TRAIN TAB (GYM TRACKER) ── */
 .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
-.day-btn:active{transform:scale(0.97)}
+.day-btn:active{transform:scale(0.95) translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2) !important;filter:brightness(0.9);}
 .day-btn.selected{border-color:var(--green);background:#1D9E7520}
 .day-letter{font-size:1.6rem;font-weight:700;line-height:1}
 .day-name{font-size:0.82rem;margin-top:4px;color:var(--muted)}
@@ -338,8 +342,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .set-input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 6px;color:var(--text);font-size:1.05rem;font-weight:600;text-align:center;width:100%;-webkit-appearance:none;-webkit-user-select:text;touch-action:manipulation}
 .set-input:focus{outline:none;border-color:var(--green)}
 .set-input.editing{border-color:var(--amber);background:#f0a03015}
-.log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.82rem;font-weight:700;padding:10px 4px;cursor:pointer;width:100%;transition:all .15s}
-.log-btn:active{transform:scale(0.95)}
+.log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.82rem;font-weight:700;padding:10px 4px;cursor:pointer;width:100%;
+  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s,filter .1s;
+  box-shadow:0 3px 0 rgba(0,0,0,0.2),0 2px 6px rgba(29,158,117,0.3);}
+.log-btn:active{transform:scale(0.94) translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2);filter:brightness(0.88);}
 .log-btn.done-btn{background:var(--s3);color:var(--muted)}
 .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.75rem;padding:0;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .logged-set{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1D9E7515;border:1px solid #1D9E7530;border-radius:8px;margin-bottom:6px;font-size:0.85rem}
@@ -520,13 +526,61 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v53 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v54 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" async defer></script>
 <!-- ZXing barcode decoder — loaded dynamically on first scan -->
 <script>
+// ==========================================================================
+// FITOS AUDIO + HAPTIC ENGINE
+// Web Audio API — no files, works offline, respects silent mode
+// ==========================================================================
+var _AC=null;
+function getAC(){
+  if(!_AC){try{_AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  if(_AC&&_AC.state==='suspended'){try{_AC.resume();}catch(e){}}
+  return _AC;
+}
+function playTone(freq,dur,type,vol,delay){
+  var ac=getAC();if(!ac)return;
+  type=type||'sine';vol=vol||0.28;delay=delay||0;
+  var o=ac.createOscillator(),g=ac.createGain();
+  o.connect(g);g.connect(ac.destination);
+  o.type=type;o.frequency.setValueAtTime(freq,ac.currentTime+delay);
+  g.gain.setValueAtTime(0,ac.currentTime+delay);
+  g.gain.linearRampToValueAtTime(vol,ac.currentTime+delay+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+delay+dur);
+  o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+dur+0.05);
+}
+function haptic(pat){try{if(navigator.vibrate)navigator.vibrate(pat||10);}catch(e){}}
+function playClick(){playTone(600,0.04,'sine',0.18);}
+function playTabTone(){playTone(420,0.06,'sine',0.14);}
+function playLogTone(){
+  playTone(660,0.06,'sine',0.22,0);
+  playTone(880,0.1,'sine',0.28,0.08);
+  haptic([12,8,18]);
+}
+function playCompleteTone(){
+  playTone(523,0.12,'sine',0.3,0);
+  playTone(659,0.12,'sine',0.3,0.13);
+  playTone(784,0.12,'sine',0.3,0.26);
+  playTone(1047,0.28,'sine',0.35,0.39);
+  haptic([20,10,30,10,60]);
+}
+function playCountdownBeep(n){
+  if(n>=2){playTone(600,0.12,'sine',0.32);haptic(15);}
+  else{playTone(900,0.5,'sine',0.38);haptic([30,20,50]);}
+}
+function playRestEndTone(){
+  playTone(440,0.1,'sine',0.3,0);
+  playTone(660,0.1,'sine',0.3,0.1);
+  playTone(880,0.35,'sine',0.35,0.2);
+  haptic([25,15,40]);
+}
+function playSwapTone(){playTone(520,0.08,'triangle',0.2,0);playTone(740,0.12,'sine',0.22,0.09);haptic(8);}
+// ==========================================================================
 // ═══════════════════════════════════════════════════════════════════════════
 // AUDIO
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5099,7 +5153,7 @@ function copyCheckinDispatch(){
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION HANDLERS — NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════════
-function switchTab(id){S.tab=id;render();window.scrollTo(0,0);}
+function switchTab(id){playTabTone();haptic(8);S.tab=id;render();window.scrollTo(0,0);}
 
 // ─── TRAIN ───────────────────────────────────────────────────────────────
 function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};render();}
@@ -5197,6 +5251,7 @@ function logSet(i){
     S.loggedSets[ex.id].push({weight:kg,reps:reps});
   }
   saveLog();
+  playLogTone();
   startRest(ex.rest||90);
   render();
 }
@@ -5444,6 +5499,7 @@ function completeWorkout(){
   if(S.gymHistory.length>50) S.gymHistory=S.gymHistory.slice(-50);
   localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));
   S.trainScreen='complete';S.loggedSets={};S.exerciseNotes={};
+  playCompleteTone();
   render();
 }
 function startRest(secs){
@@ -5460,17 +5516,12 @@ function tickRest(){
   var circ2=document.getElementById('rest-circ');
   if(el) el.textContent=S.restLeft;
   if(circ2){var c=Math.PI*2*38;circ2.setAttribute('stroke-dashoffset',c*(1-S.restLeft/Math.max(S.restTotal,1)));var pct2=S.restLeft/Math.max(S.restTotal,1);circ2.setAttribute('stroke',pct2>0.5?'#1D9E75':pct2>0.25?'#f5a623':'#ff5e57');}
+  if(S.restLeft===3||S.restLeft===2){playCountdownBeep(S.restLeft);}
+  else if(S.restLeft===1){playCountdownBeep(1);}
   if(S.restLeft<=0){
     clearInterval(S.restInterval);S.restInterval=null;
     S.showRestSheet=false;
-    try{
-      var a=new AudioContext();var o=a.createOscillator();var g=a.createGain();
-      o.connect(g);g.connect(a.destination);
-      o.frequency.value=880;
-      g.gain.setValueAtTime(0.4,a.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.8);
-      o.start();o.stop(a.currentTime+0.8);
-    }catch(e){}
+    playRestEndTone();
     render();
   }
 }
@@ -5803,7 +5854,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v53';
+  window.APP_VERSION='v54';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5818,7 +5869,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v53';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v54';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
