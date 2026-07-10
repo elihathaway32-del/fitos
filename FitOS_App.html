@@ -148,7 +148,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px)}
 .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
 .tab-item.active{color:var(--green)}
-.tab-item:active{transform:scale(0.88);opacity:0.75;transition:transform .08s,opacity .08s;}
+.tab-item:active{transform:scale(0.92);opacity:0.7;transition:transform .08s,opacity .08s;}
 button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .tab-item svg{width:22px;height:22px}
 .tab-label{font-size:0.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
@@ -162,11 +162,10 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .prog-wrap{height:3px;background:var(--s3);position:sticky;top:49px;z-index:99}
 .prog-fill{height:100%;background:var(--green);transition:width .4s ease}
 
-/* ── BUTTONS + 3D PRESS ── */
+/* ── BUTTONS — sunken press effect only, no permanent shadow change ── */
 .btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;
-  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s cubic-bezier(.22,1,.36,1),filter .1s;
-  box-shadow:0 4px 0 rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);}
-.btn:active{transform:scale(0.96) translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.25),0 0 4px rgba(0,0,0,0.1);filter:brightness(0.92);}
+  transition:transform .1s cubic-bezier(.22,1,.36,1),box-shadow .1s,filter .08s;}
+.btn:active{transform:scale(0.97) translateY(1px);box-shadow:inset 0 2px 6px rgba(0,0,0,0.28),inset 0 1px 2px rgba(0,0,0,0.18);filter:brightness(0.88);}
 .btn-green{background:var(--green);color:#fff}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
@@ -221,7 +220,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .step-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-weight:600;cursor:pointer}
 
 /* ── HABITS ── */
-.habit-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.habit-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s}
+.habit-item:active{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.9);}
 .habit-item.done{background:#1D9E7510;border-color:#1D9E7530}
 .habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
 .habit-item.done .habit-check{background:var(--green);border-color:var(--green)}
@@ -240,7 +240,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 /* ── TRAIN TAB (GYM TRACKER) ── */
 .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
-.day-btn:active{transform:scale(0.95) translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2) !important;filter:brightness(0.9);}
+.day-btn:active{transform:scale(0.97);box-shadow:inset 0 2px 8px rgba(0,0,0,0.25),inset 0 1px 3px rgba(0,0,0,0.15) !important;filter:brightness(0.88);}
 .day-btn.selected{border-color:var(--green);background:#1D9E7520}
 .day-letter{font-size:1.6rem;font-weight:700;line-height:1}
 .day-name{font-size:0.82rem;margin-top:4px;color:var(--muted)}
@@ -316,7 +316,16 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .food-scan-btn{background:var(--green);border:none;border-radius:12px;padding:12px 14px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap}
 .food-results-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:0 16px 80px}
 .food-result-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
-.food-result-item:active{background:var(--s2)}
+.food-result-item:active{background:var(--s2);box-shadow:inset 0 2px 6px rgba(0,0,0,0.18);transform:scale(0.99);}
+.food-log-item{position:relative;overflow:hidden;border-radius:12px;touch-action:pan-y;}
+.food-log-inner{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:transform .2s cubic-bezier(.22,1,.36,1);will-change:transform;}
+.food-log-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;display:flex;align-items:center;justify-content:center;background:var(--red);border-radius:0 12px 12px 0;font-size:1.2rem;color:#fff;font-weight:700;}
+.food-memory-section{padding:0 0 8px}
+.food-memory-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 0 6px;display:flex;align-items:center;gap:6px;}
+.food-memory-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.food-memory-item{background:linear-gradient(135deg,rgba(29,158,117,0.1),rgba(29,158,117,0.04));border:1px solid rgba(29,158,117,0.25);border-radius:12px;padding:10px 14px;margin-bottom:7px;cursor:pointer;width:100%;text-align:left;color:var(--text);}
+.food-memory-item:active{filter:brightness(0.9);transform:scale(0.98);}
+.food-memory-badge{display:inline-block;font-size:0.6rem;background:var(--green);color:#fff;border-radius:6px;padding:1px 5px;margin-left:6px;font-weight:700;vertical-align:middle;}
 .food-result-name{font-size:0.88rem;font-weight:600;margin-bottom:2px}
 .food-result-brand{font-size:0.75rem;color:var(--muted);margin-bottom:6px}
 .food-result-macros{display:flex;gap:10px;font-size:0.75rem}
@@ -343,9 +352,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .set-input:focus{outline:none;border-color:var(--green)}
 .set-input.editing{border-color:var(--amber);background:#f0a03015}
 .log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.82rem;font-weight:700;padding:10px 4px;cursor:pointer;width:100%;
-  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s,filter .1s;
-  box-shadow:0 3px 0 rgba(0,0,0,0.2),0 2px 6px rgba(29,158,117,0.3);}
-.log-btn:active{transform:scale(0.94) translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2);filter:brightness(0.88);}
+  transition:transform .1s cubic-bezier(.22,1,.36,1),box-shadow .1s,filter .08s;}
+.log-btn:active{transform:scale(0.95) translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
 .log-btn.done-btn{background:var(--s3);color:var(--muted)}
 .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.75rem;padding:0;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .logged-set{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1D9E7515;border:1px solid #1D9E7530;border-radius:8px;margin-bottom:6px;font-size:0.85rem}
@@ -373,15 +381,17 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .rest-info-name{font-size:1rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rest-info-sub{font-size:0.75rem;color:rgba(255,255,255,0.45);margin-top:3px}
 .rest-actions{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
-.rest-btn-extend{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 6px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:background .15s}
-.rest-btn-skip{background:linear-gradient(135deg,var(--green),#0fa868);border:none;border-radius:12px;padding:11px 6px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(29,158,117,0.35)}
+.rest-btn-extend{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 6px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s}
+.rest-btn-extend:active{transform:scale(0.97);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
+.rest-btn-skip{background:linear-gradient(135deg,var(--green),#0fa868);border:none;border-radius:12px;padding:11px 6px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(29,158,117,0.35);transition:transform .1s,box-shadow .1s,filter .08s}
+.rest-btn-skip:active{transform:scale(0.97);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25),0 1px 4px rgba(29,158,117,0.2);filter:brightness(0.88);}
 .swap-alt-btn{transition:background .15s}.swap-alt-btn:hover{background:rgba(255,255,255,0.1)!important}
 .next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
 .dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
 .phase-screen{padding:16px}
 .check-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
 .check-item.checked{background:#1D9E7512;border-color:#1D9E7540}
-.check-item:active{transform:scale(0.98)}
+.check-item:active{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.92);}
 .check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all .2s}
 .check-item.checked .check-circle{background:var(--green);border-color:var(--green)}
 .check-info{flex:1}
@@ -526,7 +536,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v54 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v56 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -554,7 +564,7 @@ function playTone(freq,dur,type,vol,delay){
   g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+delay+dur);
   o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+dur+0.05);
 }
-function haptic(pat){try{if(navigator.vibrate)navigator.vibrate(pat||10);}catch(e){}}
+function haptic(pat){try{if(navigator.vibrate){navigator.vibrate(pat||10);}else{/* iOS: no vibrate API — audio tone is the feedback */}}catch(e){}}
 function playClick(){playTone(600,0.04,'sine',0.18);}
 function playTabTone(){playTone(420,0.06,'sine',0.14);}
 function playLogTone(){
@@ -2212,6 +2222,7 @@ let S={
 
   // Food log
   foodLog: loadJSON('fitos_foodlog',[]),
+  foodMemory: loadJSON('fitos_food_memory',{}),
   showFoodPanel: false,
 
   // AI Coach
@@ -4020,17 +4031,22 @@ ${hasProfile&&tdeeData?`
           </div>
           <div style="font-size:0.8rem;font-weight:700;color:${cat.col}">${catCal} cal · ${catP}g P</div>
         </div>
-        ${items.map(f=>`<div class="food-log-item">
-          <div>
-            <div class="food-log-name">${f.name}${f.qty&&f.qty!==100?` <span style="color:var(--muted);font-weight:400;font-size:0.75rem">(${f.qty}g)</span>`:''}</div>
-            <div class="food-log-macros">P:${f.p}g · C:${f.c}g · F:${f.f}g${f.fiber?` · Fiber:${f.fiber}g`:''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="food-log-cal">${f.cal}</div>
-            <select onchange="S.foodLog.find(x=>x.id==='${f.id}').meal=this.value;saveDailyState();render()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:3px 4px;color:var(--muted);font-size:0.65rem;cursor:pointer">
-              ${['breakfast','lunch','dinner','snack','untagged'].map(m=>`<option value="${m}"${(f.meal||'untagged')===m?' selected':''}>${m==='breakfast'?'🌅':m==='lunch'?'☀️':m==='dinner'?'🌙':m==='snack'?'🍎':'📝'}</option>`).join('')}
-            </select>
-            <button onclick="removeFoodLog('${f.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:0.75rem">✕</button>
+        ${items.map(f=>`<div class="food-log-item" id="fli-${f.id}"
+          ontouchstart="swipeStart(event,'${f.id}')"
+          ontouchmove="swipeMove(event,'${f.id}')"
+          ontouchend="swipeEnd(event,'${f.id}')">
+          <div class="food-log-delete-bg">🗑️</div>
+          <div class="food-log-inner" id="fli-inner-${f.id}">
+            <div style="flex:1;min-width:0">
+              <div class="food-log-name">${f.name}${f.brand?` <span style="color:var(--muted);font-weight:400;font-size:0.72rem">${f.brand}</span>`:''}</div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:1px">${f.qty&&f.qty!==100?`${f.qty}g · `:''}P:${f.p}g · C:${f.c}g · F:${f.f}g${f.fiber?` · Fib:${f.fiber}g`:''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0">
+              <div class="food-log-cal">${f.cal}</div>
+              <select onchange="S.foodLog.find(x=>x.id==='${f.id}').meal=this.value;saveDailyState();render()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:3px 4px;color:var(--muted);font-size:0.65rem;cursor:pointer">
+                ${['breakfast','lunch','dinner','snack','untagged'].map(m=>`<option value="${m}"${(f.meal||'untagged')===m?' selected':''}>${m==='breakfast'?'🌅':m==='lunch'?'☀️':m==='dinner'?'🌙':m==='snack'?'🍎':'📝'}</option>`).join('')}
+              </select>
+            </div>
           </div>
         </div>`).join('')}
       </div>`;
@@ -4356,8 +4372,19 @@ function renderFoodPanel(){
         <button onclick="doFoodSearch('restaurants')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;flex:1">🍟 Restaurants</button>
       </div>
       <div class="food-results-scroll">
-        ${S.foodSearching?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
+        ${S.foodSearching&&S.foodResults.length===0?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
         ${!S.foodSearching&&results.length===0&&S.foodQuery?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>':''}
+        ${(()=>{
+          var memCount=results.filter(r=>r._memory).length;
+          var apiCount=results.filter(r=>!r._memory).length;
+          if(memCount>0&&apiCount>0&&S.foodQuery){
+            return '<div class="food-memory-label">🕐 Your history</div>';
+          }
+          if(memCount>0&&!S.foodQuery){
+            return '<div class="food-memory-label">🕐 Recently logged</div>';
+          }
+          return '';
+        })()}
         ${results.map((r,i)=>{
           const sg=r.servingG;
           const dc=sg?Math.round(r.cal*sg/100):r.cal;
@@ -4365,8 +4392,11 @@ function renderFoodPanel(){
           const dcc=sg?Math.round(r.c*sg/100):r.c;
           const df=sg?Math.round(r.f*sg/100):r.f;
           const lbl=sg?'per serving':'per 100g';
-          return `<button class="food-result-item" onclick="selectFood(${i})" style="width:100%;text-align:left;background:var(--s1);color:var(--text);border:1px solid var(--border)">
-          <div class="food-result-name">${r.au?'🇦🇺 ':''}${r.name}</div>
+          var memCount2=results.filter(x=>x._memory).length;
+          var isFirstApi=!r._memory&&i>0&&results[i-1]&&results[i-1]._memory;
+          var divider=isFirstApi?'<div class="food-memory-label" style="margin-top:6px">🔍 Search results</div>':'';
+          return divider+`<button class="${r._memory?'food-memory-item':'food-result-item'}" onclick="selectFood(${i})" style="width:100%;text-align:left;${r._memory?'':'background:var(--s1);color:var(--text);border:1px solid var(--border)'}">
+          <div class="food-result-name">${r.au?'🇦🇺 ':''}${r.name}${r._memory?'<span class=\"food-memory-badge\">✓ logged before</span>':''}</div>
           ${r.brand?`<div class="food-result-brand">${r.brand}</div>`:''}
           <div class="food-result-macros">
             <span style="color:var(--green)">⚡ ${dc} cal</span>
@@ -4394,13 +4424,17 @@ function renderFoodPanel(){
           </div>
         </div>
         <div style="margin-bottom:16px">
-          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">Serving size (grams)</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input class="food-qty-input" type="number" id="food-qty-field" value="${pending.servingQty||100}" min="1" max="2000" step="5" inputmode="decimal"
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;font-weight:600">
+            Serving size
+            ${pending.servingG?'<span style="color:var(--green);font-size:0.72rem;font-weight:400;margin-left:6px">\u{1F4E6} 1 serve = '+pending.servingG+'g</span>':''}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input class="food-qty-input" type="number" id="food-qty-field" value="${pending.servingQty||pending.servingG||100}" min="1" max="2000" step="5" inputmode="decimal"
               oninput="updateFoodQty(this.value)"
               onblur="render()"/>
-            <span style="color:var(--muted);font-size:0.85rem">g &nbsp;(per 100g values shown above)</span>
+            <span style="color:var(--muted);font-size:0.82rem">g</span>
           </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${renderServingBtns(pending)}</div>
         </div>
         <div style="margin-bottom:16px">
           <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;font-weight:600">Add to meal</div>
@@ -4434,7 +4468,20 @@ function copyYesterdayMeals(){
   saveDailyState();
   render();
 }
-function openFoodPanel(date){S.showFoodPanel=true;S.pendingFood=null;S.foodResults=[];S.foodQuery='';S.logDate=date||todayStr();render();}
+function openFoodPanel(date){
+  S.showFoodPanel=true;S.pendingFood=null;S.foodQuery='';S.logDate=date||todayStr();
+  // Pre-populate with recently logged foods
+  var recent=[];var seen={};
+  Object.values(S.foodMemory||{}).forEach(function(arr){
+    arr.forEach(function(e){
+      var k=e.name+'__'+(e.brand||'');
+      if(!seen[k]){seen[k]=true;recent.push({...e,_memory:true});}
+    });
+  });
+  recent.sort(function(a,b){return (b.lastUsed||0)-(a.lastUsed||0);});
+  S.foodResults=recent.slice(0,8);
+  render();
+}
 function closeFoodPanel(){S.showFoodPanel=false;S.pendingFood=null;S.foodResults=[];render();}
 
 const AU_RESTAURANT_DB=[
@@ -4616,6 +4663,9 @@ async function doFoodSearch(type){
   }
   const q=S.foodQuery.trim();
   if(!q)return;
+  // Instant memory hits — show immediately before network
+  var memHits=getMemoryResults(S.foodQuery);
+  if(memHits.length){S.foodResults=memHits;render();}
   S.foodSearching=true;render();
 
   // Layer 0 — Popular/common foods fuzzy match (instant, always first)
@@ -4650,6 +4700,13 @@ async function doFoodSearch(type){
           const d=await r.json();
           if(d.status===1&&d.product){
             const pr=d.product;const n=pr.nutriments;
+            // Parse serving size from product (try multiple fields)
+            var sg=null;
+            if(pr.serving_size){var m=(pr.serving_size||'').match(/(\d+\.?\d*)\s*g/i);if(m)sg=parseFloat(m[1]);}
+            if(!sg&&n['energy-kcal_serving']&&n['energy-kcal_100g']&&n['energy-kcal_100g']>0){
+              sg=Math.round((n['energy-kcal_serving']/n['energy-kcal_100g'])*100);
+            }
+            if(!sg&&pr.product_quantity){var m2=(pr.product_quantity||'').match(/(\d+)/);if(m2)sg=null;}
             S.foodResults=[{
               name:pr.product_name||pr.abbreviated_product_name||'Unknown Product',
               brand:pr.brands||'',
@@ -4660,7 +4717,8 @@ async function doFoodSearch(type){
               fiber:Math.round((n['fiber_100g']||0)*10)/10,
               sugars:Math.round((n['sugars_100g']||0)*10)/10,
               sodium:Math.round((n['sodium_100g']||0)*1000),
-              sat_fat:Math.round((n['saturated-fat_100g']||0)*10)/10
+              sat_fat:Math.round((n['saturated-fat_100g']||0)*10)/10,
+              servingG:sg||null
             }];
             found=true;
           }
@@ -4702,6 +4760,14 @@ async function doFoodSearch(type){
     const qf=q.toLowerCase();
     S.foodResults=POPULAR_FOODS_DB.filter(item=>item.name.toLowerCase().includes(qf)||qf.split(' ').some(w=>w.length>2&&item.name.toLowerCase().includes(w)));
   }
+  // Merge memory hits to top of results, dedupe by name+brand
+  var memTop=getMemoryResults(S.foodQuery);
+  if(memTop.length){
+    var deduped=S.foodResults.filter(function(r){
+      return !memTop.find(function(m){return m.name===r.name&&(m.brand||'')===(r.brand||'');});
+    });
+    S.foodResults=[...memTop,...deduped];
+  }
   S.foodSearching=false;render();
 }
 
@@ -4715,6 +4781,8 @@ function selectFood(idx){
 
 function updateFoodQty(val){
   var qty=parseInt(val)||100;
+  var field=document.getElementById('food-qty-field');
+  if(field&&field.value!=qty)field.value=qty;
   if(!S.pendingFood)return;
   S.pendingFood.servingQty=qty;
   var scale=qty/100;
@@ -4736,6 +4804,27 @@ function updateFoodQty(val){
   if(elSodium)elSodium.textContent=Math.round((f.sodium||0)*scale)+'mg';
   if(elSatFat)elSatFat.textContent=Math.round((f.sat_fat||0)*scale*10)/10+'g';
 }
+function renderServingBtns(food){
+  var sg=food.servingG;
+  var cur=food.servingQty||sg||100;
+  var out='';
+  if(sg){
+    [[0.5,'1/2'],[1,'1'],[1.5,'1.5'],[2,'2']].forEach(function(pair){
+      var x=pair[0],lbl=pair[1];
+      var g=Math.round(sg*x);
+      var act=cur===g;
+      out+='<button onclick="updateFoodQty('+g+')" style="padding:6px 10px;background:'+(act?'var(--green)':'var(--s3)')+';border:1px solid '+(act?'var(--green)':'var(--border)')+';border-radius:8px;color:'+(act?'#fff':'var(--muted)')+';font-size:0.72rem;font-weight:700;cursor:pointer">'+lbl+' serve'+(x!==1?'s':'')+' ('+g+'g)</button>';
+    });
+    out+='<button onclick="updateFoodQty(100)" style="padding:6px 10px;background:'+(cur===100?'var(--blue)':'var(--s3)')+';border:1px solid '+(cur===100?'var(--blue)':'var(--border)')+';border-radius:8px;color:'+(cur===100?'#fff':'var(--muted)')+';font-size:0.72rem;font-weight:700;cursor:pointer">100g</button>';
+  } else {
+    [50,100,150,200].forEach(function(g){
+      var act=cur===g;
+      out+='<button onclick="updateFoodQty('+g+')" style="padding:6px 10px;background:'+(act?'var(--green)':'var(--s3)')+';border:1px solid '+(act?'var(--green)':'var(--border)')+';border-radius:8px;color:'+(act?'#fff':'var(--muted)')+';font-size:0.72rem;font-weight:700;cursor:pointer">'+g+'g</button>';
+    });
+  }
+  return out;
+}
+
 
 function startBarcodeInput(){
   // Use html5-qrcode — works on iOS Safari + Android Chrome
@@ -4826,13 +4915,117 @@ function confirmAddFood(){
     sat_fat:Math.round((f.sat_fat||0)*scale*10)/10
   });
   saveDailyState();
+  // ── Save to food memory ──
+  saveFoodMemory(f);
   S.showFoodPanel=false;S.pendingFood=null;S.foodResults=[];
   render();
 }
 
+function saveFoodMemory(food){
+  if(!food||!food.name) return;
+  var mem=S.foodMemory;
+  // Index under every meaningful word in name + brand
+  var words=((food.name||'')+' '+(food.brand||'')).toLowerCase()
+    .replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>2);
+  // Also index under the full name normalised
+  var fullKey=(food.name||'').toLowerCase().trim();
+  var keys=[...new Set([fullKey,...words])];
+  var entry={
+    name:food.name,brand:food.brand||'',
+    cal:food.cal,p:food.p,c:food.c,f:food.f,
+    fiber:food.fiber||0,sugars:food.sugars||0,sodium:food.sodium||0,sat_fat:food.sat_fat||0,
+    servingG:food.servingQty||food.servingG||100,
+    lastUsed:Date.now()
+  };
+  keys.forEach(function(k){
+    if(!k) return;
+    if(!mem[k]) mem[k]=[];
+    // Remove existing entry for same food name+brand, re-add updated
+    mem[k]=mem[k].filter(function(e){return !(e.name===food.name&&e.brand===(food.brand||''));});
+    entry.useCount=(mem[k].find(function(e){return e.name===food.name;})||{useCount:0}).useCount+1;
+    mem[k].unshift(entry);
+    // Keep max 8 per key
+    if(mem[k].length>8) mem[k]=mem[k].slice(0,8);
+  });
+  S.foodMemory=mem;
+}
+
+function getMemoryResults(query){
+  var q=(query||'').toLowerCase().trim();
+  if(!q) return [];
+  var mem=S.foodMemory;
+  var seen={};var out=[];
+  // Exact key match first
+  if(mem[q]) mem[q].forEach(function(e){
+    var k=e.name+'__'+(e.brand||'');
+    if(!seen[k]){seen[k]=true;out.push({...e,_memory:true});}
+  });
+  // Word matches
+  q.split(/\s+/).forEach(function(w){
+    if(w.length<3) return;
+    if(mem[w]) mem[w].forEach(function(e){
+      var k=e.name+'__'+(e.brand||'');
+      if(!seen[k]){seen[k]=true;out.push({...e,_memory:true});}
+    });
+  });
+  // Sort by recency
+  out.sort(function(a,b){return (b.lastUsed||0)-(a.lastUsed||0);});
+  return out.slice(0,5);
+}
+
 function removeFoodLog(id){
-  S.foodLog=S.foodLog.filter(f=>f.id!==id);
-  saveDailyState();render();
+  var row=document.getElementById('fli-'+id);
+  if(row){
+    row.style.transition='opacity .25s,transform .25s';
+    row.style.opacity='0';
+    row.style.transform='translateX(-100%)';
+    setTimeout(function(){
+      S.foodLog=S.foodLog.filter(f=>f.id!==id);
+      saveDailyState();render();
+    },220);
+  } else {
+    S.foodLog=S.foodLog.filter(f=>f.id!==id);
+    saveDailyState();render();
+  }
+}
+
+// ── Swipe-to-delete food log rows ──
+var _sw={};
+function swipeStart(e,id){
+  var t=e.touches[0];
+  _sw[id]={x:t.clientX,y:t.clientY,dx:0,locked:false};
+}
+function swipeMove(e,id){
+  var s=_sw[id];if(!s)return;
+  var t=e.touches[0];
+  var dx=t.clientX-s.x;
+  var dy=t.clientY-s.y;
+  // If scrolling vertically, ignore
+  if(!s.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){s.dead=true;return;}
+  if(s.dead)return;
+  s.locked=true;
+  s.dx=dx;
+  // Only allow left swipe
+  if(dx<0){
+    e.preventDefault();
+    var el=document.getElementById('fli-inner-'+id);
+    if(el) el.style.transform='translateX('+Math.max(dx,-90)+'px)';
+  }
+}
+function swipeEnd(e,id){
+  var s=_sw[id];if(!s){return;}
+  var dx=s.dx||0;
+  delete _sw[id];
+  var el=document.getElementById('fli-inner-'+id);
+  if(dx<-70){
+    // Commit delete
+    if(el){el.style.transition='transform .18s ease';el.style.transform='translateX(-100%)';}
+    haptic([20,10,30]);
+    setTimeout(function(){removeFoodLog(id);},180);
+  } else {
+    // Snap back
+    if(el){el.style.transition='transform .2s cubic-bezier(.22,1,.36,1)';el.style.transform='translateX(0)';}
+  }
 }
 
 function renderCheckin(){
@@ -5854,7 +6047,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v54';
+  window.APP_VERSION='v56';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5869,7 +6062,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v54';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v56';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
@@ -5893,6 +6086,7 @@ function checkMeal(id){
 }
 function saveDailyState(){
   localStorage.setItem('fitos_foodlog',JSON.stringify(S.foodLog));
+  localStorage.setItem('fitos_food_memory',JSON.stringify(S.foodMemory));
   localStorage.setItem('fitos_meals',[...S.mealChecked].join(','));
 }
 
