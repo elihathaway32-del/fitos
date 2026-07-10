@@ -319,7 +319,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .food-result-item:active,.food-result-item.pressed{background:var(--s2);box-shadow:inset 0 2px 6px rgba(0,0,0,0.18);transform:scale(0.99);}
 .food-log-item{position:relative;overflow:hidden;border-radius:12px;touch-action:pan-y;}
 .food-log-inner{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:transform .2s cubic-bezier(.22,1,.36,1);will-change:transform;}
-.food-log-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;display:flex;align-items:center;justify-content:center;background:var(--red);border-radius:0 12px 12px 0;font-size:1.2rem;color:#fff;font-weight:700;}
+.food-log-delete-bg{position:absolute;right:0;top:6px;bottom:6px;width:56px;display:flex;align-items:center;justify-content:center;background:#e03030;border-radius:0 10px 10px 0;font-size:1rem;color:#fff;}
 .food-memory-section{padding:0 0 8px}
 .food-memory-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 0 6px;display:flex;align-items:center;gap:6px;}
 .food-memory-label::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -536,7 +536,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v57 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v58 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3857,9 +3857,9 @@ function renderRestSheet(){
       </div>
     </div>
     <div class="rest-actions">
-      <button class="rest-btn-extend" onclick="extendRest(30)">+30s</button>
+      <button class="rest-btn-extend" onclick="extendRest(-30)">−30s</button>
       <button class="rest-btn-skip" onclick="skipRest()">Skip Rest →</button>
-      <button class="rest-btn-extend" onclick="extendRest(60)">+60s</button>
+      <button class="rest-btn-extend" onclick="extendRest(30)">+30s</button>
     </div>
   </div>
 </div>`;
@@ -4996,22 +4996,38 @@ function getMemoryResults(query){
   if(!q) return [];
   var mem=S.foodMemory;
   var seen={};var out=[];
-  // Exact key match first
+  var words=q.split(/\s+/).filter(function(w){return w.length>=2;});
+
+  // 1. Exact key match
   if(mem[q]) mem[q].forEach(function(e){
     var k=e.name+'__'+(e.brand||'');
-    if(!seen[k]){seen[k]=true;out.push({...e,_memory:true});}
+    if(!seen[k]){seen[k]=true;out.push(Object.assign({},e,{_memory:true}));}
   });
-  // Word matches
-  q.split(/\s+/).forEach(function(w){
-    if(w.length<3) return;
+
+  // 2. Word key matches (e.g. "ham" matches key "ham")
+  words.forEach(function(w){
     if(mem[w]) mem[w].forEach(function(e){
       var k=e.name+'__'+(e.brand||'');
-      if(!seen[k]){seen[k]=true;out.push({...e,_memory:true});}
+      if(!seen[k]){seen[k]=true;out.push(Object.assign({},e,{_memory:true}));}
     });
   });
-  // Sort by recency
+
+  // 3. Substring scan across ALL memory keys (catches "chicken breast" from key "chicken")
+  Object.keys(mem).forEach(function(key){
+    var keyMatches=words.some(function(w){return key.includes(w)||w.includes(key);});
+    if(!keyMatches) return;
+    mem[key].forEach(function(e){
+      var k=e.name+'__'+(e.brand||'');
+      if(!seen[k]){
+        // Extra check: food name itself must contain the query word
+        var nameMatch=words.some(function(w){return (e.name||'').toLowerCase().includes(w)||(e.brand||'').toLowerCase().includes(w);});
+        if(nameMatch){seen[k]=true;out.push(Object.assign({},e,{_memory:true}));}
+      }
+    });
+  });
+
   out.sort(function(a,b){return (b.lastUsed||0)-(a.lastUsed||0);});
-  return out.slice(0,5);
+  return out.slice(0,6);
 }
 
 function removeFoodLog(id){
@@ -5521,7 +5537,7 @@ function abandonWorkout(){
   }
 }
 function skipRest(){stopRest();}
-function extendRest(secs){S.restLeft+=secs;S.restTotal+=secs;render();}
+function extendRest(secs){S.restLeft=Math.max(3,S.restLeft+secs);S.restTotal=Math.max(3,S.restTotal+secs);render();}
 function selectWeek(w){S.week=w;render();}
 function finishAndSave(){completeWorkout();}
 function nextEx(){
@@ -5750,7 +5766,7 @@ function tickRest(){
   var circ2=document.getElementById('rest-circ');
   if(el) el.textContent=S.restLeft;
   if(circ2){var c=Math.PI*2*38;circ2.setAttribute('stroke-dashoffset',c*(1-S.restLeft/Math.max(S.restTotal,1)));var pct2=S.restLeft/Math.max(S.restTotal,1);circ2.setAttribute('stroke',pct2>0.5?'#1D9E75':pct2>0.25?'#f5a623':'#ff5e57');}
-  if(S.restLeft===3||S.restLeft===2){playCountdownBeep(S.restLeft);}
+  if(S.restLeft===5||S.restLeft===4||S.restLeft===3||S.restLeft===2){playCountdownBeep(S.restLeft);}
   else if(S.restLeft===1){playCountdownBeep(1);}
   if(S.restLeft<=0){
     clearInterval(S.restInterval);S.restInterval=null;
@@ -6088,7 +6104,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v57';
+  window.APP_VERSION='v58';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
