@@ -148,7 +148,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px)}
 .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
 .tab-item.active{color:var(--green)}
-.tab-item:active{transform:scale(0.92);opacity:0.7;transition:transform .08s,opacity .08s;}
+.tab-item:active,.tab-item.pressed{transform:scale(0.92);opacity:0.7;transition:transform .08s,opacity .08s;}
 button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .tab-item svg{width:22px;height:22px}
 .tab-label{font-size:0.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
@@ -164,8 +164,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 
 /* ── BUTTONS — sunken press effect only, no permanent shadow change ── */
 .btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;
-  transition:transform .1s cubic-bezier(.22,1,.36,1),box-shadow .1s,filter .08s;}
-.btn:active{transform:scale(0.97) translateY(1px);box-shadow:inset 0 2px 6px rgba(0,0,0,0.28),inset 0 1px 2px rgba(0,0,0,0.18);filter:brightness(0.88);}
+  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s,filter .1s;}
+.btn:active,.btn.pressed{transform:scale(0.97) translateY(1px);box-shadow:inset 0 2px 6px rgba(0,0,0,0.28),inset 0 1px 2px rgba(0,0,0,0.18);filter:brightness(0.88);}
 .btn-green{background:var(--green);color:#fff}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
@@ -221,7 +221,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 
 /* ── HABITS ── */
 .habit-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s}
-.habit-item:active{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.9);}
+.habit-item:active,.habit-item.pressed{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.9);}
 .habit-item.done{background:#1D9E7510;border-color:#1D9E7530}
 .habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
 .habit-item.done .habit-check{background:var(--green);border-color:var(--green)}
@@ -240,7 +240,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 /* ── TRAIN TAB (GYM TRACKER) ── */
 .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
-.day-btn:active{transform:scale(0.97);box-shadow:inset 0 2px 8px rgba(0,0,0,0.25),inset 0 1px 3px rgba(0,0,0,0.15) !important;filter:brightness(0.88);}
+.day-btn:active,.day-btn.pressed{transform:scale(0.97);box-shadow:inset 0 2px 8px rgba(0,0,0,0.25),inset 0 1px 3px rgba(0,0,0,0.15) !important;filter:brightness(0.88);}
 .day-btn.selected{border-color:var(--green);background:#1D9E7520}
 .day-letter{font-size:1.6rem;font-weight:700;line-height:1}
 .day-name{font-size:0.82rem;margin-top:4px;color:var(--muted)}
@@ -267,7 +267,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .demo-3d-wrap{height:230px;background:#111827;border-radius:10px;overflow:hidden;position:relative}.demo-3d-wrap canvas{display:block;width:100%!important;height:100%!important}
 .yt-embed-wrap{padding:0 14px}
 .swap-ex-btn{display:block;width:calc(100% - 28px);margin:10px 14px 10px;background:linear-gradient(135deg,rgba(255,30,30,0.13) 0%,rgba(180,0,0,0.07) 100%);border:1px solid rgba(255,60,60,0.35);border-radius:14px;padding:14px 20px;color:var(--red);font-size:0.95rem;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 0 18px rgba(255,40,40,0.18),inset 0 1px 0 rgba(255,255,255,0.07);text-align:center;transition:box-shadow .2s,border-color .2s}
-.swap-ex-btn:active{box-shadow:0 0 28px rgba(255,40,40,0.35),inset 0 1px 0 rgba(255,255,255,0.1);border-color:rgba(255,60,60,0.6);transform:scale(0.99)}
+.swap-ex-btn:active,.swap-ex-btn.pressed{box-shadow:0 0 28px rgba(255,40,40,0.35),inset 0 2px 6px rgba(0,0,0,0.25);border-color:rgba(255,60,60,0.6);transform:scale(0.97);filter:brightness(0.88);}
 [data-theme="light-clean"] .swap-ex-btn{background:linear-gradient(135deg,rgba(200,0,0,0.07) 0%,rgba(180,0,0,0.03) 100%);border:1px solid rgba(180,0,0,0.25);box-shadow:0 2px 12px rgba(180,0,0,0.1)}
 
 .yt-placeholder{height:220px;background:linear-gradient(145deg,#0f0f0f,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,0,0,0.25);position:relative;overflow:hidden;transition:border-color .2s}
@@ -288,7 +288,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .set-logger{padding:16px}
 /* AI Coach */
 .coach-fab{position:fixed;bottom:calc(var(--tab-h) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);border:none;cursor:pointer;z-index:300;box-shadow:0 4px 16px #1D9E7550;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:transform .2s}
-.coach-fab:active{transform:scale(0.92)}
+.coach-fab:active,.coach-fab.pressed{transform:scale(0.9);box-shadow:inset 0 2px 6px rgba(0,0,0,0.3);}
 .coach-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#000c;z-index:600;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
 .coach-header{background:linear-gradient(135deg,#0a1a12,#111);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .coach-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
@@ -316,7 +316,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .food-scan-btn{background:var(--green);border:none;border-radius:12px;padding:12px 14px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap}
 .food-results-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:0 16px 80px}
 .food-result-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
-.food-result-item:active{background:var(--s2);box-shadow:inset 0 2px 6px rgba(0,0,0,0.18);transform:scale(0.99);}
+.food-result-item:active,.food-result-item.pressed{background:var(--s2);box-shadow:inset 0 2px 6px rgba(0,0,0,0.18);transform:scale(0.99);}
 .food-log-item{position:relative;overflow:hidden;border-radius:12px;touch-action:pan-y;}
 .food-log-inner{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:transform .2s cubic-bezier(.22,1,.36,1);will-change:transform;}
 .food-log-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;display:flex;align-items:center;justify-content:center;background:var(--red);border-radius:0 12px 12px 0;font-size:1.2rem;color:#fff;font-weight:700;}
@@ -324,7 +324,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .food-memory-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 0 6px;display:flex;align-items:center;gap:6px;}
 .food-memory-label::after{content:'';flex:1;height:1px;background:var(--border);}
 .food-memory-item{background:linear-gradient(135deg,rgba(29,158,117,0.1),rgba(29,158,117,0.04));border:1px solid rgba(29,158,117,0.25);border-radius:12px;padding:10px 14px;margin-bottom:7px;cursor:pointer;width:100%;text-align:left;color:var(--text);}
-.food-memory-item:active{filter:brightness(0.9);transform:scale(0.98);}
+.food-memory-item:active,.food-memory-item.pressed{filter:brightness(0.88);transform:scale(0.97);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);}
 .food-memory-badge{display:inline-block;font-size:0.6rem;background:var(--green);color:#fff;border-radius:6px;padding:1px 5px;margin-left:6px;font-weight:700;vertical-align:middle;}
 .food-result-name{font-size:0.88rem;font-weight:600;margin-bottom:2px}
 .food-result-brand{font-size:0.75rem;color:var(--muted);margin-bottom:6px}
@@ -352,8 +352,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .set-input:focus{outline:none;border-color:var(--green)}
 .set-input.editing{border-color:var(--amber);background:#f0a03015}
 .log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.82rem;font-weight:700;padding:10px 4px;cursor:pointer;width:100%;
-  transition:transform .1s cubic-bezier(.22,1,.36,1),box-shadow .1s,filter .08s;}
-.log-btn:active{transform:scale(0.95) translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
+  transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s,filter .1s;}
+.log-btn:active,.log-btn.pressed{transform:scale(0.95) translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
 .log-btn.done-btn{background:var(--s3);color:var(--muted)}
 .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.75rem;padding:0;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .logged-set{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1D9E7515;border:1px solid #1D9E7530;border-radius:8px;margin-bottom:6px;font-size:0.85rem}
@@ -382,16 +382,16 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .rest-info-sub{font-size:0.75rem;color:rgba(255,255,255,0.45);margin-top:3px}
 .rest-actions{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
 .rest-btn-extend{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 6px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s}
-.rest-btn-extend:active{transform:scale(0.97);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
+.rest-btn-extend:active,.rest-btn-extend.pressed{transform:scale(0.97);box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);filter:brightness(0.85);}
 .rest-btn-skip{background:linear-gradient(135deg,var(--green),#0fa868);border:none;border-radius:12px;padding:11px 6px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(29,158,117,0.35);transition:transform .1s,box-shadow .1s,filter .08s}
-.rest-btn-skip:active{transform:scale(0.97);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25),0 1px 4px rgba(29,158,117,0.2);filter:brightness(0.88);}
+.rest-btn-skip:active,.rest-btn-skip.pressed{transform:scale(0.97);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25),0 1px 4px rgba(29,158,117,0.2);filter:brightness(0.88);}
 .swap-alt-btn{transition:background .15s}.swap-alt-btn:hover{background:rgba(255,255,255,0.1)!important}
 .next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
 .dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
 .phase-screen{padding:16px}
 .check-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
 .check-item.checked{background:#1D9E7512;border-color:#1D9E7540}
-.check-item:active{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.92);}
+.check-item:active,.check-item.pressed{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.92);}
 .check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all .2s}
 .check-item.checked .check-circle{background:var(--green);border-color:var(--green)}
 .check-info{flex:1}
@@ -536,7 +536,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v56 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v57 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -565,6 +565,47 @@ function playTone(freq,dur,type,vol,delay){
   o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+dur+0.05);
 }
 function haptic(pat){try{if(navigator.vibrate){navigator.vibrate(pat||10);}else{/* iOS: no vibrate API — audio tone is the feedback */}}catch(e){}}
+
+// ── Global tap-press effect — fires on touchstart so even fast taps show sink ──
+// Targets any button, [onclick] element, or known interactive class
+(function(){
+  var PRESS_CLASSES=[
+    'btn','log-btn','day-btn','tab-item','check-item','habit-item',
+    'food-result-item','food-memory-item','swap-ex-btn','rest-btn-skip',
+    'rest-btn-extend','coach-fab','watch-demo-btn','yt-placeholder'
+  ];
+  function findPressTarget(el){
+    var depth=0;
+    while(el&&el!==document.body&&depth<6){
+      if(el.tagName==='BUTTON'||el.hasAttribute('onclick')){return el;}
+      for(var i=0;i<PRESS_CLASSES.length;i++){
+        if(el.classList&&el.classList.contains(PRESS_CLASSES[i]))return el;
+      }
+      el=el.parentElement;depth++;
+    }
+    return null;
+  }
+  var _pressEl=null,_pressTimer=null;
+  document.addEventListener('touchstart',function(e){
+    var t=findPressTarget(e.target);
+    if(!t)return;
+    _pressEl=t;
+    t.classList.add('pressed');
+    if(_pressTimer)clearTimeout(_pressTimer);
+  },{passive:true});
+  function releasePress(){
+    if(_pressEl){
+      var el=_pressEl;_pressEl=null;
+      if(_pressTimer)clearTimeout(_pressTimer);
+      // Keep .pressed visible for 130ms so fast taps are visible
+      _pressTimer=setTimeout(function(){el.classList.remove('pressed');},130);
+    }
+  }
+  document.addEventListener('touchend',releasePress,{passive:true});
+  document.addEventListener('touchcancel',function(){
+    if(_pressEl){_pressEl.classList.remove('pressed');_pressEl=null;}
+  },{passive:true});
+})();
 function playClick(){playTone(600,0.04,'sine',0.18);}
 function playTabTone(){playTone(420,0.06,'sine',0.14);}
 function playLogTone(){
@@ -6047,7 +6088,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v56';
+  window.APP_VERSION='v57';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -6055,27 +6096,23 @@ window.onerror=function(msg,src,line,col,err){
   }
   return false;
 };
-// Kill stale service workers and caches on every load
+// Register SW — caches app shell, auto-updates on close+reopen
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){
-      if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
-        // Only unregister if it's an old cache version
-        caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v56';});
-          if(hasOld){
-            r.unregister().then(function(){
-              caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
-            });
-          }
-        });
-      }
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    reg.addEventListener('updatefound',function(){
+      var nw=reg.installing;
+      nw.addEventListener('statechange',function(){
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          console.log('[FitOS] New version cached, ready on next open');
+        }
+      });
     });
+  }).catch(function(){});
+  var _refreshed=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(!_refreshed){_refreshed=true;location.reload();}
   });
 }
-if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  }
 }
 function closeGleam(){S.showGleam=false;try{saveProfile();}catch(e){}render();}
 
