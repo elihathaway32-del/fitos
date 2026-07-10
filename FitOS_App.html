@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v51 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v52 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -1008,7 +1008,8 @@ function generateAndSaveBlock(){
   var block=buildBlock(p);
   localStorage.setItem('fitos_generated_block',JSON.stringify(block));
   localStorage.setItem('fitos_block_profile',JSON.stringify({goal:p.goal,daysPerWeek:p.daysPerWeek,gymType:p.gymType,experience:p.experience}));
-  // Merge into WK — app uses WK for workout rendering
+  // Clear old day keys first so a 3-day user doesn't inherit a 6-day split
+  ['A','B','C','D','E','F'].forEach(function(k){delete WK[k];});
   Object.assign(WK,block);
 }
 
@@ -5431,6 +5432,8 @@ function loadTestProfile(idx){
     localStorage.setItem('fitos_profile',JSON.stringify(S.profile));
   }
   try{generateAndSaveBlock();}catch(e){console.error('generateAndSaveBlock error',e);}
+  S.week=1;S.day=null;S.exIdx=0;S.loggedSets={};S.extraSets={};S.exSwaps={};S.editingSet=null;
+  localStorage.setItem('fitos_week','1');localStorage.removeItem('fitos_logged');
   S.showDevPanel=false;
   S.tab='train';
   S.trainScreen='days';
@@ -5594,12 +5597,13 @@ function initApp(){
     var savedBlock=localStorage.getItem('fitos_generated_block');
     if(savedBlock){
       var block=JSON.parse(savedBlock);
+      ['A','B','C','D','E','F'].forEach(function(k){delete WK[k];});
       Object.assign(WK,block);
     }
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v51';
+  window.APP_VERSION='v52';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5614,7 +5618,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v51';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v52';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
