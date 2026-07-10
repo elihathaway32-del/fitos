@@ -520,7 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v52 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v53 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -891,72 +891,272 @@ function buildBlock(p){
     ]
   };
 
-  // ── Female-specific template overrides (more lower body / glute emphasis) ──
-  if(isFemale){
-    if(days===3){
-      template=[
-        {n:'Lower Body — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','squat','lunge','iso-lower','iso-lower','core']},
+  // ── TEMPLATE SELECTION — gender + goal + experience + days all feed in here.
+  // var template is declared ONCE here. Female & goal overrides apply within blocks.
+  // Fix: no more var hoisting bug. Female templates can never be overwritten.
+  var template;
+
+  // ── BEGINNER (simple full-body patterns, max 4 days) ──
+  if(style==='beginner'||(p.experience||'').toLowerCase().match(/begin|new to|starter/)){
+    var bd=Math.min(days,4);
+    var BT={
+      1:[{n:'Full Body',col:'#1D9E75',tag:'Learn the Basics',pat:['push-h','squat','pull-v','hinge','core']}],
+      2:[
+        {n:'Upper Body',col:'#4a90d9',tag:'Push · Pull · Core',pat:['push-h','pull-v','push-v','pull-h','core']},
+        {n:'Lower Body',col:'#f0a030',tag:'Legs · Glutes · Core',pat:['squat','hinge','lunge','iso-lower','core']}
+      ],
+      3:isFemale?[
+        {n:'Glutes & Legs',col:'#e05050',tag:'Glutes · Quads · Hams',pat:['hinge','squat','lunge','iso-lower','core']},
+        {n:'Upper Body',col:'#4a90d9',tag:'Push · Pull · Arms',pat:['push-h','pull-v','iso-push','iso-pull','core']},
+        {n:'Full Body',col:'#1D9E75',tag:'Compound · Core',pat:['squat','push-h','hinge','pull-h','core']}
+      ]:[
+        {n:'Full Body A',col:'#4a90d9',tag:'Push · Squat · Core',pat:['push-h','squat','pull-v','core']},
+        {n:'Full Body B',col:'#1D9E75',tag:'Pull · Hinge · Core',pat:['pull-h','hinge','push-v','core']},
+        {n:'Full Body C',col:'#f0a030',tag:'Legs · Arms · Core',pat:['squat','lunge','iso-push','iso-pull','core']}
+      ],
+      4:isFemale?[
+        {n:'Glutes & Legs A',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','squat','lunge','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-v','iso-push','core']},
+        {n:'Glutes & Legs B',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','lunge','hinge','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','iso-pull','core']}
+      ]:[
+        {n:'Upper A — Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-v','iso-push','iso-push','core']},
+        {n:'Lower A — Quads',col:'#f0a030',tag:'Quads · Glutes · Core',pat:['squat','lunge','iso-lower','core']},
+        {n:'Upper B — Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','iso-pull','iso-pull','core']},
+        {n:'Lower B — Posterior',col:'#e05050',tag:'Glutes · Hamstrings · Core',pat:['hinge','lunge','iso-lower','core']}
+      ]
+    };
+    template=BT[bd]||BT[3];
+  }
+
+  // ── STRENGTH (low rep, heavy compound, powerlifting split) ──
+  else if(style==='strength'){
+    var ST={
+      3:[
+        {n:'Push — Strength',col:'#4a90d9',tag:'Bench · OHP · Triceps',pat:['push-h','push-h','push-v','iso-push','core']},
+        {n:'Pull — Strength',col:'#1D9E75',tag:'Deadlift · Row · Lats',pat:['hinge','pull-v','pull-h','pull-h','core']},
+        {n:'Legs — Strength',col:'#f0a030',tag:'Squat · Hinge · Unilateral',pat:['squat','squat','hinge','lunge','core']}
+      ],
+      4:[
+        {n:'Push — Strength',col:'#4a90d9',tag:'Bench · OHP · Accessories',pat:['push-h','push-h','push-v','iso-push','iso-push','core']},
+        {n:'Pull — Strength',col:'#1D9E75',tag:'Deadlift · Row · Lats',pat:['hinge','pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Legs — Strength',col:'#f0a030',tag:'Squat · Unilateral · Core',pat:['squat','squat','lunge','hinge','core']},
+        {n:'Accessory Day',col:'#9b59b6',tag:'Weak Point Training',pat:['push-inc','pull-h','iso-push','iso-pull','iso-lower','core']}
+      ],
+      5:[
+        {n:'Bench Day',col:'#4a90d9',tag:'Horizontal Press Focus',pat:['push-h','push-h','push-inc','iso-push','core']},
+        {n:'Squat Day',col:'#f0a030',tag:'Quad Dominant',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'OHP Day',col:'#9b59b6',tag:'Vertical Press & Pull',pat:['push-v','pull-v','iso-push','iso-pull','core']},
+        {n:'Deadlift Day',col:'#e05050',tag:'Hip Hinge & Posterior',pat:['hinge','hinge','lunge','iso-lower','core']},
+        {n:'Accessory Day',col:'#1D9E75',tag:'Volume · Weak Points',pat:['push-inc','pull-h','iso-push','iso-pull','iso-lower']}
+      ],
+      6:[
+        {n:'Bench',col:'#4a90d9',tag:'Horizontal Push',pat:['push-h','push-h','push-inc','iso-push','core']},
+        {n:'Squat',col:'#f0a030',tag:'Quad Dominant',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'OHP',col:'#9b59b6',tag:'Vertical Press',pat:['push-v','push-v','iso-push','pull-v','core']},
+        {n:'Deadlift',col:'#e05050',tag:'Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','core']},
+        {n:'Upper Accessories',col:'#1D9E75',tag:'Pull · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Lower Accessories',col:'#e67e22',tag:'Single Leg · Core · Calves',pat:['lunge','iso-lower','iso-lower','iso-push','core']}
+      ]
+    };
+    template=ST[Math.min(days,6)]||ST[4];
+  }
+
+  // ── FAT LOSS (higher rep, more conditioning, shorter rest) ──
+  else if(style==='fat-loss'){
+    var FT={
+      3:isFemale?[
+        {n:'Glute & Leg Conditioning',col:'#e05050',tag:'Hinge · Squat · Lunge',pat:['hinge','squat','lunge','iso-lower','core','cond']},
+        {n:'Upper Conditioning',col:'#4a90d9',tag:'Push · Pull · Circuit',pat:['push-h','pull-v','push-v','pull-h','core']},
+        {n:'Full Body Burn',col:'#f0a030',tag:'Metabolic · Compound',pat:['hinge','squat','push-h','pull-h','core','cond']}
+      ]:[
+        {n:'Full Body Circuit A',col:'#e05050',tag:'Push · Pull · Legs',pat:['push-h','pull-v','squat','hinge','core','cond']},
+        {n:'Full Body Circuit B',col:'#4a90d9',tag:'Upper · Lower · Core',pat:['push-inc','pull-h','lunge','iso-lower','core','cond']},
+        {n:'Full Body Circuit C',col:'#f0a030',tag:'Compound · HIIT Finish',pat:['push-v','pull-h','hinge','squat','core','cond']}
+      ],
+      4:isFemale?[
+        {n:'Glute & Posterior Conditioning',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','core','cond']},
+        {n:'Upper Conditioning',col:'#4a90d9',tag:'Push · Pull · High Rep',pat:['push-h','pull-v','push-v','pull-h','iso-push','core']},
+        {n:'Legs — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Circuit',pat:['squat','lunge','hinge','iso-lower','iso-lower','core']},
+        {n:'Full Body Circuit',col:'#1D9E75',tag:'Metabolic · Compound',pat:['push-h','hinge','pull-h','squat','core','cond']}
+      ]:[
+        {n:'Upper Conditioning',col:'#4a90d9',tag:'Push · Pull · High Rep',pat:['push-h','pull-v','push-v','pull-h','iso-push','core']},
+        {n:'Lower Conditioning',col:'#f0a030',tag:'Legs · Glutes · Circuit',pat:['squat','lunge','hinge','iso-lower','iso-lower','core']},
+        {n:'Full Body Circuit',col:'#e05050',tag:'Metabolic · Compound',pat:['push-h','hinge','pull-h','squat','core','cond']},
+        {n:'Active Recovery',col:'#1D9E75',tag:'Mobility · Light Conditioning',pat:['core','core','iso-push','iso-pull','iso-lower']}
+      ],
+      5:[
+        {n:'Upper A',col:'#4a90d9',tag:'Push · Pull',pat:['push-h','pull-v','push-v','pull-h','core']},
+        {n:'Lower A',col:'#f0a030',tag:'Quad · Posterior',pat:['squat','hinge','lunge','iso-lower','core']},
+        {n:'Full Body',col:'#e05050',tag:'Metabolic Circuit',pat:['push-h','pull-h','squat','hinge','cond','core']},
+        {n:'Upper B',col:'#1D9E75',tag:'Iso Focus',pat:['iso-push','iso-pull','iso-push','iso-pull','core']},
+        {n:'Lower B',col:'#9b59b6',tag:'Glutes · Hams · Core',pat:isFemale?['hinge','hinge','iso-lower','iso-lower','core']:['hinge','lunge','iso-lower','iso-lower','core']}
+      ],
+      6:[
+        {n:'Push',col:'#4a90d9',tag:'Chest · Shoulders · Tris',pat:['push-h','push-inc','push-v','iso-push','core']},
+        {n:'Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Legs',col:'#f0a030',tag:'Quads · Glutes · Hams',pat:['squat','lunge','hinge','iso-lower','core']},
+        {n:'Full Body Conditioning',col:'#e05050',tag:'Metabolic · Circuit',pat:['push-h','pull-h','squat','hinge','cond','core']},
+        {n:'Upper Iso',col:'#9b59b6',tag:'Arms · Delts · Core',pat:['iso-push','iso-pull','iso-push','iso-pull','core']},
+        {n:'Glutes & Core',col:'#e67e22',tag:'Posterior · Core · Calves',pat:isFemale?['hinge','hinge','iso-lower','core','core']:['hinge','iso-lower','iso-lower','core','core']}
+      ]
+    };
+    template=FT[Math.min(days,6)]||FT[4];
+  }
+
+  // ── ATHLETIC / HYROX ──
+  else if(style==='athletic'||style==='hyrox'){
+    var AT={
+      3:[
+        {n:'Strength & Power',col:'#e05050',tag:'Explosive · Compound',pat:['squat','push-h','hinge','pull-v','core']},
+        {n:'Upper Conditioning',col:'#4a90d9',tag:'Push · Pull · Core',pat:['push-h','pull-h','push-v','pull-v','core','cond']},
+        {n:'Lower Power',col:'#f0a030',tag:'Legs · Hinge · Carry',pat:['squat','hinge','lunge','carry','core']}
+      ],
+      4:[
+        {n:'Power & Strength',col:'#e05050',tag:'Explosive · Compound',pat:['squat','push-h','hinge','pull-v','core']},
+        {n:'Upper Conditioning',col:'#4a90d9',tag:'Push · Pull · Core',pat:['push-h','pull-h','push-v','pull-v','core','cond']},
+        {n:'Lower Power',col:'#f0a030',tag:'Legs · Hinge · Carry',pat:['squat','hinge','lunge','carry','core']},
+        {n:'MetCon',col:'#1D9E75',tag:'Hyrox Prep · Circuit',pat:['cond','cond','squat','push-h','core']}
+      ],
+      5:[
+        {n:'Strength — Lower',col:'#f0a030',tag:'Squat · Hinge · Power',pat:['squat','squat','hinge','lunge','core']},
+        {n:'Strength — Upper',col:'#4a90d9',tag:'Push · Pull · Carries',pat:['push-h','pull-v','push-v','pull-h','carry']},
+        {n:'MetCon A',col:'#e05050',tag:'Hyrox Circuit · High Heart Rate',pat:['cond','squat','hinge','push-h','core']},
+        {n:'Hypertrophy',col:'#9b59b6',tag:'Volume · Accessories',pat:['push-inc','pull-h','iso-lower','iso-push','iso-pull']},
+        {n:'MetCon B',col:'#1D9E75',tag:'Functional Conditioning',pat:['cond','cond','lunge','pull-h','core']}
+      ],
+      6:[
+        {n:'Squat Focus',col:'#f0a030',tag:'Knee Dominant · Power',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Upper Strength',col:'#4a90d9',tag:'Push · Pull Heavy',pat:['push-h','pull-v','push-v','pull-h','core']},
+        {n:'Hinge & Posterior',col:'#e05050',tag:'Deadlift · Glutes · Hams',pat:['hinge','hinge','lunge','iso-lower','core']},
+        {n:'MetCon A',col:'#1D9E75',tag:'Hyrox Circuit',pat:['cond','squat','push-h','pull-h','core']},
+        {n:'Upper Accessories',col:'#9b59b6',tag:'Volume · Weak Points',pat:['push-inc','pull-h','iso-push','iso-pull','core']},
+        {n:'MetCon B — Race Sim',col:'#e67e22',tag:'Full Hyrox Conditioning',pat:['cond','cond','squat','hinge','carry','core']}
+      ]
+    };
+    template=AT[Math.min(days,6)]||AT[4];
+  }
+
+  // ── BODY RECOMP ──
+  else if(style==='recomp'){
+    var RC={
+      3:isFemale?[
+        {n:'Glute & Leg Focus',col:'#e05050',tag:'Hinge · Squat · Lunge',pat:['hinge','squat','lunge','iso-lower','iso-lower','core']},
         {n:'Upper Body',col:'#4a90d9',tag:'Push · Pull · Arms',pat:['push-h','pull-v','push-v','pull-h','iso-push','iso-pull']},
-        {n:'Lower Body — Quad & Core',col:'#f0a030',tag:'Quads · Glutes · Core',pat:['squat','lunge','hinge','iso-lower','core']}
-      ];
-    } else if(days===4){
-      template=[
-        {n:'Lower — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','iso-lower','core']},
+        {n:'Full Body',col:'#1D9E75',tag:'Compound · Core · Conditioning',pat:['squat','hinge','push-h','pull-h','core','cond']}
+      ]:[
+        {n:'Upper Recomp',col:'#4a90d9',tag:'Push · Pull · Arms',pat:['push-h','push-inc','pull-v','pull-h','iso-push','iso-pull']},
+        {n:'Lower Recomp',col:'#f0a030',tag:'Legs · Glutes · Core',pat:['squat','hinge','lunge','iso-lower','core']},
+        {n:'Full Body',col:'#1D9E75',tag:'Compound · Metabolic Finish',pat:['push-h','pull-v','squat','hinge','core','cond']}
+      ],
+      4:isFemale?[
+        {n:'Glute & Posterior A',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','iso-lower','core']},
         {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push']},
-        {n:'Lower — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Legs — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','core']},
         {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']}
-      ];
-    } else if(days===5){
-      template=[
+      ]:[
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push','core']},
+        {n:'Lower Quad',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','iso-pull','core']},
+        {n:'Posterior Chain',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','iso-lower','core']}
+      ],
+      5:isFemale?[
         {n:'Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','iso-lower','iso-lower','core']},
         {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','core']},
         {n:'Legs — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','iso-lower']},
         {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
         {n:'Full Body & Core',col:'#9b59b6',tag:'Compound + Core + Conditioning',pat:['hinge','squat','push-h','pull-h','core']}
-      ];
-    }
+      ]:[
+        {n:'Chest & Triceps',col:'#4a90d9',tag:'Push Focus',pat:['push-h','push-inc','iso-push','iso-push','core']},
+        {n:'Back & Biceps',col:'#1D9E75',tag:'Pull Focus',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Legs',col:'#f0a030',tag:'Quads · Hams · Glutes',pat:['squat','lunge','hinge','iso-lower','iso-lower']},
+        {n:'Shoulders',col:'#9b59b6',tag:'Delts · Traps · Arms',pat:['push-v','iso-push','iso-pull','iso-push','core']},
+        {n:'Full Body Power',col:'#e05050',tag:'Compound + Conditioning',pat:['squat','hinge','push-h','pull-h','cond']}
+      ],
+      6:isFemale?[
+        {n:'Glute & Posterior A',col:'#e05050',tag:'Hip Hinge · Hams · Glutes',pat:['hinge','hinge','iso-lower','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','core']},
+        {n:'Legs — Quad',col:'#f0a030',tag:'Quad Dominant',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Glute & Posterior B',col:'#e67e22',tag:'Unilateral · Glutes',pat:['lunge','hinge','iso-lower','iso-lower','core']},
+        {n:'Full Body & Core',col:'#9b59b6',tag:'Conditioning · Arms',pat:['iso-push','iso-pull','iso-push','iso-pull','core']}
+      ]:[
+        {n:'Chest & Triceps',col:'#4a90d9',tag:'Push Focus',pat:['push-h','push-inc','iso-push','iso-push','core']},
+        {n:'Back & Biceps',col:'#1D9E75',tag:'Pull Focus',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Legs',col:'#f0a030',tag:'Quad Dominant',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Shoulders',col:'#9b59b6',tag:'Delts · Rotator Cuff',pat:['push-v','iso-push','iso-push','pull-h','core']},
+        {n:'Posterior Chain',col:'#e05050',tag:'Hip Hinge · Glutes · Hams',pat:['hinge','hinge','lunge','iso-lower','core']},
+        {n:'Arms & Core',col:'#e67e22',tag:'Isolation Day',pat:['iso-pull','iso-push','iso-pull','iso-push','core']}
+      ]
+    };
+    template=RC[Math.min(days,6)]||RC[4];
   }
 
-  // Yoga / Pilates templates
-  if(mod==='yoga'){
-    var yogaDays=[];
-    for(var i=0;i<Math.min(days,5);i++){
-      var yp=i===0?'Sun Salutation Flow':i===1?'Standing Poses':i===2?'Hip Opening':i===3?'Core & Balance':'Restorative';
-      yogaDays.push({n:yp,col:'#9b59b6',tag:'Yoga Practice',pat:['yoga','yoga','mobility','mobility','yoga']});
-    }
-    // Build exercises for each yoga day
-    var yResult={};
-    yogaDays.forEach(function(tmpl,idx){
-      var dayKey=String.fromCharCode(65+idx);
-      var exs=[];
-      var dayUsed=new Set(used);
-      tmpl.pat.forEach(function(pat){
-        var ex=pickEx(available,'yoga',dayUsed,seed,isFemale)||pickEx(available,'mobility',dayUsed,seed,isFemale);
-        if(ex){exs.push(Object.assign({},ex,{sets:ws.s,lo:ex.lo,hi:ex.hi,rest:ex.r}));dayUsed.add(ex.id);used.add(ex.id);}
-      });
-      yResult[dayKey]={name:tmpl.n,color:tmpl.col,tag:tmpl.tag,exercises:exs};
-    });
-    return yResult;
+  // ── BUILD / MASS (hypertrophy volume) ──
+  else if(style==='build'){
+    var BD={
+      3:[
+        {n:'Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push']},
+        {n:'Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','iso-pull']},
+        {n:'Legs',col:'#f0a030',tag:'Quads · Hams · Glutes',pat:['squat','hinge','lunge','iso-lower','iso-lower']}
+      ],
+      4:isFemale?[
+        {n:'Glutes & Hams',col:'#e05050',tag:'Posterior Chain',pat:['hinge','hinge','lunge','iso-lower','iso-lower']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push']},
+        {n:'Quads & Legs',col:'#f0a030',tag:'Quad Dominant · Calves',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']}
+      ]:[
+        {n:'Chest & Triceps',col:'#4a90d9',tag:'Hypertrophy Push',pat:['push-h','push-inc','push-inc','iso-push','iso-push','core']},
+        {n:'Back & Biceps',col:'#1D9E75',tag:'Hypertrophy Pull',pat:['pull-v','pull-h','pull-h','iso-pull','iso-pull','core']},
+        {n:'Legs — Quads',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','iso-lower','core']},
+        {n:'Shoulders & Arms',col:'#9b59b6',tag:'Delts · Biceps · Triceps',pat:['push-v','iso-push','iso-pull','iso-push','iso-pull','core']}
+      ],
+      5:[
+        {n:'Chest',col:'#4a90d9',tag:'Pec Focus',pat:['push-h','push-h','push-inc','iso-push','core']},
+        {n:'Back',col:'#1D9E75',tag:'Lat · Row · Biceps',pat:['pull-v','pull-v','pull-h','iso-pull','core']},
+        {n:'Legs',col:'#f0a030',tag:'Full Leg Day',pat:['squat','lunge','hinge','iso-lower','iso-lower']},
+        {n:'Shoulders',col:'#9b59b6',tag:'All Three Heads',pat:['push-v','iso-push','iso-push','iso-pull','core']},
+        {n:'Arms',col:'#e67e22',tag:'Bi · Tri · Forearms',pat:['iso-pull','iso-push','iso-pull','iso-push','core']}
+      ],
+      6:[
+        {n:'Chest',col:'#4a90d9',tag:'Pec Hypertrophy',pat:['push-h','push-h','push-inc','iso-push','core']},
+        {n:'Back',col:'#1D9E75',tag:'Lat & Row Volume',pat:['pull-v','pull-v','pull-h','pull-h','iso-pull']},
+        {n:'Legs — Quad',col:'#f0a030',tag:'Quad Dominant',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Shoulders',col:'#9b59b6',tag:'Delts All 3 Heads',pat:['push-v','push-v','iso-push','iso-push','iso-pull']},
+        {n:'Posterior',col:'#e05050',tag:'Hams · Glutes · Hinge',pat:['hinge','hinge','lunge','iso-lower','core']},
+        {n:'Arms',col:'#e67e22',tag:'Biceps · Triceps',pat:['iso-pull','iso-push','iso-pull','iso-push','core']}
+      ]
+    };
+    template=BD[Math.min(days,6)]||BD[4];
   }
 
-  if(mod==='pilates'){
-    var pResult={};
-    for(var pi=0;pi<Math.min(days,5);pi++){
-      var pKey=String.fromCharCode(65+pi);
-      var pName=['Footwork & Core','Full Body Flow','Hip & Glutes','Upper Body & Arms','Stretch & Restore'][pi]||'Pilates Session';
-      var pExs=[];
-      var pUsed=new Set(used);
-      ['pilates','pilates','mob','pilates','mob'].forEach(function(pat){
-        var ex=pickEx(available,pat,pUsed,seed,isFemale);
-        if(ex){pExs.push(Object.assign({},ex,{sets:ws.s,lo:ex.lo,hi:ex.hi,rest:ex.r}));pUsed.add(ex.id);used.add(ex.id);}
-      });
-      pResult[pKey]={name:pName,color:'#9b59b6',tag:'Reformer Pilates',exercises:pExs};
+  // ── GENERAL (catch-all) ──
+  else {
+    template=TEMPLATES[Math.min(days,6)]||TEMPLATES[4];
+    if(isFemale){
+      if(days<=2){}
+      else if(days===3){template=[
+        {n:'Lower Body — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','squat','lunge','iso-lower','iso-lower','core']},
+        {n:'Upper Body',col:'#4a90d9',tag:'Push · Pull · Arms',pat:['push-h','pull-v','push-v','pull-h','iso-push','iso-pull']},
+        {n:'Lower Body — Quad & Core',col:'#f0a030',tag:'Quads · Glutes · Core',pat:['squat','lunge','hinge','iso-lower','core']}
+      ];}
+      else if(days===4){template=[
+        {n:'Lower — Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','lunge','iso-lower','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','iso-push']},
+        {n:'Lower — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','core']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']}
+      ];}
+      else if(days===5){template=[
+        {n:'Glute & Posterior',col:'#e05050',tag:'Glutes · Hams · Hip Hinge',pat:['hinge','hinge','iso-lower','iso-lower','core']},
+        {n:'Upper Push',col:'#4a90d9',tag:'Chest · Shoulders · Triceps',pat:['push-h','push-inc','push-v','iso-push','core']},
+        {n:'Legs — Quad Focus',col:'#f0a030',tag:'Quads · Glutes · Calves',pat:['squat','squat','lunge','iso-lower','iso-lower']},
+        {n:'Upper Pull',col:'#1D9E75',tag:'Back · Biceps · Rear Delts',pat:['pull-v','pull-h','pull-h','iso-pull','core']},
+        {n:'Full Body & Core',col:'#9b59b6',tag:'Compound + Core + Conditioning',pat:['hinge','squat','push-h','pull-h','core']}
+      ];}
     }
-    return pResult;
   }
+  if(!template) template=TEMPLATES[Math.min(days,6)]||TEMPLATES[4];
 
-  // Standard strength/conditioning block
-  var template=TEMPLATES[Math.min(days,6)]||TEMPLATES[4];
   var result={};
   template.forEach(function(tmpl,idx){
     var dayKey=String.fromCharCode(65+idx);
@@ -5603,7 +5803,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v52';
+  window.APP_VERSION='v53';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
@@ -5618,7 +5818,7 @@ if('serviceWorker' in navigator){
       if(r.active&&r.active.scriptURL&&r.active.scriptURL.indexOf('sw.js')>-1){
         // Only unregister if it's an old cache version
         caches.keys().then(function(keys){
-          var hasOld=keys.some(function(k){return k!=='fitos-v52';});
+          var hasOld=keys.some(function(k){return k!=='fitos-v53';});
           if(hasOld){
             r.unregister().then(function(){
               caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}).then(function(){location.reload();});
