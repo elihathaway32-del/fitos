@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v64 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v66 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -865,25 +865,54 @@ function expDiff(p){
   return [1,3];
 }
 
-// Goal + week → sets/reps/rest overrides
-function weekStyle(style,week){
+// Macro-cycle definitions (4-block annual plan)
+const MACRO_NAMES=['Hypertrophy','Strength','Athletic / Power','Deload & Consolidation'];
+const MACRO_ICONS=['💪','🏋','⚡','🔄'];
+const MACRO_DESC=[
+  'High volume, moderate load. Build muscle and work capacity. Rep ranges 8–15.',
+  'Heavy compound work. Low reps, long rest. Build raw strength and CNS efficiency. Rep ranges 3–6.',
+  'Explosive emphasis. Mid-rep, shorter rest. Transfer strength into athleticism. Rep ranges 5–8.',
+  'Reduced volume, recovery rep ranges. Let the body absorb 24 weeks of adaptation. Rep ranges 10–15.'
+];
+
+function getMacroPhaseName(n){return MACRO_NAMES[(n-1)%4]||MACRO_NAMES[0];}
+function getMacroPhaseIcon(n){return MACRO_ICONS[(n-1)%4]||MACRO_ICONS[0];}
+function getMacroPhaseDesc(n){return MACRO_DESC[(n-1)%4]||MACRO_DESC[0];}
+
+// Goal + week + macroBlock → sets/reps/rest overrides
+function weekStyle(style,week,macroN){
   const w=week||1;
+  const mb=macroN||1;
   // Phase: weeks 1-2 volume, 3-4 volume+, 5-6 intensity, 7-8 peak
   const phase=w<=2?'vol':w<=4?'vol+':w<=6?'int':'peak';
+  // Base programming per goal style
+  var base;
   if(style==='strength'){
-    return phase==='vol'?{s:4,lo:5,hi:5,r:180}:phase==='vol+'?{s:5,lo:4,hi:4,r:210}:phase==='int'?{s:5,lo:3,hi:3,r:240}:{s:3,lo:2,hi:2,r:300};
+    base=phase==='vol'?{s:4,lo:5,hi:5,r:180}:phase==='vol+'?{s:5,lo:4,hi:4,r:210}:phase==='int'?{s:5,lo:3,hi:3,r:240}:{s:3,lo:2,hi:2,r:300};
+  } else if(style==='fat-loss'){
+    base=phase==='vol'?{s:3,lo:12,hi:15,r:60}:phase==='vol+'?{s:4,lo:12,hi:15,r:60}:phase==='int'?{s:4,lo:10,hi:12,r:45}:{s:4,lo:15,hi:20,r:30};
+  } else if(style==='build'||style==='recomp'){
+    base=phase==='vol'?{s:3,lo:8,hi:12,r:90}:phase==='vol+'?{s:4,lo:8,hi:10,r:90}:phase==='int'?{s:4,lo:6,hi:8,r:120}:{s:4,lo:5,hi:6,r:150};
+  } else if(style==='athletic'||style==='hyrox'){
+    base=phase==='vol'?{s:3,lo:10,hi:12,r:60}:phase==='vol+'?{s:4,lo:8,hi:10,r:75}:phase==='int'?{s:5,lo:6,hi:8,r:60}:{s:3,lo:4,hi:6,r:90};
+  } else {
+    base={s:3,lo:10,hi:15,r:75};
   }
-  if(style==='fat-loss'){
-    return phase==='vol'?{s:3,lo:12,hi:15,r:60}:phase==='vol+'?{s:4,lo:12,hi:15,r:60}:phase==='int'?{s:4,lo:10,hi:12,r:45}:{s:4,lo:15,hi:20,r:30};
+  // Macro-cycle phase modifiers
+  if(mb===2){
+    // Block 2: Strength — lower reps, heavier, more rest. Fat-loss keeps shorter rest to maintain metabolic demand.
+    var rMult=style==='fat-loss'?1.3:1.7;
+    return{s:base.s+1,lo:Math.max(3,Math.round(base.lo*0.55)),hi:Math.max(5,Math.round(base.hi*0.62)),r:Math.min(300,Math.round(base.r*rMult))};
   }
-  if(style==='build'||style==='recomp'){
-    return phase==='vol'?{s:3,lo:8,hi:12,r:90}:phase==='vol+'?{s:4,lo:8,hi:10,r:90}:phase==='int'?{s:4,lo:6,hi:8,r:120}:{s:4,lo:5,hi:6,r:150};
+  if(mb===3){
+    // Block 3: Athletic/Power — mid-rep, slightly shorter rest, speed-strength emphasis
+    return{s:base.s,lo:Math.max(5,Math.round(base.lo*0.72)),hi:Math.max(8,Math.round(base.hi*0.75)),r:Math.max(60,Math.round(base.r*0.85))};
   }
-  if(style==='athletic'||style==='hyrox'){
-    return phase==='vol'?{s:3,lo:10,hi:12,r:60}:phase==='vol+'?{s:4,lo:8,hi:10,r:75}:phase==='int'?{s:5,lo:6,hi:8,r:60}:{s:3,lo:4,hi:6,r:90};
+  if(mb===4){
+    // Block 4: Deload/Consolidation — drop volume, recovery rep range, short rest
+    return{s:Math.max(2,base.s-1),lo:10,hi:15,r:60};
   }
-  // general / beginner
-  return {s:3,lo:10,hi:15,r:75};
+  return base; // Block 1: standard hypertrophy / goal-specific base
 }
 
 // Filter exercises available for this profile
@@ -2359,7 +2388,7 @@ let S={
 
   // Train tab
   trainScreen:'home',  // home|warmup|workout|rest|cooldown|complete|restday
-  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},exSwaps:{},addDaySheet:false,
+  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),macroBlock:parseInt(localStorage.getItem('fitos_macro_block')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},exSwaps:{},addDaySheet:false,
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
@@ -2923,6 +2952,7 @@ function renderIntake(){
         Goal: <strong style="color:var(--text)">${p.goal}</strong> · ${p.daysPerWeek} days/wk · ${p.sessionLength}min · ${p.gymType}<br>
         Level: ${p.experience}${p.benchKg?' · Bench '+p.benchKg+'kg×8':''}${p.squatKg?' · Squat '+p.squatKg+'kg×8':''}
       </div>
+      <div style="margin-top:12px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:12px 14px;font-size:0.78rem;color:var(--amber);line-height:1.6">📱 <strong>Your data lives on this device.</strong> FitOS stores everything locally — no cloud backup yet. Don’t clear your browser/app data or you’ll lose your history.</div>
       <div style="margin-top:16px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px">
         <div style="font-size:0.72rem;color:var(--muted);line-height:1.7;margin-bottom:12px">
           <strong style="color:var(--text)">\u{1F4CB} Health & Liability Disclaimer</strong><br>
@@ -3103,6 +3133,20 @@ function viewDateLabel(dateStr){
   if(dateStr===yest) return'Yesterday';
   return new Date(dateStr).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
 }
+function dismissPWA(){localStorage.setItem('fitos_pwa_dismissed','1');render();}
+function renderPWABanner(){
+  var isStandalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone;
+  if(isStandalone||localStorage.getItem('fitos_pwa_dismissed')) return '';
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isAndroid=/android/i.test(navigator.userAgent);
+  var msg=isIOS?'📱 Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> for the full app experience':
+           isAndroid?'📱 Tap <strong>Menu (⋮)</strong> then <strong>Add to Home Screen</strong> to install FitOS':
+           '🖥 Open on your phone and add to home screen for the best experience';
+  return '<div style="margin:12px 16px 0;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+    '<div style="font-size:0.78rem;color:var(--text);line-height:1.5;flex:1">'+msg+'</div>'+
+    '<button onclick="dismissPWA()" style="background:transparent;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 6px;flex-shrink:0">×</button>'+
+  '</div>';
+}
 function renderToday(){
   const now=new Date();
   const hour=now.getHours();
@@ -3122,7 +3166,7 @@ function renderToday(){
   const isFuture=false;
   const canGoForward=new Date(vd)<new Date(new Date().toDateString());
 
-  return`<div class="today-hero" style="position:relative">
+  return`${renderPWABanner()}<div class="today-hero" style="position:relative">
     <div class="today-greeting">${isToday?greeting:'📅 '+viewDateLabel(vd)}</div>
     <div class="today-name">${isToday?userName():new Date(vd).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
     <div class="today-sub">${isToday?now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'}):'Tap ▶ to move forward'}</div>
@@ -3213,7 +3257,7 @@ function renderToday(){
   <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week's plan →</div>
 </div>`:''})()}
 ${renderWeekSummary()}
-    ${renderProgressionCard()}
+    ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">💪</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
     <div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
       <div>
         <div style="font-weight:700;font-size:0.95rem">📋 Weekly Check-in</div>
@@ -3249,6 +3293,7 @@ function renderTrain(){
 }
 
 function renderTrainHome(){
+  if(S.week>8){return renderBlockComplete();}
   const hist=S.gymHistory.slice(-4).reverse();
   return`<div class="top-bar">
   <div><div class="top-title">Train</div><div class="top-sub">Block 1 · Body Recomp · ${new Date().toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</div></div>
@@ -4073,6 +4118,47 @@ function renderCooldown(){
     <button class="btn btn-green" onclick="finishAndSave()">${checked===total?'✅ Done — Save Session →':'💾 Save & Finish'}</button>
   </div>
 </div>`;
+}
+
+function startNewBlock(){
+  generateAndSaveBlock();
+  S.week=1; S.day=null; S.exIdx=0;
+  S.loggedSets={}; S.extraSets={}; S.exSwaps={};
+  localStorage.setItem('fitos_week','1');
+  render();
+}
+
+function renderBlockComplete(){
+  var prog=getProgressionData();
+  var keys=Object.keys(prog);
+  var totalSessions=S.gymHistory.length;
+  var totalVol=S.gymHistory.reduce(function(a,s){
+    return a+Object.values(s.sets||{}).reduce(function(b,sets){
+      return b+sets.reduce(function(c,x){return c+(x?x.weight*x.reps:0);},0);
+    },0);
+  },0);
+  var topLifts=keys.sort(function(a,b){return prog[b].best-prog[a].best;}).slice(0,3);
+  var liftRows=topLifts.map(function(id){
+    var d=prog[id];
+    var nm=id.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===id)nm=e.name;});});
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:0.82rem">'+nm+'</span><span style="font-size:0.88rem;font-weight:700;color:var(--green)">'+d.best+'kg</span></div>';
+  }).join('');
+  return '<div class="top-bar"><div class="top-title">Block Complete 🏆</div></div>'+
+  '<div style="padding:20px 16px;text-align:center">'+
+    '<div style="font-size:4rem;margin-bottom:12px">🏆</div>'+
+    '<div style="font-size:1.6rem;font-weight:800;margin-bottom:6px">8 Weeks Done, '+userName()+'!</div>'+
+    '<div style="font-size:0.88rem;color:var(--muted);line-height:1.6;margin-bottom:20px">You just completed a full 8-week block. That’s not nothing— that’s everything.</div>'+
+    '<div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px">'+
+      '<div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.5rem;font-weight:700;color:var(--green)">'+totalSessions+'</div><div style="font-size:0.7rem;color:var(--muted)">Sessions</div></div>'+
+      '<div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.5rem;font-weight:700;color:var(--blue)">'+(totalVol/1000).toFixed(1)+'t</div><div style="font-size:0.7rem;color:var(--muted)">Total Volume</div></div>'+
+    '</div>'+
+    (liftRows?'<div class="card" style="text-align:left;margin-bottom:20px"><div class="card-title">Top Lifts This Block</div>'+liftRows+'</div>':'')+
+    '<div style="background:rgba(29,158,117,0.1);border:1px solid var(--green);border-radius:14px;padding:16px;margin-bottom:20px;font-size:0.85rem;color:var(--green);line-height:1.6">'+
+      '✅ Your next block has been personalised using your logged weights and progression trends from this block.'+
+    '</div>'+
+    '<button class="btn btn-green" style="font-size:1rem;padding:16px" onclick="startNewBlock()">🔄 Start New Block →</button>'+
+  '</div>';
 }
 
 function renderComplete(){
@@ -6795,7 +6881,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v64';
+  window.APP_VERSION='v66';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
