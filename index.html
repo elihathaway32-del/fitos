@@ -7211,6 +7211,23 @@ function initApp(){
   checkDayReset();
   render();
   window.APP_VERSION='v71';
+  // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',function(){
+      var panel=document.querySelector('.food-panel');
+      if(!panel)return;
+      var vvh=window.visualViewport.height;
+      var vvTop=window.visualViewport.offsetTop||0;
+      panel.style.maxHeight=Math.round(vvh*0.97)+'px';
+      var overlay=document.querySelector('.food-panel-overlay');
+      if(overlay){overlay.style.height=vvh+'px';overlay.style.top=vvTop+'px';}
+      // Scroll input into view after keyboard finishes animating
+      setTimeout(function(){
+        var inp=document.querySelector('.food-search-input');
+        if(inp)inp.scrollIntoView({block:'nearest',behavior:'smooth'});
+      },100);
+    });
+  }
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
