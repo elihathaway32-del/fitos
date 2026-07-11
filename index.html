@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v62 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v63 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -4421,13 +4421,13 @@ function renderEat(){
   <div><div class="top-title">Eat</div><div class="top-sub">${isToday?'Target: '+T.cal+' cal · '+T.protein+'g protein':isFuture?'📅 Planning ahead · '+eatDateLabel(eatDate):'📖 History · '+eatDateLabel(eatDate)}</div></div>
 </div>
 <!-- Date Navigator -->
-<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--s1);border-bottom:1px solid var(--border)">
-  <button onclick="navEatDate(-1)" class="btn" style="padding:7px 16px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:0.9rem;font-weight:600">◀</button>
-  <div style="text-align:center;flex:1">
-    <div style="font-size:0.95rem;font-weight:700;color:var(--text)">${eatDateLabel(eatDate)}</div>
-    <div style="font-size:0.62rem;margin-top:1px;color:${isToday?'var(--green)':isFuture?'var(--blue)':'var(--muted)'}">${isToday?'● Live':isFuture?'📅 Future log — plan ahead':'📖 Past log'}</div>
+<div style="display:flex;align-items:center;padding:7px 12px;background:var(--s1);border-bottom:1px solid var(--border);gap:8px">
+  <button onclick="navEatDate(-1)" style="flex-shrink:0;width:34px;height:34px;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center">◀</button>
+  <div style="flex:1;text-align:center;min-width:0">
+    <div style="font-size:0.95rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${eatDateLabel(eatDate)}</div>
+    <div style="font-size:0.62rem;margin-top:1px;color:${isToday?'var(--green)':isFuture?'var(--blue)':'var(--muted)'}">${isToday?'● Live':isFuture?'📅 Plan ahead':'📖 Past log'}</div>
   </div>
-  <button onclick="navEatDate(1)" class="btn" style="padding:7px 16px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:0.9rem;font-weight:600">▶</button>
+  <button onclick="navEatDate(1)" style="flex-shrink:0;width:34px;height:34px;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center">▶</button>
 </div>
 ${!isToday?`<div style="margin:8px 16px 0;padding:8px 12px;background:${isFuture?'rgba(74,144,217,0.08)':'rgba(255,255,255,0.04)'};border:1px solid ${isFuture?'rgba(74,144,217,0.25)':'var(--border)'};border-radius:10px;display:flex;align-items:center;justify-content:space-between">
   <span style="font-size:0.78rem;color:${isFuture?'var(--blue)':'var(--muted)'}">${isFuture?'📅 Pre-logging meals for this date':'📖 Viewing past food log'}</span>
@@ -6760,7 +6760,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v62';
+  window.APP_VERSION='v63';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
