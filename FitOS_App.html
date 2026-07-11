@@ -5723,8 +5723,8 @@ async function doFoodSearch(type){
   if(!q)return;
   // Instant memory hits — show immediately before network
   var memHits=getMemoryResults(S.foodQuery);
-  if(memHits.length){S.foodResults=memHits;render();}
-  S.foodSearching=true;render();
+  if(memHits.length){S.foodResults=memHits;refreshFoodResults();}
+  S.foodSearching=true;refreshFoodResults();
 
   // Layer 0 — Popular/common foods fuzzy match (instant, always first)
   const qLow0=q.toLowerCase();
@@ -5743,7 +5743,7 @@ async function doFoodSearch(type){
     if(popularHits.length>0||auMatches.length>0){
       const seen=new Set(popularHits.map(x=>x.name));
       S.foodResults=[...popularHits,...auMatches.filter(x=>!seen.has(x.name)).slice(0,6)];
-      S.foodSearching=false;render();return;
+      S.foodSearching=false;refreshFoodResults();return;
     }
   }
 
@@ -5784,7 +5784,7 @@ async function doFoodSearch(type){
       }
       if(!found)S.foodResults=[];
     }catch{S.foodResults=[];}
-    S.foodSearching=false;render();return;
+    S.foodSearching=false;refreshFoodResults();return;
   }
 
   // Layer 2 & 3 — Open Food Facts (AU endpoint first, world fallback)
@@ -5807,7 +5807,7 @@ async function doFoodSearch(type){
     const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
     const d1=await r1.json();
     const auProds=parseProducts(d1.products||[]);
-    if(auProds.length>=2){S.foodResults=auProds;S.foodSearching=false;render();return;}
+    if(auProds.length>=2){S.foodResults=auProds;S.foodSearching=false;refreshFoodResults();return;}
     // World fallback
     const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
     const d2=await r2.json();
@@ -5826,7 +5826,7 @@ async function doFoodSearch(type){
     });
     S.foodResults=[...memTop,...deduped];
   }
-  S.foodSearching=false;render();
+  S.foodSearching=false;refreshFoodResults();
 }
 
 function selectFood(idx){
