@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v61 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v62 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -4387,20 +4387,52 @@ function getPersonalisedGrocery(){
 // ═══════════════════════════════════════════════════════════════════════════
 // EAT TAB
 // ═══════════════════════════════════════════════════════════════════════════
+function navEatDate(dir){
+  var d=new Date(S.logDate||todayStr());
+  d.setDate(d.getDate()+dir);
+  S.logDate=d.toDateString();
+  render();
+}
+function eatDateLabel(ds){
+  if(ds===todayStr()) return 'Today';
+  var yest=new Date(); yest.setDate(yest.getDate()-1);
+  if(ds===yest.toDateString()) return 'Yesterday';
+  var tom=new Date(); tom.setDate(tom.getDate()+1);
+  if(ds===tom.toDateString()) return 'Tomorrow';
+  return new Date(ds).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+}
 function renderEat(){
   const ACTIVE_MEALS=getPersonalisedMeals();
-  const eaten=ACTIVE_MEALS.filter(m=>S.mealChecked.has(m.id));
-  const todayLog=S.foodLog.filter(f=>f.date===todayStr());
-  const totCal=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.cal,0),0)+todayLog.reduce((a,f)=>a+f.cal,0);
-  const totProt=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.p,0),0)+todayLog.reduce((a,f)=>a+f.p,0);
-  const totCarb=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.c,0),0)+todayLog.reduce((a,f)=>a+f.c,0);
-  const totFat=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.f,0),0)+todayLog.reduce((a,f)=>a+f.f,0);
+  const eatDate=S.logDate||todayStr();
+  const isToday=eatDate===todayStr();
+  const isFuture=new Date(eatDate)>new Date(todayStr());
+  const isPast=!isToday&&!isFuture;
+  // Macros: meal-checked items (today only) + food log for the viewed date
+  const eaten=isToday?ACTIVE_MEALS.filter(m=>S.mealChecked.has(m.id)):[];
+  const dateLog=S.foodLog.filter(f=>f.date===eatDate);
+  const totCal=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.cal,0),0)+dateLog.reduce((a,f)=>a+(f.cal||0),0);
+  const totProt=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.p,0),0)+dateLog.reduce((a,f)=>a+(f.p||0),0);
+  const totCarb=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.c,0),0)+dateLog.reduce((a,f)=>a+(f.c||0),0);
+  const totFat=eaten.reduce((a,m)=>a+m.items.reduce((b,i)=>b+i.f,0),0)+dateLog.reduce((a,f)=>a+(f.f||0),0);
   const T=getTargets();
   const hasProfile=S.profile&&S.profile.weight&&S.profile.height&&S.profile.age;
   const tdeeData=hasProfile?calcTDEE():null;
   return`<div class="top-bar">
-  <div><div class="top-title">Eat</div><div class="top-sub">Target: ${T.cal} cal · ${T.protein}g protein</div></div>
+  <div><div class="top-title">Eat</div><div class="top-sub">${isToday?'Target: '+T.cal+' cal · '+T.protein+'g protein':isFuture?'📅 Planning ahead · '+eatDateLabel(eatDate):'📖 History · '+eatDateLabel(eatDate)}</div></div>
 </div>
+<!-- Date Navigator -->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--s1);border-bottom:1px solid var(--border)">
+  <button onclick="navEatDate(-1)" class="btn" style="padding:7px 16px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:0.9rem;font-weight:600">◀</button>
+  <div style="text-align:center;flex:1">
+    <div style="font-size:0.95rem;font-weight:700;color:var(--text)">${eatDateLabel(eatDate)}</div>
+    <div style="font-size:0.62rem;margin-top:1px;color:${isToday?'var(--green)':isFuture?'var(--blue)':'var(--muted)'}">${isToday?'● Live':isFuture?'📅 Future log — plan ahead':'📖 Past log'}</div>
+  </div>
+  <button onclick="navEatDate(1)" class="btn" style="padding:7px 16px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:0.9rem;font-weight:600">▶</button>
+</div>
+${!isToday?`<div style="margin:8px 16px 0;padding:8px 12px;background:${isFuture?'rgba(74,144,217,0.08)':'rgba(255,255,255,0.04)'};border:1px solid ${isFuture?'rgba(74,144,217,0.25)':'var(--border)'};border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+  <span style="font-size:0.78rem;color:${isFuture?'var(--blue)':'var(--muted)'}">${isFuture?'📅 Pre-logging meals for this date':'📖 Viewing past food log'}</span>
+  <button onclick="S.logDate=todayStr();render()" style="background:var(--green);border:none;border-radius:7px;padding:4px 10px;color:#fff;font-size:0.7rem;font-weight:700;cursor:pointer">Back to Today</button>
+</div>`:''}
 ${hasProfile&&tdeeData?`
 <div class="targets-card" style="border:1px solid var(--green)30">
   <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:10px">⚡ Your Personalised Targets</div>
@@ -4457,18 +4489,18 @@ ${hasProfile&&tdeeData?`
       <div class="macro-label"><span style="color:var(--red)">Fat</span><span>${totFat}g / ${T.fat}g</span></div>
       <div class="macro-bar"><div class="macro-fill" style="width:${pct(totFat,T.fat)}%;background:var(--red)"></div></div>
     </div>
-    <!-- Water -->
-    <div style="margin-top:12px">
+    <!-- Water — today only -->
+    ${isToday?`<div style="margin-top:12px">
       <div class="macro-label" style="margin-bottom:8px"><span style="color:var(--blue)">💧 Water</span><span style="color:var(--muted)">${S.waterDone} / ${MEAL_TARGETS.water} glasses</span></div>
       <div class="water-track">
         ${Array.from({length:MEAL_TARGETS.water},(_,i)=>`<div class="water-drop${i<S.waterDone?' filled':''}" onclick="logWater(${i})" title="Glass ${i+1}">💧</div>`).join('')}
       </div>
-    </div>
+    </div>`:''}
   </div>
 
   <!-- Food log — grouped by meal -->
   ${(()=>{
-    const viewDate=S.logDate||todayStr();
+    const viewDate=eatDate;
     const logEntries=S.foodLog.filter(f=>f.date===viewDate);
     if(!logEntries.length) return '';
     const cats=[
@@ -4514,28 +4546,28 @@ ${hasProfile&&tdeeData?`
   })()}
   <!-- Log Food button -->
   <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:16px">
-    <button onclick="openFoodPanel()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--s2);border:1px dashed var(--green)60;border-radius:12px;color:var(--green);font-size:0.9rem;font-weight:700;cursor:pointer">
-    + Log Food / Scan Barcode
+    <button onclick="openFoodPanel(eatDate)" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--s2);border:1px dashed var(--green)60;border-radius:12px;color:var(--green);font-size:0.9rem;font-weight:700;cursor:pointer">
+    + ${isToday?'Log Food / Scan Barcode':'Add Food to '+eatDateLabel(eatDate)}
   </button>
-    <button onclick="copyYesterdayMeals()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy all food logged yesterday into today">
-      📋 Copy<br>Yesterday
+    <button onclick="copyMealsFromDate(eatDate)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy food from previous day">
+      📋 Copy<br>${isToday?'Yesterday':'Prev Day'}
     </button>
   </div>
 
-  <!-- Meals -->
-  ${ACTIVE_MEALS.map(m=>{
-    const isChecked=S.mealChecked.has(m.id);
+  <!-- Meals — today: full interactive; future: planned template; past: hidden -->
+  ${!isPast?ACTIVE_MEALS.map(m=>{
+    const isChecked=isToday&&S.mealChecked.has(m.id);
     const isOpen=S.expandedMeal===m.id;
     const mCal=m.items.reduce((a,i)=>a+i.cal,0);
     const mProt=m.items.reduce((a,i)=>a+i.p,0);
-    return`<div class="meal-card${isChecked?' ':''}" style="${isChecked?'opacity:.7':''}">
+    return`<div class="meal-card${isChecked?' ':''}" style="${isChecked?'opacity:.7':''};${isFuture?'border-color:rgba(74,144,217,0.3)':''}">
       <div class="meal-header" onclick="toggleMeal('${m.id}')">
         <div>
-          <div class="meal-title">${m.icon} ${m.name} <span style="font-size:0.7rem;color:var(--muted)">${m.time}</span></div>
+          <div class="meal-title">${m.icon} ${m.name} <span style="font-size:0.7rem;color:var(--muted)">${m.time}</span>${isFuture?'<span style="font-size:0.62rem;background:rgba(74,144,217,0.15);color:var(--blue);border-radius:5px;padding:1px 5px;margin-left:6px">Planned</span>':''}</div>
           <div class="meal-cals">${mCal} cal · ${mProt}g protein</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <button onclick="event.stopPropagation();checkMeal('${m.id}')" style="background:${isChecked?'var(--green)':'var(--s2)'};border:2px solid ${isChecked?'var(--green)':'var(--border)'};border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;flex-shrink:0">${isChecked?'✓':''}</button>
+          ${isToday?`<button onclick="event.stopPropagation();checkMeal('${m.id}')" style="background:${isChecked?'var(--green)':'var(--s2)'};border:2px solid ${isChecked?'var(--green)':'var(--border)'};border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;flex-shrink:0">${isChecked?'✓':''}</button>`:''}
           <span style="color:var(--muted);font-size:0.9rem">${isOpen?'▲':'▼'}</span>
         </div>
       </div>
@@ -4555,7 +4587,7 @@ ${hasProfile&&tdeeData?`
         </div>`:''}
       </div>`:''}
     </div>`;
-  }).join('')}
+  }).join(''):'<div style="padding:12px 0;text-align:center;font-size:0.78rem;color:var(--muted)">Meal plan shown for today + future only — use the food log above to see what was eaten on past days.</div>'}
   <div style="height:16px"></div>
 </div>`;
 }
@@ -4961,12 +4993,11 @@ function renderFoodPanel(){
         var isLogToday=ld===todayStr();
         var yest=new Date(Date.now()-864e5).toDateString();
         var lbl=isLogToday?'Today':ld===yest?'Yesterday':new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
-        var canFwd=new Date(ld)<new Date(todayStr());
         return'<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)">'+
           '<span style="font-size:0.68rem;color:var(--muted)">📅 Logging to:</span>'+
           '<button onclick="var d=new Date(S.logDate||todayStr());d.setDate(d.getDate()-1);S.logDate=d.toDateString();render()" style="background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:3px 8px;color:var(--muted);font-size:0.75rem;cursor:pointer">◀</button>'+
           '<span style="font-size:0.82rem;font-weight:700;color:'+(isLogToday?'var(--green)':'var(--amber)')+'">'+lbl+'</span>'+
-          '<button onclick="if(new Date(S.logDate)<new Date(todayStr())){var d=new Date(S.logDate);d.setDate(d.getDate()+1);S.logDate=d.toDateString();render()}" style="background:'+(canFwd?'var(--s2)':'rgba(255,255,255,0.03)')+';border:1px solid '+(canFwd?'var(--border)':'transparent')+';border-radius:7px;padding:3px 8px;color:'+(canFwd?'var(--muted)':'rgba(255,255,255,0.1)')+';font-size:0.75rem;cursor:'+(canFwd?'pointer':'default')+'" '+(canFwd?'':'disabled')+'>▶</button>'+
+          '<button onclick="var d=new Date(S.logDate||todayStr());d.setDate(d.getDate()+1);S.logDate=d.toDateString();render()" style="background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:3px 8px;color:var(--muted);font-size:0.75rem;cursor:pointer">▶</button>'+
           (!isLogToday?'<button onclick="S.logDate=todayStr();render()" style="margin-left:auto;background:var(--green);border:none;border-radius:7px;padding:3px 9px;color:#fff;font-size:0.68rem;font-weight:700;cursor:pointer">Back to Today</button>':'')+
         '</div>';
       })()}
@@ -5066,16 +5097,20 @@ function renderFoodPanel(){
   </div>`;
 }
 
-function copyYesterdayMeals(){
-  var yest=new Date(Date.now()-864e5).toDateString();
-  var td=todayStr();
-  var yesterdayLog=S.foodLog.filter(function(f){return f.date===yest;});
-  if(!yesterdayLog.length){alert("No food logged yesterday to copy.");return;}
-  var already=S.foodLog.filter(function(f){return f.date===td;});
-  var msg="Copy "+yesterdayLog.length+" item"+( yesterdayLog.length>1?"s":"")+" from yesterday into today?"+(already.length?" ("+already.length+" item"+(already.length>1?"s":"")+" already logged today)":"");
-  if(!confirm(msg))return;
-  yesterdayLog.forEach(function(f){
-    S.foodLog.push(Object.assign({},f,{id:Date.now().toString()+'_'+Math.random().toString(36).slice(2),date:td}));
+function copyYesterdayMeals(){ copyMealsFromDate(todayStr()); }
+function copyMealsFromDate(toDate){
+  // Copy food from the day BEFORE toDate into toDate
+  var fromD=new Date(toDate); fromD.setDate(fromD.getDate()-1);
+  var fromDate=fromD.toDateString();
+  var fromLog=S.foodLog.filter(function(f){return f.date===fromDate;});
+  if(!fromLog.length){alert("No food logged on "+fromD.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+" to copy.");return;}
+  var already=S.foodLog.filter(function(f){return f.date===toDate;});
+  var fromLabel=fromDate===new Date(Date.now()-864e5).toDateString()?'yesterday':fromD.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+  var toLabel=toDate===todayStr()?'today':new Date(toDate).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+  var msg='Copy '+fromLog.length+' item'+(fromLog.length>1?'s':'')+' from '+fromLabel+' into '+toLabel+'?'+(already.length?' ('+already.length+' item'+(already.length>1?'s':'')+' already logged)':'');
+  if(!confirm(msg)) return;
+  fromLog.forEach(function(f){
+    S.foodLog.push(Object.assign({},f,{id:Date.now().toString()+'_'+Math.random().toString(36).slice(2),date:toDate}));
   });
   saveDailyState();
   render();
@@ -6725,7 +6760,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v61';
+  window.APP_VERSION='v62';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
