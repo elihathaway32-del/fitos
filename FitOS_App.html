@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v70 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v71 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -5149,7 +5149,7 @@ function renderFoodPanel(){
         <button onclick="doFoodSearch('popular')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;flex:1">⭐ Common</button>
         <button onclick="doFoodSearch('restaurants')" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;flex:1">🍟 Restaurants</button>
       </div>
-      <div class="food-results-scroll">
+      <div class="food-results-scroll" id="food-results-scroll">
         ${S.foodSearching&&S.foodResults.length===0?`<div style="text-align:center;padding:30px;color:var(--muted)">Searching...</div>`:''}
         ${!S.foodSearching&&results.length===0&&S.foodQuery?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>':''}
         ${(()=>{
@@ -5250,6 +5250,43 @@ function copyMealsFromDate(toDate){
   saveDailyState();
   render();
 }
+function buildFoodResultsHTML(){
+  var results=S.foodResults;
+  var out='';
+  if(S.foodSearching&&results.length===0) out+='<div style="text-align:center;padding:30px;color:var(--muted)">Searching…</div>';
+  if(!S.foodSearching&&results.length===0&&S.foodQuery) out+='<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem">No results — try a different search term</div>';
+  var memCount=results.filter(function(r){return r._memory;}).length;
+  var apiCount=results.filter(function(r){return !r._memory;}).length;
+  if(memCount>0&&apiCount>0&&S.foodQuery) out+='<div class="food-memory-label">🕐 Your history</div>';
+  else if(memCount>0&&!S.foodQuery) out+='<div class="food-memory-label">🕐 Recently logged</div>';
+  results.forEach(function(r,i){
+    var sg=r.servingG;
+    var dc=sg?Math.round(r.cal*sg/100):r.cal;
+    var dp=sg?Math.round(r.p*sg/100):r.p;
+    var dcc=sg?Math.round(r.c*sg/100):r.c;
+    var df=sg?Math.round(r.f*sg/100):r.f;
+    var lbl=sg?'per serving':'per 100g';
+    var isFirstApi=!r._memory&&i>0&&results[i-1]&&results[i-1]._memory;
+    if(isFirstApi) out+='<div class="food-memory-label" style="margin-top:6px">🔍 Search results</div>';
+    out+='<button class="'+(r._memory?'food-memory-item':'food-result-item')+'" onclick="selectFood('+i+')" style="width:100%;text-align:left;'+(r._memory?'':'background:var(--s1);color:var(--text);border:1px solid var(--border)')+'">'+
+      '<div class="food-result-name">'+(r.au?'🇦🇺 ':'')+r.name+(r._memory?'<span class="food-memory-badge">✓ logged before</span>':'')+'</div>'+
+      (r.brand?'<div class="food-result-brand">'+r.brand+'</div>':'')+
+      '<div class="food-result-macros">'+
+        '<span style="color:var(--green)">⚡ '+dc+' cal</span>'+
+        '<span style="color:var(--blue)">P:'+dp+'g</span>'+
+        '<span style="color:var(--amber)">C:'+dcc+'g</span>'+
+        '<span style="color:var(--red)">F:'+df+'g</span>'+
+        '<span style="color:var(--muted)">'+lbl+'</span>'+
+      '</div>'+
+    '</button>';
+  });
+  return out;
+}
+function refreshFoodResults(){
+  var el=document.getElementById('food-results-scroll');
+  if(!el){render();return;}
+  el.innerHTML=buildFoodResultsHTML();
+}
 function foodInput(val){
   S.foodQuery=val;
   if(val.length<2){
@@ -5258,10 +5295,11 @@ function foodInput(val){
       arr.forEach(function(e){var k=e.name+'__'+(e.brand||'');if(!seen[k]){seen[k]=true;recent.push(Object.assign({},e,{_memory:true}));}});
     });
     recent.sort(function(a,b){return(b.lastUsed||0)-(a.lastUsed||0);});
-    S.foodResults=recent.slice(0,8);render();return;
+    S.foodResults=recent.slice(0,8);
+    refreshFoodResults();return;
   }
   var memHits=getMemoryResults(val);
-  if(memHits.length){S.foodResults=memHits;render();}
+  if(memHits.length){S.foodResults=memHits;refreshFoodResults();}
   clearTimeout(S._foodTimer);
   S._foodTimer=setTimeout(function(){doFoodSearch();},420);
 }
@@ -7172,7 +7210,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v70';
+  window.APP_VERSION='v71';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
