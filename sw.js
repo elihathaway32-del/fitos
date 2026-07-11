@@ -1,6 +1,6 @@
-// FitOS Service Worker — v66
+// FitOS Service Worker — v68
 // Cache-first for app shell. Auto-updates on close + reopen.
-const CACHE = 'fitos-v66';
+const CACHE = 'fitos-v68';
 const SHELL = ['./','./index.html','./FitOS_App.html'];
 
 self.addEventListener('install', e => {
