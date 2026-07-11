@@ -606,52 +606,28 @@ function haptic(pat){try{if(navigator.vibrate){navigator.vibrate(pat||10);}else{
   },{passive:true});
 })();
 function playClick(){
-  // Physical tap: noise burst (high-freq transient) + tiny low thud
+  // iOS-style tap: clean sine, short, crisp
   var ac=getAC(); if(!ac) return;
   var now=ac.currentTime;
-  // Noise transient — the actual "click" snap
-  var buf=ac.createBuffer(1,ac.sampleRate*0.04,ac.sampleRate);
-  var d=buf.getChannelData(0);
-  for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
-  var ns=ac.createBufferSource();
-  ns.buffer=buf;
-  var bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3200; bp.Q.value=0.8;
-  var ng=ac.createGain();
-  ns.connect(bp); bp.connect(ng); ng.connect(ac.destination);
-  ng.gain.setValueAtTime(0.22,now);
-  ng.gain.exponentialRampToValueAtTime(0.001,now+0.028);
-  ns.start(now); ns.stop(now+0.04);
-  // Tiny body thud underneath
   var o=ac.createOscillator(); var g=ac.createGain();
   o.connect(g); g.connect(ac.destination);
-  o.type='sine'; o.frequency.setValueAtTime(180,now);
-  o.frequency.exponentialRampToValueAtTime(60,now+0.025);
-  g.gain.setValueAtTime(0.14,now);
-  g.gain.exponentialRampToValueAtTime(0.001,now+0.03);
-  o.start(now); o.stop(now+0.04);
+  o.type='sine'; o.frequency.value=1100;
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(0.28,now+0.002);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.018);
+  o.start(now); o.stop(now+0.02);
 }
 function playTabTone(){
-  // Slightly softer tap with a touch more resonance for tab switches
+  // iOS tab switch: slightly lower pitch, same clean snap
   var ac=getAC(); if(!ac) return;
   var now=ac.currentTime;
-  var buf=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);
-  var d=buf.getChannelData(0);
-  for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
-  var ns=ac.createBufferSource(); ns.buffer=buf;
-  var bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2200; bp.Q.value=1.2;
-  var ng=ac.createGain();
-  ns.connect(bp); bp.connect(ng); ng.connect(ac.destination);
-  ng.gain.setValueAtTime(0.18,now);
-  ng.gain.exponentialRampToValueAtTime(0.001,now+0.035);
-  ns.start(now); ns.stop(now+0.05);
-  // Resonant thud
   var o=ac.createOscillator(); var g=ac.createGain();
   o.connect(g); g.connect(ac.destination);
-  o.type='sine'; o.frequency.setValueAtTime(140,now);
-  o.frequency.exponentialRampToValueAtTime(55,now+0.03);
-  g.gain.setValueAtTime(0.12,now);
-  g.gain.exponentialRampToValueAtTime(0.001,now+0.04);
-  o.start(now); o.stop(now+0.05);
+  o.type='sine'; o.frequency.value=900;
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(0.22,now+0.002);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.022);
+  o.start(now); o.stop(now+0.025);
 }
 function playLogTone(){
   playTone(660,0.06,'sine',0.22,0);
@@ -1324,6 +1300,15 @@ function buildBlock(p,progData){
       injuries.forEach(function(inj){
         if(ex.im&&ex.im.some(function(m){return inj.includes(m);})) modified=true;
       });
+      var pd=progData?progData[ex.id]:null;
+      var startWt=null;
+      if(pd&&pd.sessions&&pd.sessions.length>0){
+        startWt=pd.last;
+        if(pd.trend==='up') startWt=pd.last+2.5;
+        else if(pd.trend==='flat'&&pd.sessions.length>=2) startWt=pd.last+1.25;
+        startWt=Math.round(startWt*4)/4;
+      }
+      var exStalled=!!(pd&&pd.trend==='down'&&(pd.sessions||[]).length>=3);
       exercises.push({
         id:ex.id,name:ex.n+(modified?' ⚠️ Modify':''),
         type:pat.includes('iso')?'Isolation':pat.includes('core')?'Core':pat.includes('cond')?'Conditioning':'Compound',
@@ -1331,7 +1316,9 @@ function buildBlock(p,progData){
         muscles:ex.pm.concat(ex.sm||[]),
         cue:ex.cue+(modified?' — CHECK FORM for injury.':''),
         anim:ex.anim||null,
-        yt:ex.yt||''
+        yt:ex.yt||'',
+        startWeight:startWt,
+        stalled:exStalled
       });
       dayUsed.add(ex.id);
       used.add(ex.id);
@@ -3496,18 +3483,20 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
 </div>
 <div class="cue-box">📋 ${ex.cue}</div>
 
+${ex.startWeight?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(99,102,241,0.12);border-left:3px solid var(--blue);border-radius:8px;font-size:0.76rem;color:var(--blue);font-weight:600">🎯 Suggested start: <strong>${ex.startWeight}kg</strong> <span style="font-weight:400;opacity:0.8">based on your last session</span></div>`:''}
+${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68,68,0.1);border-left:3px solid var(--red);border-radius:8px;font-size:0.76rem;color:var(--red);font-weight:600">📉 Weight trending down — consider dropping 5–10% and rebuilding</div>`:''}
 <div class="set-logger">
   <div class="set-row-header"><div>#</div><div>kg</div><div>reps</div><div>Action</div><div></div></div>
   ${Array.from({length:ex.sets+(S.extraSets[ex.id]||0)},(_,i)=>{
     const done=logged[i];
     const prevSet=prev[i];
-    const smartWt=!prevSet&&i===0?getSmartWeight(ex.id):null;
+    const smartWt=!prevSet&&i===0?(ex.startWeight||null):null;
     const isEditing=S.editingSet&&S.editingSet.exId===ex.id&&S.editingSet.idx===i;
     const editable=!done||isEditing;
     return`<div class="set-row">
       <div class="set-num${done&&!isEditing?' done':''}">${done&&!isEditing?'✓':i+1}</div>
       <div style="display:flex;flex-direction:column;gap:2px">
-        <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
+        <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:smartWt||'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
         <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
