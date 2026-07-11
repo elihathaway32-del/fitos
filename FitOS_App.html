@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v68 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v69 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -4684,7 +4684,7 @@ ${hasProfile&&tdeeData?`
     <button onclick="openFoodPanel('${eatDate}')" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--s2);border:1px dashed var(--green)60;border-radius:12px;color:var(--green);font-size:0.9rem;font-weight:700;cursor:pointer">
     + ${isToday?'Log Food / Scan Barcode':'Add Food to '+eatDateLabel(eatDate)}
   </button>
-    <button onclick="copyMealsFromDate(eatDate)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy food from previous day">
+    <button onclick="copyMealsFromDate('${eatDate}')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy food from previous day">
       📋 Copy<br>${isToday?'Yesterday':'Prev Day'}
     </button>
   </div>
@@ -5140,7 +5140,7 @@ function renderFoodPanel(){
       ${!pending?`
       <div class="food-search-row">
         <input class="food-search-input" type="text" placeholder="Search food or enter barcode..." value="${S.foodQuery}"
-          oninput="S.foodQuery=this.value"
+          oninput="foodInput(this.value)"
           onkeydown="if(event.key==='Enter')doFoodSearch()"/>
         <button class="food-scan-btn" onclick="doFoodSearch()">🔍 Search</button>
       </div>
@@ -5249,6 +5249,21 @@ function copyMealsFromDate(toDate){
   });
   saveDailyState();
   render();
+}
+function foodInput(val){
+  S.foodQuery=val;
+  if(val.length<2){
+    var recent=[];var seen={};
+    Object.values(S.foodMemory||{}).forEach(function(arr){
+      arr.forEach(function(e){var k=e.name+'__'+(e.brand||'');if(!seen[k]){seen[k]=true;recent.push(Object.assign({},e,{_memory:true}));}});
+    });
+    recent.sort(function(a,b){return(b.lastUsed||0)-(a.lastUsed||0);});
+    S.foodResults=recent.slice(0,8);render();return;
+  }
+  var memHits=getMemoryResults(val);
+  if(memHits.length){S.foodResults=memHits;render();}
+  clearTimeout(S._foodTimer);
+  S._foodTimer=setTimeout(function(){doFoodSearch();},420);
 }
 function openFoodPanel(date){
   S.showFoodPanel=true;S.pendingFood=null;S.foodQuery='';S.logDate=date||todayStr();
@@ -5433,6 +5448,267 @@ const POPULAR_FOODS_DB=[
   {name:'Full Cream Milk',brand:'Generic',cal:61,p:3.2,c:4.8,f:3.4,fiber:0,sugars:4.8,sodium:44,sat_fat:2.1},
   {name:'Skim Milk',brand:'Generic',cal:34,p:3.4,c:5,f:0.1,fiber:0,sugars:5,sodium:50,sat_fat:0.1},
   {name:'Honey',brand:'Generic',cal:304,p:0.3,c:82,f:0,fiber:0.2,sugars:82,sodium:4,sat_fat:0},
+
+  // Cheeses
+  {name:'Camembert Cheese',brand:'Generic',cal:300,p:20,c:0.5,f:24,fiber:0,sugars:0.5,sodium:842,sat_fat:15},
+  {name:'Brie Cheese',brand:'Generic',cal:334,p:21,c:0.5,f:28,fiber:0,sugars:0.5,sodium:629,sat_fat:17},
+  {name:'Feta Cheese',brand:'Generic',cal:264,p:14,c:4,f:21,fiber:0,sugars:4,sodium:1116,sat_fat:15},
+  {name:'Mozzarella (fresh)',brand:'Generic',cal:280,p:28,c:2,f:17,fiber:0,sugars:1,sodium:627,sat_fat:11},
+  {name:'Parmesan Cheese (grated)',brand:'Generic',cal:431,p:38,c:4,f:29,fiber:0,sugars:0.9,sodium:1529,sat_fat:18},
+  {name:'Ricotta Cheese',brand:'Generic',cal:174,p:11,c:3,f:13,fiber:0,sugars:0.3,sodium:84,sat_fat:8},
+  {name:'Gouda Cheese',brand:'Generic',cal:356,p:25,c:2.2,f:27,fiber:0,sugars:2.2,sodium:819,sat_fat:18},
+  {name:'Swiss Cheese',brand:'Generic',cal:380,p:27,c:5,f:28,fiber:0,sugars:0.4,sodium:187,sat_fat:18},
+  {name:'Cream Cheese',brand:'Generic',cal:342,p:6,c:4,f:34,fiber:0,sugars:3,sodium:321,sat_fat:21},
+  {name:'Blue Cheese (Gorgonzola)',brand:'Generic',cal:353,p:22,c:2,f:29,fiber:0,sugars:0.5,sodium:1395,sat_fat:19},
+  {name:'Haloumi (grilled)',brand:'Generic',cal:321,p:22,c:1,f:25,fiber:0,sugars:0.5,sodium:2172,sat_fat:17},
+  {name:'Colby Cheese',brand:'Generic',cal:394,p:24,c:2.6,f:32,fiber:0,sugars:0.5,sodium:604,sat_fat:20},
+
+  // Milks & dairy alternatives
+  {name:'Oat Milk (barista)',brand:'Generic',cal:55,p:1,c:9,f:1.5,fiber:0.5,sugars:4,sodium:60,sat_fat:0.2},
+  {name:'Almond Milk (unsweetened)',brand:'Generic',cal:15,p:0.6,c:0.6,f:1.2,fiber:0.3,sugars:0.2,sodium:65,sat_fat:0.1},
+  {name:'Soy Milk (regular)',brand:'Generic',cal:54,p:3.3,c:6,f:1.8,fiber:0.4,sugars:4,sodium:51,sat_fat:0.3},
+  {name:'Coconut Milk (lite, tinned)',brand:'Generic',cal:77,p:0.7,c:3.8,f:6.5,fiber:0,sugars:3.3,sodium:30,sat_fat:5.8},
+  {name:'Lactose-Free Milk (full cream)',brand:'Generic',cal:63,p:3.4,c:5,f:3.5,fiber:0,sugars:5,sodium:44,sat_fat:2.2},
+  {name:'Thickened Cream',brand:'Generic',cal:336,p:2,c:3.2,f:35,fiber:0,sugars:3.2,sodium:38,sat_fat:22},
+  {name:'Sour Cream',brand:'Generic',cal:193,p:2.4,c:4,f:19,fiber:0,sugars:4,sodium:53,sat_fat:12},
+  {name:'Kefir (plain)',brand:'Generic',cal:63,p:3.8,c:7.5,f:1.5,fiber:0,sugars:7.5,sodium:54,sat_fat:1},
+
+  // Non-alcoholic beverages
+  {name:'Orange Juice (fresh)',brand:'Generic',cal:45,p:0.7,c:10,f:0.2,fiber:0.2,sugars:8.4,sodium:1,sat_fat:0},
+  {name:'Apple Juice',brand:'Generic',cal:46,p:0.1,c:11,f:0.1,fiber:0.1,sugars:9.6,sodium:3,sat_fat:0},
+  {name:'Coconut Water',brand:'Generic',cal:19,p:0.7,c:3.7,f:0.2,fiber:1,sugars:2.6,sodium:105,sat_fat:0},
+  {name:'Kombucha (plain)',brand:'Generic',cal:30,p:0.2,c:7,f:0,fiber:0,sugars:5,sodium:10,sat_fat:0},
+  {name:'Black Coffee (espresso)',brand:'Generic',cal:2,p:0.1,c:0.3,f:0,fiber:0,sugars:0,sodium:2,sat_fat:0},
+  {name:'Flat White (full cream milk)',brand:'Cafe',cal:100,p:5,c:8,f:5,fiber:0,sugars:8,sodium:60,sat_fat:3},
+  {name:'Latte (full cream milk)',brand:'Cafe',cal:120,p:6,c:10,f:6,fiber:0,sugars:10,sodium:72,sat_fat:3.8},
+  {name:'Cappuccino (full cream)',brand:'Cafe',cal:80,p:4.5,c:7,f:4,fiber:0,sugars:7,sodium:55,sat_fat:2.5},
+  {name:'Green Tea',brand:'Generic',cal:1,p:0,c:0,f:0,fiber:0,sugars:0,sodium:2,sat_fat:0},
+  {name:'Soda Water',brand:'Generic',cal:0,p:0,c:0,f:0,fiber:0,sugars:0,sodium:10,sat_fat:0},
+  {name:'Cola (regular, 375ml)',brand:'Generic',cal:160,p:0,c:40,f:0,fiber:0,sugars:40,sodium:45,sat_fat:0},
+  {name:'Cola (diet/zero, 375ml)',brand:'Generic',cal:2,p:0,c:0.2,f:0,fiber:0,sugars:0,sodium:40,sat_fat:0},
+  {name:'Sports Drink (Powerade 600ml)',brand:'Powerade',cal:144,p:0,c:36,f:0,fiber:0,sugars:36,sodium:378,sat_fat:0},
+  {name:'Energy Drink (250ml)',brand:'Generic',cal:113,p:0.5,c:28,f:0,fiber:0,sugars:27,sodium:100,sat_fat:0},
+  {name:'Cranberry Juice',brand:'Generic',cal:46,p:0.4,c:12,f:0.1,fiber:0,sugars:11,sodium:2,sat_fat:0},
+  {name:'Mango Juice',brand:'Generic',cal:60,p:0.5,c:15,f:0.1,fiber:0.2,sugars:14,sodium:2,sat_fat:0},
+  {name:'Chocolate Milk (full cream)',brand:'Generic',cal:83,p:3.4,c:12,f:2.5,fiber:0.2,sugars:12,sodium:60,sat_fat:1.6},
+  {name:'Protein Shake (water, 1 scoop)',brand:'Generic',cal:120,p:24,c:4,f:2,fiber:0.5,sugars:2,sodium:130,sat_fat:0.5},
+
+  // Alcoholic beverages (per standard AU serve unless noted)
+  {name:'Beer Full Strength (375ml can)',brand:'Generic',cal:150,p:1.3,c:11,f:0,fiber:0,sugars:0.4,sodium:14,sat_fat:0},
+  {name:'Beer Mid Strength (375ml can)',brand:'Generic',cal:105,p:0.9,c:7,f:0,fiber:0,sugars:0.3,sodium:10,sat_fat:0},
+  {name:'Beer Light (375ml can)',brand:'Generic',cal:65,p:0.5,c:4,f:0,fiber:0,sugars:0.2,sodium:7,sat_fat:0},
+  {name:'Red Wine (150ml glass)',brand:'Generic',cal:125,p:0.1,c:3.8,f:0,fiber:0,sugars:0.9,sodium:5,sat_fat:0},
+  {name:'White Wine (150ml glass)',brand:'Generic',cal:121,p:0.1,c:3.8,f:0,fiber:0,sugars:1.4,sodium:5,sat_fat:0},
+  {name:'Rosé Wine (150ml glass)',brand:'Generic',cal:122,p:0.1,c:4.5,f:0,fiber:0,sugars:1.8,sodium:5,sat_fat:0},
+  {name:'Champagne / Prosecco (150ml)',brand:'Generic',cal:120,p:0.1,c:5,f:0,fiber:0,sugars:2,sodium:5,sat_fat:0},
+  {name:'Vodka (30ml nip)',brand:'Generic',cal:64,p:0,c:0,f:0,fiber:0,sugars:0,sodium:0,sat_fat:0},
+  {name:'Gin (30ml nip)',brand:'Generic',cal:64,p:0,c:0,f:0,fiber:0,sugars:0,sodium:0,sat_fat:0},
+  {name:'Rum (30ml nip)',brand:'Generic',cal:64,p:0,c:0,f:0,fiber:0,sugars:0,sodium:0,sat_fat:0},
+  {name:'Whisky / Bourbon (30ml nip)',brand:'Generic',cal:64,p:0,c:0,f:0,fiber:0,sugars:0,sodium:0,sat_fat:0},
+  {name:'Tequila (30ml nip)',brand:'Generic',cal:64,p:0,c:0,f:0,fiber:0,sugars:0,sodium:0,sat_fat:0},
+  {name:'Hard Seltzer / White Claw (330ml)',brand:'Generic',cal:95,p:0,c:2,f:0,fiber:0,sugars:2,sodium:10,sat_fat:0},
+  {name:'Vodka Cruiser RTD (275ml)',brand:'Cruiser',cal:200,p:0,c:25,f:0,fiber:0,sugars:25,sodium:15,sat_fat:0},
+  {name:'Jack Daniels & Cola RTD (375ml)',brand:'Jack Daniel’s',cal:195,p:0,c:24,f:0,fiber:0,sugars:23,sodium:35,sat_fat:0},
+  {name:'Apple Cider (375ml)',brand:'Generic',cal:185,p:0.5,c:18,f:0,fiber:0,sugars:16,sodium:12,sat_fat:0},
+  {name:'Espresso Martini',brand:'Cocktail',cal:165,p:0.5,c:14,f:0,fiber:0,sugars:13,sodium:10,sat_fat:0},
+  {name:'Margarita',brand:'Cocktail',cal:168,p:0,c:14,f:0,fiber:0,sugars:11,sodium:5,sat_fat:0},
+  {name:'Mojito',brand:'Cocktail',cal:143,p:0,c:20,f:0,fiber:0,sugars:18,sodium:10,sat_fat:0},
+  {name:'Gin & Tonic (30ml gin + 200ml tonic)',brand:'Cocktail',cal:120,p:0,c:11,f:0,fiber:0,sugars:11,sodium:20,sat_fat:0},
+  {name:'Vodka Soda + Lime',brand:'Cocktail',cal:70,p:0,c:2,f:0,fiber:0,sugars:0,sodium:5,sat_fat:0},
+
+  // Extra bread varieties
+  {name:'Wholegrain Bread',brand:'Generic',cal:252,p:10,c:41,f:4.8,fiber:6.5,sugars:4.2,sodium:390,sat_fat:0.8},
+  {name:'Rye Bread',brand:'Generic',cal:259,p:8.5,c:48,f:3.3,fiber:5.8,sugars:3.8,sodium:558,sat_fat:0.4},
+  {name:'Gluten-Free Bread',brand:'Generic',cal:290,p:4,c:56,f:5,fiber:2.5,sugars:5,sodium:380,sat_fat:0.7},
+  {name:'Pita Bread (white)',brand:'Generic',cal:275,p:9,c:55,f:1.2,fiber:2.2,sugars:1.5,sodium:536,sat_fat:0.2},
+  {name:'Corn Tortilla',brand:'Generic',cal:237,p:6,c:50,f:3,fiber:7,sugars:0.4,sodium:36,sat_fat:0.4},
+  {name:'Flour Tortilla (medium)',brand:'Generic',cal:312,p:8,c:55,f:7,fiber:2.5,sugars:3,sodium:578,sat_fat:2.5},
+  {name:'Rice Cake (plain)',brand:'Generic',cal:387,p:7,c:82,f:3,fiber:1.5,sugars:0.2,sodium:10,sat_fat:0.6},
+  {name:'Crackers (water biscuits, 4)',brand:'Generic',cal:130,p:3,c:24,f:2,fiber:1,sugars:0.5,sodium:200,sat_fat:0.5},
+
+  // More meats
+  {name:'Chicken Thigh (cooked, skinless)',brand:'Generic',cal:209,p:26,c:0,f:11,fiber:0,sugars:0,sodium:88,sat_fat:3},
+  {name:'Chicken Drumstick (cooked)',brand:'Generic',cal:216,p:27,c:0,f:11,fiber:0,sugars:0,sodium:87,sat_fat:3.2},
+  {name:'Beef Steak (grilled, lean)',brand:'Generic',cal:217,p:32,c:0,f:9,fiber:0,sugars:0,sodium:60,sat_fat:3.7},
+  {name:'Beef Mince 80/20 (cooked)',brand:'Generic',cal:254,p:24,c:0,f:17,fiber:0,sugars:0,sodium:78,sat_fat:7},
+  {name:'Lamb Chop (grilled)',brand:'Generic',cal:294,p:25,c:0,f:21,fiber:0,sugars:0,sodium:72,sat_fat:9},
+  {name:'Lamb Mince (cooked)',brand:'Generic',cal:270,p:24,c:0,f:19,fiber:0,sugars:0,sodium:75,sat_fat:8},
+  {name:'Pork Fillet (cooked)',brand:'Generic',cal:187,p:29,c:0,f:7,fiber:0,sugars:0,sodium:57,sat_fat:2.5},
+  {name:'Pork Belly (roasted)',brand:'Generic',cal:518,p:16,c:0,f:50,fiber:0,sugars:0,sodium:38,sat_fat:18},
+  {name:'Bacon (grilled, 2 rashers)',brand:'Generic',cal:135,p:12,c:0.5,f:9,fiber:0,sugars:0.3,sodium:580,sat_fat:3},
+  {name:'Pork Sausage (grilled)',brand:'Generic',cal:297,p:14,c:3,f:26,fiber:0.3,sugars:1.5,sodium:850,sat_fat:10},
+  {name:'Chorizo (sliced, 50g)',brand:'Generic',cal:228,p:12,c:1,f:19,fiber:0,sugars:0.5,sodium:794,sat_fat:7.5},
+  {name:'Salami (50g)',brand:'Generic',cal:213,p:11,c:0.5,f:18,fiber:0,sugars:0.3,sodium:870,sat_fat:7},
+  {name:'Prosciutto (2 slices, 40g)',brand:'Generic',cal:102,p:11,c:0,f:6.5,fiber:0,sugars:0,sodium:900,sat_fat:2.4},
+  {name:'Shaved Ham (100g)',brand:'Generic',cal:110,p:17,c:2,f:4,fiber:0,sugars:1.5,sodium:1100,sat_fat:1.4},
+  {name:'Kangaroo Steak (grilled)',brand:'Generic',cal:158,p:32,c:0,f:2,fiber:0,sugars:0,sodium:67,sat_fat:0.5},
+  {name:'Duck Breast (cooked)',brand:'Generic',cal:201,p:28,c:0,f:10,fiber:0,sugars:0,sodium:65,sat_fat:3.5},
+
+  // Seafood
+  {name:'Barramundi (grilled)',brand:'Generic',cal:117,p:25,c:0,f:2,fiber:0,sugars:0,sodium:68,sat_fat:0.5},
+  {name:'Prawns (cooked, peeled, 100g)',brand:'Generic',cal:99,p:21,c:0.9,f:1,fiber:0,sugars:0,sodium:566,sat_fat:0.2},
+  {name:'Sardines in Olive Oil (drained)',brand:'Generic',cal:208,p:25,c:0,f:11,fiber:0,sugars:0,sodium:505,sat_fat:2.8},
+  {name:'Calamari (grilled)',brand:'Generic',cal:92,p:18,c:3,f:1,fiber:0,sugars:0,sodium:260,sat_fat:0.3},
+  {name:'Scallops (pan-seared)',brand:'Generic',cal:111,p:21,c:5,f:1,fiber:0,sugars:0,sodium:667,sat_fat:0.1},
+  {name:'Oysters (6 raw)',brand:'Generic',cal:57,p:6,c:3.3,f:2,fiber:0,sugars:0,sodium:211,sat_fat:0.5},
+  {name:'Smoked Salmon (100g)',brand:'Generic',cal:179,p:25,c:0,f:8,fiber:0,sugars:0,sodium:2000,sat_fat:1.7},
+  {name:'Tinned Salmon in Spring Water',brand:'Generic',cal:153,p:24,c:0,f:6,fiber:0,sugars:0,sodium:350,sat_fat:1.5},
+  {name:'Fish and Chips (takeaway, 200g)',brand:'Generic',cal:595,p:25,c:56,f:30,fiber:3,sugars:0.8,sodium:780,sat_fat:5},
+
+  // Eggs
+  {name:'Scrambled Eggs (2 eggs + milk)',brand:'Generic',cal:200,p:14,c:3,f:15,fiber:0,sugars:2,sodium:280,sat_fat:5},
+  {name:'Poached Egg (1)',brand:'Generic',cal:72,p:6,c:0.4,f:5,fiber:0,sugars:0.2,sodium:71,sat_fat:1.5},
+  {name:'Fried Egg (1)',brand:'Generic',cal:100,p:7,c:0.4,f:8,fiber:0,sugars:0.2,sodium:95,sat_fat:2.5},
+  {name:'Omelette (2 eggs, plain)',brand:'Generic',cal:185,p:14,c:1,f:14,fiber:0,sugars:0.5,sodium:200,sat_fat:4.5},
+  {name:'Hard Boiled Egg (1)',brand:'Generic',cal:78,p:6,c:0.6,f:5,fiber:0,sugars:0.6,sodium:62,sat_fat:1.6},
+
+  // Plant proteins & legumes
+  {name:'Tempeh (cooked)',brand:'Generic',cal:193,p:20,c:8,f:11,fiber:0,sugars:0,sodium:9,sat_fat:2.2},
+  {name:'Black Beans (cooked)',brand:'Generic',cal:132,p:8.9,c:24,f:0.5,fiber:8.7,sugars:0.3,sodium:1,sat_fat:0.1},
+  {name:'Kidney Beans (cooked)',brand:'Generic',cal:127,p:8.7,c:22,f:0.5,fiber:7.4,sugars:0.3,sodium:2,sat_fat:0.1},
+  {name:'Edamame (shelled)',brand:'Generic',cal:122,p:11,c:9,f:5,fiber:5,sugars:0,sodium:63,sat_fat:0.7},
+  {name:'Green Peas (cooked)',brand:'Generic',cal:84,p:5.4,c:15,f:0.4,fiber:5.1,sugars:5.7,sodium:3,sat_fat:0.1},
+  {name:'Protein Bar',brand:'Generic',cal:190,p:20,c:22,f:7,fiber:14,sugars:1,sodium:230,sat_fat:3},
+
+  // Grains & starches
+  {name:'Quinoa (cooked)',brand:'Generic',cal:120,p:4.4,c:22,f:2,fiber:2.8,sugars:0.9,sodium:7,sat_fat:0.2},
+  {name:'Couscous (cooked)',brand:'Generic',cal:112,p:3.8,c:23,f:0.2,fiber:1.4,sugars:0.1,sodium:5,sat_fat:0},
+  {name:'Bulgur Wheat (cooked)',brand:'Generic',cal:83,p:3.1,c:18,f:0.2,fiber:4.5,sugars:0.1,sodium:5,sat_fat:0},
+  {name:'Polenta (cooked)',brand:'Generic',cal:70,p:1.6,c:15,f:0.4,fiber:0.9,sugars:0.7,sodium:4,sat_fat:0.1},
+  {name:'Corn on the Cob',brand:'Generic',cal:96,p:3.4,c:21,f:1.5,fiber:2.4,sugars:4.5,sodium:15,sat_fat:0.2},
+  {name:'Bread Roll (white)',brand:'Generic',cal:280,p:9,c:52,f:3.5,fiber:2,sugars:3,sodium:500,sat_fat:0.7},
+  {name:'Bagel (plain)',brand:'Generic',cal:270,p:10,c:53,f:1.5,fiber:2.3,sugars:7,sodium:452,sat_fat:0.2},
+  {name:'English Muffin',brand:'Generic',cal:227,p:9,c:44,f:1.8,fiber:2.1,sugars:4,sodium:420,sat_fat:0.3},
+  {name:'Crumpet (1)',brand:'Generic',cal:101,p:3.5,c:20,f:0.4,fiber:1,sugars:1.5,sodium:390,sat_fat:0.1},
+
+  // Noodles
+  {name:'Rice Noodles (cooked)',brand:'Generic',cal:108,p:2,c:25,f:0.2,fiber:0.9,sugars:0.1,sodium:33,sat_fat:0},
+  {name:'Soba Noodles (cooked)',brand:'Generic',cal:113,p:6,c:24,f:0.1,fiber:0,sugars:0.4,sodium:60,sat_fat:0},
+  {name:'Udon Noodles (cooked)',brand:'Generic',cal:132,p:3.5,c:28,f:0.6,fiber:0,sugars:0,sodium:250,sat_fat:0.1},
+  {name:'Egg Noodles (cooked)',brand:'Generic',cal:138,p:4.5,c:25,f:2.1,fiber:1.2,sugars:0.4,sodium:8,sat_fat:0.5},
+  {name:'Gnocchi (cooked)',brand:'Generic',cal:171,p:4,c:36,f:1,fiber:1,sugars:0.5,sodium:220,sat_fat:0.2},
+
+  // Breakfast cereals
+  {name:'Weet-Bix (2 biscuits)',brand:'Sanitarium',cal:132,p:4.5,c:24,f:0.9,fiber:3.5,sugars:1.4,sodium:166,sat_fat:0.2},
+  {name:'Granola (toasted muesli, 60g)',brand:'Generic',cal:283,p:6.6,c:35,f:13,fiber:3.2,sugars:13,sodium:18,sat_fat:1.8},
+  {name:'Natural Muesli (60g)',brand:'Generic',cal:220,p:6,c:37,f:4.8,fiber:4.5,sugars:7.8,sodium:18,sat_fat:0.8},
+  {name:'Cornflakes (40g)',brand:'Generic',cal:143,p:3,c:32,f:0.4,fiber:1,sugars:2.8,sodium:204,sat_fat:0.1},
+  {name:'Overnight Oats (made with milk)',brand:'Homemade',cal:310,p:12,c:48,f:7,fiber:5,sugars:16,sodium:100,sat_fat:2.5},
+
+  // More vegetables
+  {name:'Mushrooms (raw)',brand:'Generic',cal:22,p:3.1,c:3.3,f:0.3,fiber:1,sugars:2,sodium:5,sat_fat:0},
+  {name:'Asparagus (steamed)',brand:'Generic',cal:20,p:2.2,c:3.9,f:0.1,fiber:2.1,sugars:1.9,sodium:2,sat_fat:0},
+  {name:'Zucchini (cooked)',brand:'Generic',cal:17,p:1.2,c:3.5,f:0.1,fiber:1.1,sugars:2.5,sodium:2,sat_fat:0},
+  {name:'Eggplant (cooked)',brand:'Generic',cal:35,p:0.8,c:8.7,f:0.2,fiber:2.5,sugars:3.4,sodium:1,sat_fat:0},
+  {name:'Cauliflower (steamed)',brand:'Generic',cal:25,p:1.9,c:5,f:0.3,fiber:2,sugars:1.9,sodium:15,sat_fat:0},
+  {name:'Kale (raw)',brand:'Generic',cal:49,p:4.3,c:9,f:0.9,fiber:3.6,sugars:2.3,sodium:38,sat_fat:0.1},
+  {name:'Beetroot (cooked)',brand:'Generic',cal:44,p:1.7,c:10,f:0.2,fiber:2,sugars:7,sodium:77,sat_fat:0},
+  {name:'Corn (canned, drained)',brand:'Generic',cal:86,p:3.2,c:19,f:1.2,fiber:2.5,sugars:2.6,sodium:270,sat_fat:0.2},
+  {name:'Bok Choy (steamed)',brand:'Generic',cal:13,p:1.5,c:2.2,f:0.2,fiber:1,sugars:1.2,sodium:58,sat_fat:0},
+  {name:'Snow Peas (raw)',brand:'Generic',cal:42,p:2.8,c:7.6,f:0.2,fiber:2.6,sugars:4,sodium:4,sat_fat:0},
+  {name:'Celery (raw)',brand:'Generic',cal:16,p:0.7,c:3,f:0.2,fiber:1.6,sugars:1.3,sodium:80,sat_fat:0},
+  {name:'Cabbage (cooked)',brand:'Generic',cal:23,p:1.3,c:5.2,f:0.1,fiber:2.3,sugars:2.7,sodium:10,sat_fat:0},
+  {name:'Pumpkin (roasted)',brand:'Generic',cal:45,p:1.4,c:10,f:0.1,fiber:1.5,sugars:4.5,sodium:1,sat_fat:0},
+  {name:'Onion (raw)',brand:'Generic',cal:40,p:1.1,c:9.3,f:0.1,fiber:1.7,sugars:4.2,sodium:4,sat_fat:0},
+  {name:'Garlic (1 clove)',brand:'Generic',cal:4,p:0.2,c:1,f:0,fiber:0.1,sugars:0,sodium:1,sat_fat:0},
+  {name:'Leek (cooked)',brand:'Generic',cal:31,p:0.8,c:7.6,f:0.2,fiber:1.8,sugars:2,sodium:10,sat_fat:0},
+  {name:'Brussels Sprouts (steamed)',brand:'Generic',cal:43,p:3,c:8.9,f:0.3,fiber:3.8,sugars:2.2,sodium:25,sat_fat:0.1},
+  {name:'Edamame in pods (200g)',brand:'Generic',cal:173,p:17,c:14,f:8,fiber:8,sugars:0,sodium:74,sat_fat:1},
+
+  // More fruits
+  {name:'Pear',brand:'Generic',cal:57,p:0.4,c:15,f:0.1,fiber:3.1,sugars:10,sodium:1,sat_fat:0},
+  {name:'Kiwifruit (1)',brand:'Generic',cal:61,p:1.1,c:15,f:0.5,fiber:3,sugars:9,sodium:3,sat_fat:0},
+  {name:'Pineapple (chunks)',brand:'Generic',cal:50,p:0.5,c:13,f:0.1,fiber:1.4,sugars:10,sodium:1,sat_fat:0},
+  {name:'Rockmelon',brand:'Generic',cal:34,p:0.8,c:8,f:0.2,fiber:0.9,sugars:7.9,sodium:16,sat_fat:0},
+  {name:'Raspberries',brand:'Generic',cal:52,p:1.2,c:12,f:0.7,fiber:6.5,sugars:4.4,sodium:1,sat_fat:0},
+  {name:'Cherries (100g)',brand:'Generic',cal:63,p:1.1,c:16,f:0.2,fiber:2.1,sugars:12,sodium:0,sat_fat:0},
+  {name:'Peach',brand:'Generic',cal:39,p:0.9,c:10,f:0.3,fiber:1.5,sugars:8.4,sodium:0,sat_fat:0},
+  {name:'Plum',brand:'Generic',cal:46,p:0.7,c:11,f:0.3,fiber:1.4,sugars:9.9,sodium:0,sat_fat:0},
+  {name:'Medjool Dates (2)',brand:'Generic',cal:133,p:0.8,c:36,f:0.1,fiber:3.2,sugars:32,sodium:1,sat_fat:0},
+  {name:'Sultanas (30g)',brand:'Generic',cal:90,p:0.9,c:22,f:0.1,fiber:1.4,sugars:19,sodium:5,sat_fat:0},
+  {name:'Dried Apricots (4)',brand:'Generic',cal:96,p:1.4,c:25,f:0.2,fiber:3.5,sugars:21,sodium:10,sat_fat:0},
+
+  // Nuts & seeds
+  {name:'Cashews (raw)',brand:'Generic',cal:553,p:18,c:30,f:44,fiber:3.3,sugars:5.9,sodium:12,sat_fat:8},
+  {name:'Walnuts',brand:'Generic',cal:654,p:15,c:14,f:65,fiber:6.7,sugars:2.6,sodium:2,sat_fat:6.1},
+  {name:'Pistachios (shelled)',brand:'Generic',cal:562,p:20,c:28,f:45,fiber:10.3,sugars:7.7,sodium:1,sat_fat:5.5},
+  {name:'Macadamia Nuts',brand:'Generic',cal:718,p:7.9,c:14,f:76,fiber:8.6,sugars:4.6,sodium:5,sat_fat:12},
+  {name:'Sunflower Seeds',brand:'Generic',cal:584,p:21,c:20,f:51,fiber:8.6,sugars:2.6,sodium:9,sat_fat:5.3},
+  {name:'Pumpkin Seeds (pepitas)',brand:'Generic',cal:559,p:30,c:11,f:49,fiber:6,sugars:1.4,sodium:7,sat_fat:8.7},
+  {name:'Chia Seeds (1 tbsp 15g)',brand:'Generic',cal:72,p:2.5,c:6.2,f:4.7,fiber:5.1,sugars:0,sodium:3,sat_fat:0.5},
+  {name:'Flaxseeds (1 tbsp)',brand:'Generic',cal:55,p:1.9,c:3,f:4.3,fiber:2.8,sugars:0.2,sodium:3,sat_fat:0.4},
+  {name:'Hemp Seeds (3 tbsp)',brand:'Generic',cal:166,p:9.5,c:2.6,f:14.6,fiber:1.2,sugars:0.5,sodium:1,sat_fat:1.4},
+  {name:'Tahini (1 tbsp)',brand:'Generic',cal:89,p:2.6,c:3.2,f:8,fiber:0.7,sugars:0.2,sodium:17,sat_fat:1.1},
+  {name:'Almond Butter (1 tbsp)',brand:'Generic',cal:98,p:2.4,c:3,f:9,fiber:1.6,sugars:0.7,sodium:36,sat_fat:0.7},
+  {name:'Mixed Nuts (30g)',brand:'Generic',cal:185,p:4.5,c:5.5,f:17,fiber:2,sugars:1.5,sodium:70,sat_fat:2.5},
+
+  // Condiments & sauces
+  {name:'Tomato Sauce (1 tbsp)',brand:'Generic',cal:19,p:0.3,c:4.6,f:0,fiber:0.1,sugars:3.7,sodium:160,sat_fat:0},
+  {name:'Mayonnaise (1 tbsp)',brand:'Generic',cal:94,p:0.1,c:0.4,f:10,fiber:0,sugars:0.3,sodium:88,sat_fat:1.5},
+  {name:'BBQ Sauce (1 tbsp)',brand:'Generic',cal:29,p:0.3,c:7,f:0,fiber:0.1,sugars:6,sodium:190,sat_fat:0},
+  {name:'Sriracha (1 tbsp)',brand:'Generic',cal:15,p:0.4,c:3.5,f:0.2,fiber:0.3,sugars:2.8,sodium:370,sat_fat:0},
+  {name:'Soy Sauce (1 tbsp)',brand:'Generic',cal:9,p:0.9,c:1,f:0.1,fiber:0.1,sugars:0.1,sodium:1005,sat_fat:0},
+  {name:'Sweet Chilli Sauce (1 tbsp)',brand:'Generic',cal:32,p:0.3,c:7.8,f:0,fiber:0.2,sugars:7,sodium:200,sat_fat:0},
+  {name:'Hummus (2 tbsp)',brand:'Generic',cal:77,p:2.5,c:5,f:5.5,fiber:2,sugars:0.5,sodium:150,sat_fat:0.8},
+  {name:'Guacamole (2 tbsp)',brand:'Generic',cal:60,p:0.8,c:3.5,f:5.4,fiber:2.5,sugars:0.4,sodium:110,sat_fat:0.8},
+  {name:'Salsa (2 tbsp)',brand:'Generic',cal:15,p:0.5,c:3.5,f:0,fiber:0.6,sugars:2,sodium:190,sat_fat:0},
+  {name:'Tzatziki (2 tbsp)',brand:'Generic',cal:35,p:1.5,c:2,f:2.5,fiber:0,sugars:1.5,sodium:120,sat_fat:1.5},
+  {name:'Pesto (1 tbsp)',brand:'Generic',cal:82,p:1.5,c:1.5,f:8,fiber:0.5,sugars:0.5,sodium:165,sat_fat:2},
+  {name:'Pasta Sauce (100g)',brand:'Generic',cal:62,p:2.5,c:9,f:1.8,fiber:2.3,sugars:5.8,sodium:310,sat_fat:0.4},
+  {name:'Vegemite (1 tsp)',brand:'Vegemite',cal:11,p:1.5,c:1.5,f:0,fiber:0.3,sugars:0.1,sodium:170,sat_fat:0},
+  {name:'Jam (1 tbsp)',brand:'Generic',cal:56,p:0.1,c:14,f:0,fiber:0.3,sugars:13,sodium:6,sat_fat:0},
+  {name:'Nutella (1 tbsp)',brand:'Nutella',cal:80,p:0.9,c:9,f:4.7,fiber:0.3,sugars:8.8,sodium:9,sat_fat:1.6},
+  {name:'Hoisin Sauce (1 tbsp)',brand:'Generic',cal:35,p:0.5,c:7,f:0.5,fiber:0.4,sugars:6,sodium:258,sat_fat:0.1},
+  {name:'Fish Sauce (1 tbsp)',brand:'Generic',cal:7,p:1,c:0.7,f:0,fiber:0,sugars:0.7,sodium:1413,sat_fat:0},
+  {name:'Oyster Sauce (1 tbsp)',brand:'Generic',cal:18,p:0.4,c:3.8,f:0,fiber:0.1,sugars:2.1,sodium:436,sat_fat:0},
+  {name:'Ranch Dressing (1 tbsp)',brand:'Generic',cal:73,p:0.2,c:1,f:7.7,fiber:0,sugars:0.8,sodium:164,sat_fat:1.1},
+  {name:'Balsamic Vinegar (1 tbsp)',brand:'Generic',cal:14,p:0.1,c:2.7,f:0,fiber:0,sugars:2.4,sodium:4,sat_fat:0},
+  {name:'Salad Dressing (Italian, 1 tbsp)',brand:'Generic',cal:43,p:0.1,c:1.5,f:4.2,fiber:0,sugars:1.2,sodium:243,sat_fat:0.6},
+
+  // Snacks & treats
+  {name:'Potato Chips (30g)',brand:'Generic',cal:152,p:2,c:15,f:9.5,fiber:1.2,sugars:0.4,sodium:180,sat_fat:2.5},
+  {name:'Corn Chips (30g)',brand:'Generic',cal:150,p:2,c:17,f:8,fiber:1.5,sugars:1,sodium:170,sat_fat:1.1},
+  {name:'Popcorn (air-popped, 30g)',brand:'Generic',cal:108,p:3.6,c:22,f:1.3,fiber:4.3,sugars:0.2,sodium:2,sat_fat:0.2},
+  {name:'Dark Chocolate (70%+, 30g)',brand:'Generic',cal:170,p:2.3,c:13,f:12,fiber:3,sugars:7,sodium:6,sat_fat:7},
+  {name:'Milk Chocolate (30g)',brand:'Generic',cal:159,p:2.2,c:18,f:9,fiber:0.6,sugars:17,sodium:30,sat_fat:5.4},
+  {name:'Muesli Bar',brand:'Generic',cal:380,p:6,c:58,f:13,fiber:3.5,sugars:28,sodium:130,sat_fat:3},
+  {name:'Tim Tams (2 biscuits)',brand:'Generic',cal:190,p:2.1,c:24,f:9.4,fiber:0.8,sugars:16,sodium:95,sat_fat:6.3},
+  {name:'Banana Bread (slice)',brand:'Generic',cal:326,p:5,c:52,f:11,fiber:2,sugars:30,sodium:260,sat_fat:2.5},
+  {name:'Muffin (blueberry)',brand:'Generic',cal:380,p:5.4,c:54,f:16,fiber:1.5,sugars:28,sodium:310,sat_fat:3.5},
+  {name:'Croissant (plain)',brand:'Generic',cal:406,p:8.2,c:46,f:21,fiber:2,sugars:10,sodium:375,sat_fat:12},
+  {name:'Doughnut (glazed)',brand:'Generic',cal:369,p:4.9,c:51,f:16,fiber:1.3,sugars:22,sodium:299,sat_fat:4.2},
+  {name:'Greek Yoghurt (0% fat)',brand:'Generic',cal:59,p:10,c:3.6,f:0.4,fiber:0,sugars:3.6,sodium:36,sat_fat:0.3},
+  {name:'Acai Bowl (200g)',brand:'Generic',cal:250,p:5,c:42,f:8,fiber:6,sugars:22,sodium:50,sat_fat:1.5},
+
+  // Desserts
+  {name:'Ice Cream (vanilla, 100g)',brand:'Generic',cal:207,p:3.5,c:24,f:11,fiber:0,sugars:22,sodium:80,sat_fat:7},
+  {name:'Gelato (fruit, 100g)',brand:'Generic',cal:128,p:1.5,c:30,f:1,fiber:0,sugars:28,sodium:30,sat_fat:0.5},
+  {name:'Cheesecake (slice, 100g)',brand:'Generic',cal:321,p:5.5,c:26,f:22,fiber:0.3,sugars:18,sodium:270,sat_fat:13},
+  {name:'Brownie (100g)',brand:'Generic',cal:466,p:5,c:62,f:22,fiber:2.5,sugars:44,sodium:210,sat_fat:12},
+  {name:'Apple Pie (slice)',brand:'Generic',cal:296,p:2.8,c:43,f:13,fiber:2,sugars:20,sodium:260,sat_fat:4},
+  {name:'Pavlova (slice)',brand:'Generic',cal:342,p:3.8,c:71,f:6,fiber:0,sugars:70,sodium:80,sat_fat:3.5},
+
+  // Fast food
+  {name:'Big Mac',brand:'McDonalds',cal:563,p:26,c:46,f:30,fiber:3,sugars:8,sodium:910,sat_fat:11},
+  {name:'McChicken Burger',brand:'McDonalds',cal:412,p:18,c:39,f:20,fiber:2,sugars:5,sodium:640,sat_fat:4.5},
+  {name:'Cheeseburger',brand:'McDonalds',cal:303,p:16,c:33,f:12,fiber:1.5,sugars:7,sodium:680,sat_fat:5.5},
+  {name:'Chicken McNuggets (6pc)',brand:'McDonalds',cal:256,p:14,c:18,f:14,fiber:0.7,sugars:0.3,sodium:480,sat_fat:2.4},
+  {name:'Medium Fries',brand:'McDonalds',cal:337,p:4.2,c:44,f:16,fiber:3.4,sugars:0.2,sodium:400,sat_fat:2.1},
+  {name:'Original Recipe Chicken (pc)',brand:'KFC',cal:310,p:28,c:10,f:18,fiber:0.5,sugars:0.5,sodium:870,sat_fat:5},
+  {name:'Zinger Burger',brand:'KFC',cal:488,p:26,c:50,f:20,fiber:2.5,sugars:6,sodium:1010,sat_fat:4.5},
+  {name:'KFC Chips (regular)',brand:'KFC',cal:315,p:4.5,c:38,f:16,fiber:3,sugars:0.2,sodium:440,sat_fat:2},
+
+  // Cafe meals
+  {name:'Smashed Avo on Toast (cafe)',brand:'Cafe',cal:420,p:10,c:42,f:23,fiber:9,sugars:3,sodium:480,sat_fat:4},
+  {name:'Eggs Benedict (cafe)',brand:'Cafe',cal:520,p:24,c:38,f:30,fiber:2,sugars:4,sodium:920,sat_fat:11},
+  {name:'Caesar Salad (no croutons)',brand:'Cafe',cal:320,p:14,c:6,f:27,fiber:2,sugars:3,sodium:840,sat_fat:7},
+  {name:'Chicken Wrap',brand:'Generic',cal:380,p:28,c:38,f:12,fiber:3,sugars:4,sodium:720,sat_fat:3},
+  {name:'Sushi Roll - Salmon (6pc)',brand:'Generic',cal:290,p:12,c:48,f:6,fiber:2,sugars:6,sodium:520,sat_fat:1},
+
+  // Smoothies
+  {name:'Protein Smoothie (banana + whey)',brand:'Homemade',cal:380,p:32,c:48,f:6,fiber:2.5,sugars:30,sodium:160,sat_fat:2},
+  {name:'Green Smoothie (spinach + banana)',brand:'Homemade',cal:195,p:5,c:40,f:3,fiber:5,sugars:22,sodium:80,sat_fat:0.3},
+  {name:'Berry Smoothie (berries + yoghurt)',brand:'Homemade',cal:210,p:8,c:38,f:2,fiber:4,sugars:28,sodium:70,sat_fat:0.8},
 ];
 async function doFoodSearch(type){
   if(type==='popular'){
@@ -5562,10 +5838,10 @@ function selectFood(idx){
 }
 
 function updateFoodQty(val){
-  var qty=parseInt(val)||100;
-  var field=document.getElementById('food-qty-field');
-  if(field&&field.value!=qty)field.value=qty;
+  var qty=parseInt(val);
   if(!S.pendingFood)return;
+  // Don’t snap the field to 100 while user is typing — only update if valid
+  if(!qty||qty<1) return;
   S.pendingFood.servingQty=qty;
   var scale=qty/100;
   var f=S.pendingFood;
@@ -6896,7 +7172,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v68';
+  window.APP_VERSION='v69';
 window.onerror=function(msg,src,line,col,err){
   var el=document.getElementById('screen');
   if(el&&el.innerHTML.length<200){
