@@ -7001,16 +7001,13 @@ function selectWeek(w){S.week=w;render();}
 function finishAndSave(){completeWorkout();}
 function resumeSession(gIdx){
   var h=S.gymHistory[gIdx];if(!h)return;
-  // Remove the saved session — we'll re-save it when they finish
   S.gymHistory.splice(gIdx,1);
   localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));
-  // Restore workout state
   S.day=h.day;
   S.week=h.week||S.week;
   S.loggedSets=JSON.parse(JSON.stringify(h.sets||{}));
   S.exerciseNotes=JSON.parse(JSON.stringify(h.notes||{}));
   S.workoutStart=new Date(h.date).getTime();
-  // Find last logged exercise index and resume from next one
   var exs=getWorkoutDay(h.day);
   if(exs&&exs.exercises){
     var loggedIds=Object.keys(h.sets||{});
@@ -7848,4 +7845,16 @@ function renderCoach(){
       }).join('')+
       (S.coachTyping?'<div class="coach-bubble coach"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div>':'')+
     '</div>'+
-    '<div class="
+    '<div class="coach-input-row">'+
+      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask '+name+' anything..." '+
+        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"/>'+
+      '<button class="coach-send" onclick="sendCoachMessage()">➤</button>'+
+    '</div>'+
+  '</div>';
+}
+
+
+initApp();
+</script>
+</body>
+</html>
