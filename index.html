@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v71 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v72 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -5749,43 +5749,32 @@ const POPULAR_FOODS_DB=[
   {name:'Berry Smoothie (berries + yoghurt)',brand:'Homemade',cal:210,p:8,c:38,f:2,fiber:4,sugars:28,sodium:70,sat_fat:0.8},
 ];
 async function doFoodSearch(type){
-  if(type==='popular'){
-    S.foodResults=POPULAR_FOODS_DB.slice();
-    render();return;
-  }
-  if(type==='restaurants'){
-    S.foodResults=AU_RESTAURANT_DB.slice();
-    render();return;
-  }
+  if(type==='popular'){S.foodResults=POPULAR_FOODS_DB.slice();refreshFoodResults();return;}
+  if(type==='restaurants'){S.foodResults=AU_RESTAURANT_DB.slice();refreshFoodResults();return;}
   const q=S.foodQuery.trim();
   if(!q)return;
-  // Instant memory hits — show immediately before network
+
+  // ── Step 1: Instant local results shown while API loads ──────────────────
   var memHits=getMemoryResults(S.foodQuery);
-  if(memHits.length){S.foodResults=memHits;refreshFoodResults();}
-  S.foodSearching=true;refreshFoodResults();
-
-  // Layer 0 — Popular/common foods fuzzy match (instant, always first)
   const qLow0=q.toLowerCase();
-  const popularHits=POPULAR_FOODS_DB.filter(item=>{
+  const qWords0=qLow0.replace(/[^a-z0-9 ]/g,' ').split(' ').filter(w=>w.length>1);
+  const popularHits=POPULAR_FOODS_DB.filter(function(item){
     const n=item.name.toLowerCase();
-    return n.includes(qLow0)||qLow0.split(' ').some(w=>w.length>2&&n.includes(w));
+    return n.includes(qLow0)||qWords0.some(function(w){return w.length>2&&n.includes(w);});
   });
-  // Layer 1 — AU Restaurant DB (fuzzy match, instant, no API call)
-  const qLow=q.toLowerCase().replace(/[^a-z0-9 ]/g,' ');
-  const qWords=qLow.split(' ').filter(w=>w.length>1);
-  if(popularHits.length>0||qWords.length>0){
-    const auMatches=qWords.length>0?AU_RESTAURANT_DB.filter(item=>{
-      const hay=(item.name+' '+item.brand).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
-      return qWords.some(w=>hay.includes(w));
-    }):[];
-    if(popularHits.length>0||auMatches.length>0){
-      const seen=new Set(popularHits.map(x=>x.name));
-      S.foodResults=[...popularHits,...auMatches.filter(x=>!seen.has(x.name)).slice(0,6)];
-      S.foodSearching=false;refreshFoodResults();return;
-    }
-  }
+  const auLocalMatches=qWords0.length>0?AU_RESTAURANT_DB.filter(function(item){
+    const hay=(item.name+' '+(item.brand||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
+    return qWords0.some(function(w){return hay.includes(w);});
+  }):[];
+  var localSeen=new Set(memHits.map(function(x){return x.name.toLowerCase();}));
+  var localInstant=popularHits.filter(function(x){return!localSeen.has(x.name.toLowerCase());}).slice(0,4);
+  localInstant.forEach(function(x){localSeen.add(x.name.toLowerCase());});
+  var localRestaurant=auLocalMatches.filter(function(x){return!localSeen.has(x.name.toLowerCase());}).slice(0,3);
+  S.foodResults=[...memHits,...localInstant,...localRestaurant];
+  S.foodSearching=true;
+  refreshFoodResults(); // show what we have instantly, spinner indicates more loading
 
-  // Barcode check (all digits 8-14 chars)
+  // ── Step 2: Barcode ───────────────────────────────────────────────────────
   if(/^\d{8,14}$/.test(q)){
     try{
       let found=false;
@@ -5796,25 +5785,19 @@ async function doFoodSearch(type){
           const d=await r.json();
           if(d.status===1&&d.product){
             const pr=d.product;const n=pr.nutriments;
-            // Parse serving size from product (try multiple fields)
             var sg=null;
             if(pr.serving_size){var m=(pr.serving_size||'').match(/(\d+\.?\d*)\s*g/i);if(m)sg=parseFloat(m[1]);}
             if(!sg&&n['energy-kcal_serving']&&n['energy-kcal_100g']&&n['energy-kcal_100g']>0){
               sg=Math.round((n['energy-kcal_serving']/n['energy-kcal_100g'])*100);
             }
-            if(!sg&&pr.product_quantity){var m2=(pr.product_quantity||'').match(/(\d+)/);if(m2)sg=null;}
             S.foodResults=[{
               name:pr.product_name||pr.abbreviated_product_name||'Unknown Product',
               brand:pr.brands||'',
-              cal:Math.round(n['energy-kcal_100g']||0),
-              p:Math.round(n['proteins_100g']||0),
-              c:Math.round(n['carbohydrates_100g']||0),
-              f:Math.round(n['fat_100g']||0),
-              fiber:Math.round((n['fiber_100g']||0)*10)/10,
-              sugars:Math.round((n['sugars_100g']||0)*10)/10,
-              sodium:Math.round((n['sodium_100g']||0)*1000),
-              sat_fat:Math.round((n['saturated-fat_100g']||0)*10)/10,
-              servingG:sg||null
+              cal:Math.round(n['energy-kcal_100g']||0),p:Math.round(n['proteins_100g']||0),
+              c:Math.round(n['carbohydrates_100g']||0),f:Math.round(n['fat_100g']||0),
+              fiber:Math.round((n['fiber_100g']||0)*10)/10,sugars:Math.round((n['sugars_100g']||0)*10)/10,
+              sodium:Math.round((n['sodium_100g']||0)*1000),sat_fat:Math.round((n['saturated-fat_100g']||0)*10)/10,
+              servingG:sg||null,au:base.includes('au.')
             }];
             found=true;
           }
@@ -5825,48 +5808,59 @@ async function doFoodSearch(type){
     S.foodSearching=false;refreshFoodResults();return;
   }
 
-  // Layer 2 & 3 — Open Food Facts (AU endpoint first, world fallback)
+  // ── Step 3: Always call Open Food Facts API (AU first, world fills gaps) ──
+  const parseProds=function(prods){
+    return prods
+      .filter(function(p){return p.product_name&&p.nutriments&&(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||p.nutriments['energy_100g']);})
+      .slice(0,12).map(function(p){
+        return{
+          name:p.product_name,brand:p.brands||'',
+          cal:Math.round(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||Math.round((p.nutriments['energy_100g']||0)/4.184)||0),
+          p:Math.round(p.nutriments['proteins_100g']||0),
+          c:Math.round(p.nutriments['carbohydrates_100g']||0),
+          f:Math.round(p.nutriments['fat_100g']||0),
+          fiber:Math.round((p.nutriments['fiber_100g']||0)*10)/10,
+          sugars:Math.round((p.nutriments['sugars_100g']||0)*10)/10,
+          sodium:Math.round((p.nutriments['sodium_100g']||0)*1000),
+          sat_fat:Math.round((p.nutriments['saturated-fat_100g']||0)*10)/10
+        };
+      });
+  };
+  var apiResults=[];
   try{
-    const parseProducts=prods=>prods
-      .filter(p=>p.product_name&&p.nutriments&&(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||p.nutriments['energy_100g']))
-      .slice(0,6).map(p=>({
-        name:p.product_name,brand:p.brands||'',
-        cal:Math.round(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||Math.round((p.nutriments['energy_100g']||0)/4.184)||0),
-        p:Math.round(p.nutriments['proteins_100g']||0),
-        c:Math.round(p.nutriments['carbohydrates_100g']||0),
-        f:Math.round(p.nutriments['fat_100g']||0),
-        fiber:Math.round((p.nutriments['fiber_100g']||0)*10)/10,
-        sugars:Math.round((p.nutriments['sugars_100g']||0)*10)/10,
-        sodium:Math.round((p.nutriments['sodium_100g']||0)*1000),
-        sat_fat:Math.round((p.nutriments['saturated-fat_100g']||0)*10)/10
-      }));
-    const qs='&search_simple=1&action=process&json=1&page_size=12&fields=product_name,brands,nutriments';
-    // AU endpoint first
+    const qs='&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments';
     const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
     const d1=await r1.json();
-    const auProds=parseProducts(d1.products||[]);
-    if(auProds.length>=2){S.foodResults=auProds;S.foodSearching=false;refreshFoodResults();return;}
-    // World fallback
-    const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
-    const d2=await r2.json();
-    S.foodResults=parseProducts(d2.products||[]);
-  }catch{S.foodResults=[];}
-  // Fallback: popular foods fuzzy match if API returned nothing
+    apiResults=parseProds(d1.products||[]);
+    if(apiResults.length<5){
+      // Not enough AU hits — pull world results too
+      const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
+      const d2=await r2.json();
+      var worldHits=parseProds(d2.products||[]);
+      var auNames=new Set(apiResults.map(function(x){return x.name.toLowerCase();}));
+      apiResults=[...apiResults,...worldHits.filter(function(x){return!auNames.has(x.name.toLowerCase());})].slice(0,15);
+    }
+  }catch(e){apiResults=[];}
+
+  // ── Step 4: Merge — memory → local DB → API, deduplicated ────────────────
+  var memFinal=getMemoryResults(S.foodQuery);
+  var finalSeen=new Set(memFinal.map(function(x){return x.name.toLowerCase();}));
+  var localFinal=popularHits.filter(function(x){return!finalSeen.has(x.name.toLowerCase());}).slice(0,4);
+  localFinal.forEach(function(x){finalSeen.add(x.name.toLowerCase());});
+  var apiFinal=apiResults.filter(function(x){return!finalSeen.has(x.name.toLowerCase());});
+
+  S.foodResults=[...memFinal,...localFinal,...apiFinal];
+
+  // Last resort fallback
   if(S.foodResults.length===0){
     const qf=q.toLowerCase();
-    S.foodResults=POPULAR_FOODS_DB.filter(item=>item.name.toLowerCase().includes(qf)||qf.split(' ').some(w=>w.length>2&&item.name.toLowerCase().includes(w)));
-  }
-  // Merge memory hits to top of results, dedupe by name+brand
-  var memTop=getMemoryResults(S.foodQuery);
-  if(memTop.length){
-    var deduped=S.foodResults.filter(function(r){
-      return !memTop.find(function(m){return m.name===r.name&&(m.brand||'')===(r.brand||'');});
+    S.foodResults=POPULAR_FOODS_DB.filter(function(item){
+      return item.name.toLowerCase().includes(qf)||qf.split(' ').some(function(w){return w.length>2&&item.name.toLowerCase().includes(w);});
     });
-    S.foodResults=[...memTop,...deduped];
   }
-  S.foodSearching=false;refreshFoodResults();
+  S.foodSearching=false;
+  refreshFoodResults();
 }
-
 function selectFood(idx){
   var food=S.foodResults[idx];if(!food)return;
   var hr=new Date().getHours();
@@ -7210,7 +7204,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v71';
+  window.APP_VERSION='v72';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
