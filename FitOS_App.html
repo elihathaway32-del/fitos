@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v73 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v74 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -3441,7 +3441,8 @@ function viewSession(gIdx){
     +'<div style="border-top:1px solid var(--border);padding-top:16px">'
       +(exRows||'<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No sets logged</div>')
     +'</div>'
-    +'<button onclick="document.getElementById(\'session-history-sheet\').remove()" style="width:100%;padding:13px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.9rem;cursor:pointer;margin-top:12px">Close</button>'
+    +(function(){var minsSince=Math.round((Date.now()-new Date(h.date).getTime())/60000);return(minsSince<60&&h.day)?'<button onclick="resumeSession('+gIdx+')" style="width:100%;padding:13px;background:var(--green);border:none;border-radius:12px;color:#000;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:12px">▶ Continue This Session ('+(60-minsSince)+' min left)</button>':'';}())
+    +'<button onclick="document.getElementById(\'session-history-sheet\').remove()" style="width:100%;padding:13px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.9rem;cursor:pointer;margin-top:8px">Close</button>'
     +'</div>';
   document.body.appendChild(sheet);
   sheet.addEventListener('click',function(e){if(e.target===sheet)sheet.remove();});
@@ -3574,7 +3575,7 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
 </div>
 <div class="bottom-actions">
-  ${S.exIdx>0?`<button class="btn btn-outline" style="flex:1" onclick="prevEx()">← Back</button>`:''}
+  <button class="btn btn-outline" style="flex:1;opacity:${S.exIdx>0?1:0.3};pointer-events:${S.exIdx>0?'auto':'none'}" onclick="prevEx()">← Back</button>
   <button class="btn btn-green" style="flex:2" onclick="nextEx()">${S.exIdx===totalEx()-1?'Finish Workout →':'Next →'}</button>
 </div>`;
 }
@@ -6865,7 +6866,7 @@ function switchTab(id){playTabTone();haptic(8);S.tab=id;render();window.scrollTo
 
 // ─── TRAIN ───────────────────────────────────────────────────────────────
 function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};render();}
-function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();render();}
+function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();S.exIdx=0;S.editingSet=null;render();}
 
 function goToWarmup(){
   if(!S.day){alert('Select a training day first.');return;}
@@ -6998,8 +6999,36 @@ function skipRest(){stopRest();}
 function extendRest(secs){S.restLeft=Math.max(3,S.restLeft+secs);S.restTotal=Math.max(3,S.restTotal+secs);render();}
 function selectWeek(w){S.week=w;render();}
 function finishAndSave(){completeWorkout();}
+function resumeSession(gIdx){
+  var h=S.gymHistory[gIdx];if(!h)return;
+  // Remove the saved session — we'll re-save it when they finish
+  S.gymHistory.splice(gIdx,1);
+  localStorage.setItem('fitos_gym_history',JSON.stringify(S.gymHistory));
+  // Restore workout state
+  S.day=h.day;
+  S.week=h.week||S.week;
+  S.loggedSets=JSON.parse(JSON.stringify(h.sets||{}));
+  S.exerciseNotes=JSON.parse(JSON.stringify(h.notes||{}));
+  S.workoutStart=new Date(h.date).getTime();
+  // Find last logged exercise index and resume from next one
+  var exs=getWorkoutDay(h.day);
+  if(exs&&exs.exercises){
+    var loggedIds=Object.keys(h.sets||{});
+    var lastIdx=0;
+    exs.exercises.forEach(function(ex,i){if(loggedIds.indexOf(ex.id)>-1)lastIdx=i;});
+    S.exIdx=Math.min(lastIdx+1,exs.exercises.length-1);
+  } else {
+    S.exIdx=0;
+  }
+  S.editingSet=null;
+  S.trainScreen='workout';
+  var sheet=document.getElementById('session-history-sheet');
+  if(sheet)sheet.remove();
+  render();
+  window.scrollTo(0,0);
+}
 function nextEx(){
-  var exs=WK[S.day].exercises;
+  var exs=getWorkoutDay(S.day).exercises;
   if(S.exIdx<exs.length-1){S.exIdx++;S.editingSet=null;render();window.scrollTo(0,0);}
   else{S.trainScreen='cooldown';render();window.scrollTo(0,0);}
 }
@@ -7563,7 +7592,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v73';
+  window.APP_VERSION='v74';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -7819,16 +7848,4 @@ function renderCoach(){
       }).join('')+
       (S.coachTyping?'<div class="coach-bubble coach"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div>':'')+
     '</div>'+
-    '<div class="coach-input-row">'+
-      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask '+name+' anything..." '+
-        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"/>'+
-      '<button class="coach-send" onclick="sendCoachMessage()">➤</button>'+
-    '</div>'+
-  '</div>';
-}
-
-
-initApp();
-</script>
-</body>
-</html>
+    '<div class="
