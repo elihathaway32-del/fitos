@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v79 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v80 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -7161,26 +7161,16 @@ function buildCoachSystemPrompt(){
   var coachName=typeof getCoachName==='function'?getCoachName():'Coach Alex';
   var styleMap={tough:'Direct, no-nonsense, push them hard, minimal fluff.',supportive:'Warm, encouraging, celebrate every win.',science:'Evidence-based, cite mechanisms, explain the why.',hype:'High energy, pump them up, big celebration energy.'};
   var style=styleMap[p.coachStyle]||styleMap.supportive;
-  var prompt='You are '+coachName+', an elite AI personal trainer with Australian PT energy. '+style+'
-
-';
-  prompt+='ATHLETE: '+(p.name||'Champ')+' | '+(p.age||'?')+'yr '+(p.gender||'?')+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg
-';
-  prompt+='GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+' | '+(p.daysPerWeek||'?')+' days/wk
-';
-  prompt+='INJURIES: '+injuries+'
-';
-  prompt+='CURRENT WEEK: Week '+(S.week||1)+' of their training block
-';
+  var prompt='You are '+coachName+', an elite AI personal trainer with Australian PT energy. '+style+'\n\n';
+  prompt+='ATHLETE: '+(p.name||'Champ')+' | '+(p.age||'?')+'yr '+(p.gender||'?')+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg\n';
+  prompt+='GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+' | '+(p.daysPerWeek||'?')+' days/wk\n';
+  prompt+='INJURIES: '+injuries+'\n';
+  prompt+='CURRENT WEEK: Week '+(S.week||1)+' of their training block\n';
   if(lastCI){
-    prompt+='
-LAST CHECK-IN (Week '+lastCI.week+'):
-';
-    prompt+='Weight: '+(lastCI.weight||'?')+'kg | Energy: '+(lastCI.energy||'?')+'/10 | Sleep: '+(lastCI.sleep||'?')+'hrs
-';
+    prompt+='\nLAST CHECK-IN (Week '+lastCI.week+'):\n';
+    prompt+='Weight: '+(lastCI.weight||'?')+'kg | Energy: '+(lastCI.energy||'?')+'/10 | Sleep: '+(lastCI.sleep||'?')+'hrs\n';
   }
-  prompt+='
-Always reference their specific data. Never give generic advice. Respect their injury limitations absolutely.';
+  prompt+='\nAlways reference their specific data. Never give generic advice. Respect their injury limitations absolutely.';
   return prompt;
 }
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
@@ -7738,7 +7728,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v79';
+  window.APP_VERSION='v80';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
