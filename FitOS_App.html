@@ -7937,9 +7937,9 @@ function setApiKey(){
 function renderCoach(){
   var name=getCoachName();
   var emoji=getCoachEmoji();
-  var hasKey=!!localStorage.getItem('fitos_claude_key');
+  var hasKey=true; // default key always available
   var msgs=S.coachMessages;
-  if(!msgs.length&&hasKey){
+  if(!msgs.length){
     msgs=[{role:'assistant',content:'Hey '+(S.profile.name||'champ')+'! '+name+' here. What do you need?',ts:Date.now()}];
   }
   return '<div class="coach-overlay">'+
@@ -7949,11 +7949,10 @@ function renderCoach(){
         '<div style="font-size:1rem;font-weight:700">'+name+'</div>'+
         '<div style="font-size:0.72rem;color:var(--green)">Your AI Personal Trainer</div>'+
       '</div>'+
-      (!hasKey?'<button onclick="setApiKey()" style="background:var(--amber);border:none;border-radius:10px;color:#000;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer">⚙️ Set API Key</button>':'<button onclick="setApiKey()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:6px 10px;font-size:0.72rem;cursor:pointer">⚙️</button>')+
+      '<button onclick="setApiKey()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:6px 10px;font-size:0.72rem;cursor:pointer">⚙️</button>'+
       '<button onclick="closeCoach()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 10px;font-size:0.85rem;cursor:pointer;margin-left:6px">✕</button>'+
     '</div>'+
     '<div class="coach-messages" id="coach-msgs">'+
-      (!hasKey?'<div class="coach-bubble coach" style="border-color:var(--amber)40">👋 I\'m <strong>'+name+'</strong>, your AI PT! To activate me, tap <strong>⚙️ Set API Key</strong> above.<br><br>Get a free key at <strong>console.anthropic.com</strong> — it takes 2 minutes and costs pennies per chat.</div>':'')+
       msgs.map(function(m){
         return '<div class="coach-bubble '+(m.role==='user'?'user':'coach')+'">'+m.content+'</div>';
       }).join('')+
