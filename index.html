@@ -293,8 +293,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 @keyframes orb-pulse{0%,100%{box-shadow:0 0 12px rgba(100,180,255,0.3),0 0 24px rgba(60,120,220,0.12),inset 0 1px 0 rgba(255,255,255,0.4)}50%{box-shadow:0 0 20px rgba(120,200,255,0.5),0 0 40px rgba(80,160,255,0.2),inset 0 1px 0 rgba(255,255,255,0.5)}}
 @keyframes orb-shimmer{0%{left:-60%}60%,100%{left:120%}}
 .coach-fab:active,.coach-fab.pressed{transform:scale(0.88)}
-.coach-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#000c;z-index:600;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
-.coach-header{background:linear-gradient(135deg,#0a1a12,#111);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.coach-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--s1);z-index:600;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.coach-header{background:var(--s2);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .coach-avatar{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0f8ff 0%,#c8e8ff 18%,#7ec8f0 38%,#3a8fd4 60%,#1a4a8a 85%,#0a1a3a 100%);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;box-shadow:0 0 10px rgba(100,180,255,0.5);overflow:hidden;position:relative}.coach-avatar::before{content:"";position:absolute;top:10%;left:20%;width:35%;height:22%;background:radial-gradient(ellipse,rgba(255,255,255,0.8) 0%,rgba(255,255,255,0) 100%);border-radius:50%;pointer-events:none}
 .coach-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 8px;display:flex;flex-direction:column;gap:10px;min-height:0}
 .coach-bubble{max-width:82%;padding:11px 14px;border-radius:16px;font-size:0.88rem;line-height:1.55}
@@ -539,7 +539,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v83 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v84 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -7781,7 +7781,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v83';
+  window.APP_VERSION='v84';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
