@@ -287,11 +287,15 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .cue-box{margin:12px 16px;background:var(--s2);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.82rem;color:#ccc;line-height:1.6}
 .set-logger{padding:16px}
 /* AI Coach */
-.coach-fab{position:fixed;bottom:calc(var(--tab-h) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);border:none;cursor:pointer;z-index:300;box-shadow:0 4px 16px #1D9E7550;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:transform .2s}
-.coach-fab:active,.coach-fab.pressed{transform:scale(0.9);box-shadow:inset 0 2px 6px rgba(0,0,0,0.3);}
+.coach-fab{position:fixed;bottom:calc(var(--tab-h) + 16px);right:16px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0f8ff 0%,#c8e8ff 18%,#7ec8f0 38%,#3a8fd4 60%,#1a4a8a 80%,#0a1a3a 100%);border:none;cursor:pointer;z-index:300;box-shadow:0 0 18px rgba(100,180,255,0.55),0 0 40px rgba(60,120,220,0.3),0 8px 28px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;transition:transform .2s;overflow:hidden;animation:orb-pulse 3s ease-in-out infinite}
+.coach-fab::before{content:"";position:absolute;top:8%;left:20%;width:38%;height:28%;background:radial-gradient(ellipse,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0) 100%);border-radius:50%;pointer-events:none}
+.coach-fab::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.18) 50%,transparent 60%);animation:orb-shimmer 4s ease-in-out infinite;border-radius:50%;pointer-events:none}
+@keyframes orb-pulse{0%,100%{box-shadow:0 0 18px rgba(100,180,255,0.55),0 0 40px rgba(60,120,220,0.3),0 8px 28px rgba(0,0,0,0.6)}50%{box-shadow:0 0 28px rgba(120,200,255,0.8),0 0 60px rgba(80,160,255,0.45),0 8px 32px rgba(0,0,0,0.5)}}
+@keyframes orb-shimmer{0%{left:-60%}60%,100%{left:120%}}
+.coach-fab:active,.coach-fab.pressed{transform:scale(0.88)}
 .coach-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#000c;z-index:600;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
 .coach-header{background:linear-gradient(135deg,#0a1a12,#111);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.coach-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0d7a5c);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.coach-avatar{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0f8ff 0%,#c8e8ff 18%,#7ec8f0 38%,#3a8fd4 60%,#1a4a8a 85%,#0a1a3a 100%);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;box-shadow:0 0 10px rgba(100,180,255,0.5);overflow:hidden;position:relative}.coach-avatar::before{content:"";position:absolute;top:10%;left:20%;width:35%;height:22%;background:radial-gradient(ellipse,rgba(255,255,255,0.8) 0%,rgba(255,255,255,0) 100%);border-radius:50%;pointer-events:none}
 .coach-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 8px;display:flex;flex-direction:column;gap:10px;min-height:0}
 .coach-bubble{max-width:82%;padding:11px 14px;border-radius:16px;font-size:0.88rem;line-height:1.55}
 .coach-bubble.coach{background:var(--s2);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start}
@@ -535,7 +539,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v80 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v81 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -2614,7 +2618,7 @@ function render(){
     if(!existFab){
       var fab=document.createElement('button');
       fab.id='coach-fab';fab.className='coach-fab';
-      fab.innerHTML='🤖';fab.title='Ask your coach';
+      fab.innerHTML='<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" fill="url(#orbInner)" opacity="0.7"/><ellipse cx="11" cy="10" rx="3.5" ry="2" fill="rgba(255,255,255,0.55)"/><defs><radialGradient id="orbInner" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#fff" stop-opacity="0.9"/><stop offset="40%" stop-color="#a0d8f0"/><stop offset="100%" stop-color="#1a3a6e" stop-opacity="0.6"/></radialGradient></defs></svg>';fab.title='Ask your coach';
       fab.onclick=function(){openCoach();};
       document.body.appendChild(fab);
     }
@@ -3151,6 +3155,32 @@ function renderPWABanner(){
     '<button onclick="dismissPWA()" style="background:transparent;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 6px;flex-shrink:0">×</button>'+
   '</div>';
 }
+function renderCheckinCTA(){
+  var now=new Date();
+  var isSunday=now.getDay()===0;
+  var isMonday=now.getDay()===1;
+  var lastWk=(S.week||1)-1;
+  var alreadyDone=S.checkinHistory&&S.checkinHistory.find(function(h){return h.week===lastWk;});
+  var missedLastWeek=isMonday&&lastWk>0&&!alreadyDone;
+  var html='';
+  if(missedLastWeek){
+    html+='<div style="margin:0 16px 12px;background:rgba(245,166,35,0.09);border:1px solid rgba(245,166,35,0.35);border-radius:14px;padding:14px 16px;cursor:pointer" onclick="openCheckin('+lastWk+')">';
+    html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">&#9194;&#65039; Missed Sunday Check-in</div>';
+    html+='<div style="font-size:0.9rem;font-weight:700">Log Week '+lastWk+' Review now</div>';
+    html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Tap to log it as last week\u2019s EOW check-in &#8594;</div>';
+    html+='</div>';
+  }
+  if(isSunday){
+    var blk=S.macroBlock||1;
+    var phase=typeof getMacroPhaseName==='function'?getMacroPhaseName(blk):'Phase '+blk;
+    html+='<div class="checkin-cta-sunday" style="margin:0 16px 12px;border:1px solid rgba(245,166,35,0.31)" onclick="openCheckin()">';
+    html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">&#9728;&#65039; Sunday Check-in — Block '+blk+' of 4 ('+phase+')</div>';
+    html+='<div style="font-size:0.9rem;font-weight:700">Week '+(S.week||1)+' Review is ready</div>';
+    html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week\u2019s plan &#8594;</div>';
+    html+='</div>';
+  }
+  return html;
+}
 function renderToday(){
   const now=new Date();
   const hour=now.getHours();
@@ -3255,11 +3285,7 @@ function renderToday(){
     </div>
 
     <!-- Weekly check-in CTA -->
-    ${(()=>{const now=new Date();const isSunday=now.getDay()===0;return isSunday?`<div class="checkin-cta-sunday" style="margin:0 16px 12px;border:1px solid var(--amber)50" onclick="openCheckin()">
-  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">☀️ Sunday Check-in — Block ${S.macroBlock||1} of 4 (${getMacroPhaseName(S.macroBlock||1)})</div>
-  <div style="font-size:0.9rem;font-weight:700">Week ${S.week} Review is ready</div>
-  <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week's plan →</div>
-</div>`:''})()}
+    ${renderCheckinCTA()}
 ${renderWeekSummary()}
     ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">💪</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
     <div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
@@ -6304,7 +6330,7 @@ function startBarcodeInput(){
     overlay.innerHTML=
       '<div style="color:#fff;font-size:1rem;font-weight:700;padding:16px;letter-spacing:.05em;text-align:center">📷 Point at a barcode</div>'+
       '<div id="qr-reader" style="width:100%;max-width:400px;flex:1;max-height:60vh"></div>'+
-      '<div id="bc-status" style="color:#1D9E75;font-size:0.82rem;padding:10px;text-align:center">Searching for barcode...</div>'+
+      '<div id="bc-status" style="color:#1D9E75;font-size:0.82rem;padding:10px;text-align:center">Hold 15–20cm away · keep steady</div>'+
       '<div style="display:flex;gap:12px;padding:16px;width:100%;max-width:400px">'+
         '<button id="bc-cancel" style="flex:1;background:none;border:2px solid #555;border-radius:12px;color:#fff;padding:14px;font-size:0.95rem;cursor:pointer">Cancel</button>'+
         '<button id="bc-manual" style="flex:1;background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px;font-size:0.9rem;font-weight:700;cursor:pointer">Type Number</button>'+
@@ -6326,18 +6352,45 @@ function startBarcodeInput(){
     try{
       scanner=new Html5Qrcode('qr-reader');
       scanner.start(
-        {facingMode:'environment'},
-        {fps:10,qrbox:{width:250,height:150},aspectRatio:1.0},
+        {facingMode:{exact:'environment'}},
+        {fps:12,qrbox:{width:220,height:120},aspectRatio:1.777},
         function(code){
           stopAll();
           S.foodQuery=code;
           doFoodSearch();
         },
         function(err){}  // ignore per-frame errors
-      ).catch(function(err){
-        stopAll();
-        var num=prompt('Camera access denied. Enter barcode number:');
-        if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
+      ).then(function(){
+        // Apply continuous autofocus for older iPhones that can't focus close
+        try{
+          var vid=document.querySelector('#qr-reader video');
+          if(vid&&vid.srcObject){
+            var track=vid.srcObject.getVideoTracks()[0];
+            if(track&&track.applyConstraints){
+              track.applyConstraints({advanced:[{focusMode:'continuous'},{zoom:1.0}]}).catch(function(){});
+            }
+          }
+        }catch(e){}
+        var st=document.getElementById('bc-status');
+        if(st)st.textContent='Hold 15–20cm away · keep steady';
+      }).catch(function(err){
+        // Exact environment may fail on some devices — retry without exact
+        try{
+          scanner.start(
+            {facingMode:'environment'},
+            {fps:12,qrbox:{width:220,height:120},aspectRatio:1.777},
+            function(code){stopAll();S.foodQuery=code;doFoodSearch();},
+            function(err){}
+          ).catch(function(){
+            stopAll();
+            var num=prompt('Camera access denied. Enter barcode number:');
+            if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
+          });
+        }catch(e2){
+          stopAll();
+          var num=prompt('Camera access denied. Enter barcode number:');
+          if(num&&num.trim()){S.foodQuery=num.trim();doFoodSearch();}
+        }
       });
     }catch(e){
       stopAll();
@@ -6527,7 +6580,7 @@ function swipeEnd(e,id){
 
 function renderCheckin(){
   const c=S.checkin;
-  const weekNum=S.week||1;
+  const weekNum=S.checkinWeekOverride||(S.week||1);
 
   function ratingBtns(field,max,colorFn){
     return Array.from({length:max},(_,i)=>{
@@ -6863,7 +6916,7 @@ function renderGleam(){
 }
 
 // ─── CHECK-IN HANDLERS ────────────────────────────────────────────────────
-function openCheckin(){S.checkinDispatch='';S.showCheckin=true;render();window.scrollTo(0,0);}
+function openCheckin(weekOverride){S.checkinDispatch='';S.checkinWeekOverride=(weekOverride||null);S.showCheckin=true;render();window.scrollTo(0,0);}
 function closeCheckin(){S.showCheckin=false;render();}
 function setCheckinPhoto(field,file){
   if(!file)return;
@@ -7728,7 +7781,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v80';
+  window.APP_VERSION='v81';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
