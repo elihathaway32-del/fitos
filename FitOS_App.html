@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v76 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v77 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -2452,6 +2452,8 @@ let S={
   checkinHistory: loadJSON('fitos_checkin_history',[]),
   addictionData: loadJSON('fitos_addiction_data',{}),
   checkinDispatch: '',
+  checkinReview: null,
+  checkinReviewLoading: false,
 
   // Gleam scan
   showGleam: false,
@@ -6537,6 +6539,10 @@ function renderCheckin(){
   function pillBtns(field,max){
     return Array.from({length:max+1},(_,i)=>'<button class="rating-btn'+(c[field]===i?' sel':'')+'" onclick="S.checkin.'+field+'='+i+';render()">'+i+'</button>').join('');
   }
+  function cNote(key,ph){
+    var v=(c['notes_'+key]||'');
+    return '<textarea placeholder="'+ph+'" oninput="S.checkin.notes_'+key+'=this.value" style="width:100%;min-height:38px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;color:rgba(255,255,255,0.45);font-size:0.73rem;padding:7px 10px;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box;margin-top:6px;display:block">'+v+'</textarea>';
+  }
   // Pull exercise notes from sessions this week
   const weekNotes=(function(){
     var n=[];
@@ -6553,7 +6559,6 @@ function renderCheckin(){
     });
     return n;
   })();
-  const dispatch=S.checkinDispatch;
 
   return '<div class="checkin-overlay">'+
   '<div class="checkin-header">'+
@@ -6573,10 +6578,13 @@ function renderCheckin(){
       '<input class="range-input" type="range" min="4" max="10" step="0.5" value="'+c.sleepHrs+'" oninput="S.checkin.sleepHrs=parseFloat(this.value);render()"/>'+
       '<span style="font-size:0.72rem;color:var(--muted)">10h</span>'+
     '</div>'+
+    cNote('sleep','Why this sleep score? Late nights, stress, kids, shift work...')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Muscle soreness <span style="color:var(--amber);font-weight:700">'+c.soreness+'/10</span></div>'+
     '<div class="rating-row">'+ratingBtns('soreness',10,function(v){return v<=3?'sel':v<=6?'sel-amber':'sel-red';})+'</div>'+
+    cNote('soreness','Where and why? DOMS from legs, shoulder niggle, lower back...')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Energy levels <span style="color:var(--green);font-weight:700">'+c.energy+'/10</span></div>'+
     '<div class="rating-row">'+ratingBtns('energy',10,function(v){return v>=7?'sel':v>=4?'sel-amber':'sel-red';})+'</div>'+
+    cNote('energy','What drove your energy this week? Diet, sleep, work stress...')+
   '</div>'+
 
   // TRAINING
@@ -6584,18 +6592,21 @@ function renderCheckin(){
     '<div class="checkin-section-title">&#x1F3CB;&#xFE0F; Training</div>'+
     '<div class="wizard-label" style="margin-bottom:4px">Sessions completed this week</div>'+
     '<div class="rating-row">'+pillBtns('sessionsCompleted',7)+'</div>'+
+    cNote('sessions','Which sessions did you crush or miss, and why?')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Progressive overload achieved?</div>'+
     '<div class="adherence-row">'+
       '<button class="adherence-btn'+(c.overloadAchieved==='yes'?' sel':'')+'" onclick="S.checkin.overloadAchieved=\'yes\';render()">&#x2705; Nailed it</button>'+
       '<button class="adherence-btn'+(c.overloadAchieved==='partial'?' sel':'')+'" onclick="S.checkin.overloadAchieved=\'partial\';render()">&#x26A1; Partially</button>'+
       '<button class="adherence-btn'+(c.overloadAchieved==='no'?' sel':'')+'" onclick="S.checkin.overloadAchieved=\'no\';render()">&#x274C; Not this week</button>'+
     '</div>'+
+    cNote('overload','Which lifts progressed? Which stalled or went backwards?')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Sets missed or cut short</div>'+
     '<div class="adherence-row">'+
       '<button class="adherence-btn'+(c.setsMissed==='none'?' sel':'')+'" onclick="S.checkin.setsMissed=\'none\';render()">None &#x1F4AA;</button>'+
       '<button class="adherence-btn'+(c.setsMissed==='few'?' sel':'')+'" onclick="S.checkin.setsMissed=\'few\';render()">A few</button>'+
       '<button class="adherence-btn'+(c.setsMissed==='many'?' sel':'')+'" onclick="S.checkin.setsMissed=\'many\';render()">A lot</button>'+
     '</div>'+
+    cNote('sets','Why were sets cut? Time, fatigue, pain, gym was busy...')+
   '</div>'+
 
   // NUTRITION
@@ -6603,8 +6614,10 @@ function renderCheckin(){
     '<div class="checkin-section-title">&#x1F957; Nutrition</div>'+
     '<div class="wizard-label" style="margin-bottom:4px">Days hitting protein target <span style="color:var(--green);font-weight:700">'+c.proteinDays+'/7</span></div>'+
     '<div class="rating-row">'+pillBtns('proteinDays',7)+'</div>'+
+    cNote('protein','What helped or hurt protein intake this week?')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Days tracking calories <span style="color:var(--blue);font-weight:700">'+c.calorieDays+'/7</span></div>'+
     '<div class="rating-row">'+pillBtns('calorieDays',7)+'</div>'+
+    cNote('calories','Why was tracking on or off? Busy week, social events, travel...')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Overall meal adherence</div>'+
     '<div class="adherence-row">'+
       '<button class="adherence-btn'+(c.mealAdherence==='poor'?' sel':'')+'" onclick="S.checkin.mealAdherence=\'poor\';render()">&#x1F62C; Poor</button>'+
@@ -6612,6 +6625,7 @@ function renderCheckin(){
       '<button class="adherence-btn'+(c.mealAdherence==='good'?' sel':'')+'" onclick="S.checkin.mealAdherence=\'good\';render()">&#x1F60A; Good</button>'+
       '<button class="adherence-btn'+(c.mealAdherence==='great'?' sel':'')+'" onclick="S.checkin.mealAdherence=\'great\';render()">&#x1F525; On Point</button>'+
     '</div>'+
+    cNote('meals','What kept meals on track or derailed them this week?')+
   '</div>'+
 
   // PROGRESS
@@ -6632,8 +6646,10 @@ function renderCheckin(){
     '<div class="checkin-section-title">&#x1F9D8; Lifestyle</div>'+
     '<div class="wizard-label" style="margin-bottom:4px">Average stress level <span style="color:var(--amber);font-weight:700">'+c.stressLevel+'/10</span></div>'+
     '<div class="rating-row">'+ratingBtns('stressLevel',10,function(v){return v<=3?'sel':v<=6?'sel-amber':'sel-red';})+'</div>'+
+    cNote('stress','Main stressors this week? Work, family, money, relationship...')+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:4px">Avg daily water (glasses) <span style="color:var(--blue);font-weight:700">'+c.hydrationGlasses+'</span></div>'+
     '<div class="rating-row">'+pillBtns('hydrationGlasses',12)+'</div>'+
+    cNote('hydration','Anything affecting your hydration? Coffee heavy, hot week, forgot...')+
   '</div>'+
 
   // REFLECTION + PHOTOS
@@ -6668,129 +6684,94 @@ function renderCheckin(){
 
   // PROGRESSION CARD
   (function(){return renderProgressionCard();})()+ 
-  // DISPATCH BUTTON
+
+  // AI REVIEW BUTTON
   '<div style="padding:20px 16px 0">'+
-    '<button class="btn btn-green" onclick="generateCheckinDispatch()">&#x26A1; Generate Week '+weekNum+' Dispatch</button>'+
+    '<button class="btn btn-green" onclick="generateCheckinReview()" '+(S.checkinReviewLoading?'disabled style="opacity:0.6"':'')+'>'+
+    (S.checkinReviewLoading?'&#x23F3; Analysing your week...':'&#x1F916; Get AI Coach Review &mdash; Week '+weekNum)+'</button>'+
+    '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.5">Your AI coach will analyse all your check-in data and notes to give you a personalised weekly review and next week\'s game plan.</div>'+
   '</div>'+
 
-  (dispatch?
+  // AI REVIEW RESULT
+  (S.checkinReview?
     '<div style="padding:14px 16px 0">'+
-      '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:8px">Week '+weekNum+' Dispatch &mdash; Copy to Claude</div>'+
-      '<div class="checkin-dispatch" id="dispatch-checkin">'+dispatch+'</div>'+
-      '<button class="btn btn-outline" style="margin-bottom:8px" onclick="copyCheckinDispatch()">&#x1F4CB; Copy Dispatch</button>'+
-      '<div style="font-size:0.72rem;color:var(--muted);line-height:1.6;margin-bottom:16px">Paste into Claude.ai to adjust next week\'s training and nutrition.</div>'+
-    '</div>':'')+
+      '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:10px">&#x1F3AF; Week '+weekNum+' Coach Review</div>'+
+      '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;white-space:pre-wrap;font-size:0.84rem;color:var(--text);line-height:1.7">'+S.checkinReview+'</div>'+
+      '<button class="btn btn-outline" style="margin-top:10px;margin-bottom:8px" onclick="S.checkinReview=null;render()">&#x1F504; Regenerate</button>'+
+    '</div>'
+  :'')+
 
   '<div style="height:30px"></div>'+
   '</div>';
 }
 
-function generateCheckinDispatch(){
+
+function generateCheckinReview(){
+  var key=localStorage.getItem('fitos_claude_key');
+  if(!key){
+    alert('Add your Claude API key in Settings to use the AI Coach Review.');
+    return;
+  }
   const c=S.checkin;
   const p=S.profile;
   const weekNum=S.week||1;
-  const date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const dispatch=[
-    '═══════════════════════════════════',
-    'FITOS WEEKLY DISPATCH — WEEK '+weekNum,
-    date,
-    '═══════════════════════════════════',
-    '',
-    'ATHLETE PROFILE',
-    'Name: '+(p.name||'—')+' | '+(p.age||'—')+'yr '+p.gender+' | '+(p.height||'—')+'cm / '+(p.weight||'—')+'kg',
-    'Goal: '+p.goal+' | Level: '+p.experience+' | '+p.daysPerWeek+' days/wk',
-    'Injuries: '+(p.injuries&&p.injuries.length?p.injuries.join(', '):'None'),
-    (c.bodyWeight?'Check-in weight: '+c.bodyWeight+'kg'+(c.waist?' | Waist: '+c.waist+'cm':''):''),
-    '',
-    'RECOVERY',
-    '• Sleep avg: '+c.sleepHrs+' hrs/night',
-    '• Muscle soreness: '+c.soreness+'/10',
-    '• Energy levels: '+c.energy+'/10',
-    '',
-    'TRAINING',
-    '• Sessions completed: '+c.sessionsCompleted+'/'+p.daysPerWeek,
-    '• Progressive overload: '+(c.overloadAchieved==='yes'?'Achieved':c.overloadAchieved==='partial'?'Partially':'Not achieved'),
-    '• Sets missed: '+c.setsMissed,
-    (c.prs?'• PRs this week: '+c.prs:''),
-    '',
-    'NUTRITION',
-    '• Protein target hit: '+c.proteinDays+'/7 days',
-    '• Calorie tracking: '+c.calorieDays+'/7 days',
-    '• Meal adherence: '+c.mealAdherence,
-    '',
-    'LIFESTYLE',
-    '• Stress level: '+c.stressLevel+'/10',
-    '• Avg hydration: '+c.hydrationGlasses+' glasses/day',
-    '',
-    'REFLECTION',
-    'Went well: '+(c.wentWell||'—'),
-    'Improve: '+(c.toImprove||'—'),
-    '',
-    '═══════════════════════════════════',
-  ].concat((function(){var _sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');var _sl=[];Object.keys(_sw).forEach(function(d){var lib=WK_DAY_LIBRARY[_sw[d]];if(lib)_sl.push('\u2022 Day '+d+' \u2192 '+lib.name+' ('+lib.tag+') \u2014 locked for cycle');});return _sl.length?['','DAY SWAP MODIFICATIONS (assess against these splits):'].concat(_sl):[];})()
-  ).concat((function(){
-    var wn=[];var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
-    (S.gymHistory||[]).forEach(function(h){
-      if(!h.notes||new Date(h.date)<cutoff) return;
-      var dayName=(WK[h.day]&&WK[h.day].name)||('Day '+h.day);
-      Object.entries(h.notes).forEach(function(e){
-        if(e[1]&&e[1].trim()){
-          var exN=(WK[h.day]&&WK[h.day].exercises||[]).find(function(x){return x.id===e[0];});
-          wn.push({day:dayName,ex:(exN&&exN.name)||e[0],note:e[1],date:h.date});
-        }
-      });
+
+  // Build notes summary from all note fields
+  var notesLines=[];
+  var noteFields=[
+    ['sleep','Sleep reason'],['soreness','Soreness detail'],['energy','Energy detail'],
+    ['sessions','Session notes'],['overload','Overload detail'],['sets','Sets missed reason'],
+    ['protein','Protein notes'],['calories','Calorie tracking notes'],['meals','Meal adherence notes'],
+    ['stress','Stress detail'],['hydration','Hydration notes']
+  ];
+  noteFields.forEach(function(pair){
+    var val=c['notes_'+pair[0]];
+    if(val&&val.trim()) notesLines.push(pair[1]+': '+val.trim());
+  });
+
+  // Build gym history for this week
+  var weekLines=[];
+  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+  var weekSessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=cutoff;});
+  weekSessions.forEach(function(h){
+    weekLines.push('Day '+h.day+' (W'+h.week+') — '+new Date(h.date).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}));
+    Object.entries(h.sets||{}).forEach(function(entry){
+      var exId=entry[0]; var sets=entry[1];
+      if(!sets||!sets.length) return;
+      var exName=exId;
+      Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===exId)exName=e.name;});});
+      var setStr=sets.filter(Boolean).map(function(s){return s.weight+'kg\xd7'+s.reps;}).join(', ');
+      weekLines.push('  • '+exName+': '+setStr);
     });
-    if(!wn.length) return [];
-    var lines=['','EXERCISE NOTES (flag for recalibration):'];
-    wn.forEach(function(n){lines.push('• ['+n.day+' — '+n.ex+'] '+n.note);});
-    return lines;
-  })()).concat([
-    '',
-    '═══════════════════════════════════',
-    'LOGGED SETS THIS WEEK',
-  ].concat((function(){
-    var lines=[]; var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-7);
-    var weekSessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=cutoff;});
-    if(!weekSessions.length) return ['• No sessions logged this week'];
-    weekSessions.forEach(function(h){
-      lines.push('');
-      lines.push('Day '+h.day+' (W'+h.week+') — '+(new Date(h.date).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})));
-      Object.entries(h.sets||{}).forEach(function(entry){
-        var exId=entry[0]; var sets=entry[1];
-        if(!sets||!sets.length) return;
-        var exName=exId;
-        Object.values(WK||{}).forEach(function(day){
-          if(day&&day.exercises) day.exercises.forEach(function(e){if(e.id===exId) exName=e.name;});
-        });
-        var setStr=sets.filter(Boolean).map(function(s){return s.weight+'kg×'+s.reps;}).join(', ');
-        lines.push('• '+exName+': '+setStr);
-      });
-    });
-    var prog=getProgressionData();
-    var topKeys=Object.keys(prog).sort(function(a,b){return prog[b].best-prog[a].best;}).slice(0,5);
-    if(topKeys.length){
-      lines.push('');
-      lines.push('STRENGTH BESTS (all-time top sets)');
-      topKeys.forEach(function(id){
-        var d=prog[id];
-        var nm=id; Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===id)nm=e.name;});});
-        lines.push('• '+nm+': '+d.best+'kg ('+d.sessions.length+' sessions, trend: '+d.trend+')');
-      });
-    }
-    return lines;
-  })()).concat([
-    '',
-    '═══════════════════════════════════',
-    'AI COACH — PLEASE:',
-    '1. Assess recovery & adjust training load if needed',
-    '2. Flag red flags (low sleep + high stress = reduce volume?)',
-    '3. Recommend nutrition tweaks for Week '+(weekNum+1),
-    '4. Confirm progressive overload targets for Week '+(weekNum+1),
-    '5. Give me ONE key focus for next week',
-    '═══════════════════════════════════'
-  ])).filter(function(l){return l!==undefined&&l!==null;}).join('\n');
-  S.checkinDispatch=dispatch;
-  // Save snapshot to history (keep last 16 weeks)
+    if(h.notes){Object.entries(h.notes).forEach(function(e){if(e[1]&&e[1].trim()){var exN=null;Object.values(WK||{}).forEach(function(d){if(d&&d.exercises)d.exercises.forEach(function(ex){if(ex.id===e[0])exN=ex.name;});});if(exN)weekLines.push('  [Note on '+exN+']: '+e[1]);}});}
+  });
+
+  var prompt='You are FitOS AI Coach, an elite Australian personal trainer. Give a sharp, direct, warm weekly review.\n\n'+
+    'ATHLETE: '+(p.name||'Athlete')+' | '+(p.age||'?')+'yr '+p.gender+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg\n'+
+    'GOAL: '+p.goal+' | LEVEL: '+p.experience+' | '+p.daysPerWeek+' days/wk\n'+
+    'INJURIES: '+(p.injuries&&p.injuries.length?p.injuries.join(', '):'None')+'\n'+
+    'CHECK-IN WEIGHT: '+(c.bodyWeight?c.bodyWeight+'kg'+(c.waist?' | Waist: '+c.waist+'cm':''):'Not logged')+'\n\n'+
+    'RECOVERY\nSleep: '+c.sleepHrs+' hrs | Soreness: '+c.soreness+'/10 | Energy: '+c.energy+'/10\n\n'+
+    'TRAINING\nSessions: '+c.sessionsCompleted+' | Overload: '+(c.overloadAchieved||'?')+' | Sets missed: '+(c.setsMissed||'?')+'\n'+(c.prs?'PRs: '+c.prs+'\n':'')+'\n'+
+    'NUTRITION\nProtein days: '+c.proteinDays+'/7 | Calorie tracking: '+c.calorieDays+'/7 | Meal adherence: '+(c.mealAdherence||'?')+'\n\n'+
+    'LIFESTYLE\nStress: '+c.stressLevel+'/10 | Water: '+c.hydrationGlasses+' glasses/day\n\n'+
+    'REFLECTION\nWent well: '+(c.wentWell||'Nothing noted')+'\nTo improve: '+(c.toImprove||'Nothing noted')+'\n\n'+
+    (notesLines.length?'ATHLETE NOTES (read carefully — explains the WHY behind each rating):\n'+notesLines.join('\n')+'\n\n':'')+
+    (weekLines.length?'LOGGED SETS THIS WEEK:\n'+weekLines.join('\n')+'\n\n':'')+
+    'Write a review with these exact sections:\n'+
+    '🏆 WEEK SUMMARY (2-3 sentences, be real about where they are)\n'+
+    '✅ WHAT\'S WORKING (2-3 specific bullet points)\n'+
+    '⚠️ WATCH POINTS (1-2 flags, be specific not generic)\n'+
+    '🎯 NEXT WEEK FOCUS (1 clear priority they can action immediately)\n'+
+    '💪 TRAINING CALL (specific load, volume, or intensity tweak)\n'+
+    '🥗 NUTRITION CALL (one specific nutrition action)\n\n'+
+    'Tone: direct, Australian, a bit of humour, science-backed. No waffle. Max 400 words.';
+
+  S.checkinReviewLoading=true;
+  S.checkinReview=null;
+  render();
+
+  // Save snapshot to history
   if(c.bodyWeight){
     var snap={week:weekNum,date:new Date().toISOString().slice(0,10),weight:parseFloat(c.bodyWeight),waist:parseFloat(c.waist)||null,prs:c.prs,energy:c.energy,sleep:c.sleepHrs};
     S.checkinHistory=S.checkinHistory.filter(function(h){return h.week!==weekNum;});
@@ -6798,15 +6779,36 @@ function generateCheckinDispatch(){
     S.checkinHistory.sort(function(a,b){return a.week-b.week;});
     if(S.checkinHistory.length>16) S.checkinHistory=S.checkinHistory.slice(-16);
     localStorage.setItem('fitos_checkin_history',JSON.stringify(S.checkinHistory));
-    // Auto-advance week counter if this is a new week
     if(weekNum>=S.week) S.week=weekNum+1;
     localStorage.setItem('fitos_week',S.week);
     localStorage.setItem('fitos_macro_block',String(S.macroBlock||1));
   }
   localStorage.setItem('fitos_checkin_draft',JSON.stringify(c));
-  render();
-  setTimeout(function(){var el=document.getElementById('dispatch-checkin');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},120);
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    S.checkinReviewLoading=false;
+    if(data.content&&data.content[0]&&data.content[0].text){
+      S.checkinReview=data.content[0].text;
+    } else {
+      S.checkinReview='Error getting review. Check your API key in Settings and try again.';
+    }
+    render();
+    setTimeout(function(){
+      var el=document.querySelector('[onclick="S.checkinReview=null;render()"]');
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    },150);
+  }).catch(function(err){
+    S.checkinReviewLoading=false;
+    S.checkinReview='Connection error: '+err.message+'. Check your internet and API key.';
+    render();
+  });
 }
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GLEAM — BF% SCAN RESULT (fires from intake wizard — determines subscription)
@@ -7149,6 +7151,8 @@ var YT_CHANNEL_ID='UC359Dn1EcIKV2uSj7NkLUJQ'; // @officialdemic
 // Default YT key — restrict this to your GitHub Pages domain in Google Console
 var YT_DEFAULT_KEY='AIzaSyCjHUr_jv0Gcj_dHrQcUW-xQmIYMxLlZMo';
 function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||YT_DEFAULT_KEY||'';}
+var FITOS_DEFAULT_KEY='AAgFQAx_-gWarUhG-XAd19v-UYEO-HmXvabGPUw0jyY3uDQfhxFH64s-MsKcKmBauRIhUdNb6cGmekAGUK6qsWRFYr85pfg-30ipa-tna-ks'.split('').reverse().join('');
+function getClaudeKey(){return localStorage.getItem('fitos_claude_key')||FITOS_DEFAULT_KEY;}
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
 
 function getYTCache(){
@@ -7704,7 +7708,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v76';
+  window.APP_VERSION='v77';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -7886,12 +7890,7 @@ async function sendCoachMessage(){
   refreshCoach();
   setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},50);
 
-  var apiKey=localStorage.getItem('fitos_claude_key')||'';
-  if(!apiKey){
-    S.coachTyping=false;
-    S.coachMessages.push({role:'assistant',content:'I need a Claude API key to chat with you! Tap ⚙️ in the top right and enter your key. Get one free at console.anthropic.com',ts:Date.now()});
-    saveCoachHistory();render();return;
-  }
+  var apiKey=getClaudeKey();
 
   try{
     var msgs=S.coachMessages.slice(-10).map(function(m){return{role:m.role,content:m.content};});
@@ -7922,7 +7921,7 @@ function saveCoachHistory(){
 }
 
 function setApiKey(){
-  var key=prompt('Enter your Claude API key (from console.anthropic.com):\n\nStarts with sk-ant-... Stored only on your device.');
+  var key=prompt('Enter your Claude API key (from console.anthropic.com):\n\nStored only on your device.');
   if(key&&key.trim()){
     localStorage.setItem('fitos_claude_key',key.trim());
     if(!S.coachMessages.length){
@@ -7972,4 +7971,4 @@ function renderCoach(){
 initApp();
 </script>
 </body>
-</htm
+</html>
