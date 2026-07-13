@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v74 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v76 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -2389,7 +2389,7 @@ let S={
 
   // Train tab
   trainScreen:'home',  // home|warmup|workout|rest|cooldown|complete|restday
-  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),macroBlock:parseInt(localStorage.getItem('fitos_macro_block')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},exSwaps:{},addDaySheet:false,
+  day:null,week:parseInt(localStorage.getItem('fitos_week')||'1'),macroBlock:parseInt(localStorage.getItem('fitos_macro_block')||'1'),exIdx:0,loggedSets:{},exerciseNotes:{},extraSets:{},exSwaps:{},addDaySheet:false,addedExercises:{},showAddExSheet:false,
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
@@ -2502,8 +2502,9 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 // ═══════════════════════════════════════════════════════════════════════════
 function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');if(cd[d]&&WK_DAY_LIBRARY[cd[d]])return WK_DAY_LIBRARY[cd[d]];return WK[d]||null;}
 function getAllDays(){var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');var all=Object.keys(WK).concat(Object.keys(cd));return all.filter(function(v,i,a){return a.indexOf(v)===i;}).sort();}
-function curEx(){var k=S.day+'_'+S.exIdx;return(S.exSwaps&&S.exSwaps[k])||getWorkoutDay(S.day).exercises[S.exIdx];}
-function totalEx(){return getWorkoutDay(S.day).exercises.length;}
+function getSessionExercises(){var d=getWorkoutDay(S.day);if(!d)return[];return d.exercises.concat((S.addedExercises&&S.addedExercises[S.day])||[]);}
+function curEx(){var k=S.day+'_'+S.exIdx;return(S.exSwaps&&S.exSwaps[k])||getSessionExercises()[S.exIdx];}
+function totalEx(){return getSessionExercises().length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
 function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
 function getPrevSession(day){return S.gymHistory.slice().reverse().find(h=>h.day===day)||null;}
@@ -3451,10 +3452,23 @@ function viewSession(gIdx){
 function getWarmupItems(){
   const _gwd=getWorkoutDay(S.day);const tag=(_gwd?.tag||'').toLowerCase();
   const nm=(_gwd?.name||'').toLowerCase();
-  if(tag.includes('chest')||tag.includes('shoulder')||tag.includes('tricep')||nm.includes('push')) return WARMUP_BY_DAY.upper_push;
-  if(tag.includes('back')||tag.includes('bicep')||tag.includes('rear delt')||nm.includes('pull')) return WARMUP_BY_DAY.upper_pull;
-  if(tag.includes('ham')||tag.includes('posterior')||nm.includes('posterior')||nm.includes('hinge')) return WARMUP_BY_DAY.lower_post;
-  if(tag.includes('quad')||tag.includes('leg')||nm.includes('quad')||nm.includes('lower')) return WARMUP_BY_DAY.lower_quad;
+  // Lower quad FIRST — quad days often mention 'ham' too, so quad check must win
+  if(tag.includes('quad')||tag.includes('squat')||tag.includes('lunge')||tag.includes('leg')||
+     nm.includes('quad')||nm.includes('squat')||nm.includes('leg')||nm.includes('lower'))
+    return WARMUP_BY_DAY.lower_quad;
+  // Lower posterior / hinge
+  if(tag.includes('ham')||tag.includes('posterior')||tag.includes('hinge')||
+     nm.includes('posterior')||nm.includes('hinge'))
+    return WARMUP_BY_DAY.lower_post;
+  // Upper pull
+  if(tag.includes('back')||tag.includes('bicep')||tag.includes('rear delt')||
+     nm.includes('pull')||nm.includes('back')||nm.includes('bicep'))
+    return WARMUP_BY_DAY.upper_pull;
+  // Upper push — includes delt/shoulder days, push days
+  if(tag.includes('chest')||tag.includes('shoulder')||tag.includes('delt')||
+     tag.includes('tricep')||tag.includes('push')||
+     nm.includes('push')||nm.includes('chest')||nm.includes('shoulder'))
+    return WARMUP_BY_DAY.upper_push;
   return WARMUP_BY_DAY.upper_push;
 }
 function renderWarmup(){
@@ -3570,14 +3584,16 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
 </div>
 <div style="padding:0 16px 80px">
   <div class="card-title">Coming up</div>
-  ${getWorkoutDay(S.day).exercises.slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(function(){try{return((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;}catch(er){return e.name;}})();return`
+  ${getSessionExercises().slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(function(){try{return((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;}catch(er){return e.name;}})();return`
   <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${nm} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`;}).join('')}
   ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
+  <button onclick="S.showAddExSheet=true;render()" style="width:100%;margin-top:10px;padding:10px 14px;background:rgba(29,158,117,0.1);border:1.5px dashed rgba(29,158,117,0.4);border-radius:10px;color:var(--green);font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center">＋ Add Exercise</button>
 </div>
 <div class="bottom-actions">
   <button class="btn btn-outline" style="flex:1;opacity:${S.exIdx>0?1:0.3};pointer-events:${S.exIdx>0?'auto':'none'}" onclick="prevEx()">← Back</button>
   <button class="btn btn-green" style="flex:2" onclick="nextEx()">${S.exIdx===totalEx()-1?'Finish Workout →':'Next →'}</button>
-</div>`;
+</div>
+${renderAddExSheet()}`;
 }
 
 
@@ -6864,8 +6880,105 @@ function copyCheckinDispatch(){
 // ═══════════════════════════════════════════════════════════════════════════
 function switchTab(id){playTabTone();haptic(8);S.tab=id;render();window.scrollTo(0,0);}
 
+
+// ── ADD EXERCISE MID-WORKOUT ─────────────────────────────────────────────────
+function getAddExOptions(){
+  var exs=getSessionExercises();
+  var usedIds=new Set(exs.map(function(e){return e.id;}));
+  var available=getAvailable(S.profile||{});
+  // Get patterns from current day's exercises via EL lookup
+  var dayPats=new Set();
+  exs.forEach(function(e){
+    var found=EL.find(function(el){return el.id===e.id;});
+    if(found) dayPats.add(found.p);
+  });
+  // Expand to related patterns (push-h also unlocks iso-push etc.)
+  var expand={'push-h':['push-inc','push-v','iso-push'],'push-inc':['push-h','push-v','iso-push'],
+    'push-v':['push-h','push-inc','iso-push'],'iso-push':['push-h','push-inc'],
+    'pull-h':['pull-v','iso-pull'],'pull-v':['pull-h','iso-pull'],'iso-pull':['pull-h','pull-v'],
+    'squat':['lunge','iso-lower'],'lunge':['squat','iso-lower'],'hinge':['iso-lower'],
+    'iso-lower':['squat','lunge','hinge'],'core':[],'cond':[]};
+  var expanded=new Set(dayPats);
+  dayPats.forEach(function(p){(expand[p]||[]).forEach(function(r){expanded.add(r);});});
+  expanded.add('core');
+  // If still empty, infer from day tag
+  if(expanded.size<=1){
+    var day=getWorkoutDay(S.day);
+    var tag=(day&&day.tag||'').toLowerCase();
+    var nm=(day&&day.name||'').toLowerCase();
+    if(tag.includes('quad')||tag.includes('squat')||tag.includes('leg')||nm.includes('leg')||nm.includes('lower'))
+      {expanded.add('squat');expanded.add('lunge');expanded.add('iso-lower');}
+    if(tag.includes('ham')||tag.includes('hinge')||tag.includes('posterior')||nm.includes('hinge'))
+      {expanded.add('hinge');expanded.add('iso-lower');}
+    if(tag.includes('chest')||tag.includes('shoulder')||tag.includes('delt')||tag.includes('push')||nm.includes('push'))
+      {expanded.add('push-h');expanded.add('push-inc');expanded.add('push-v');expanded.add('iso-push');}
+    if(tag.includes('back')||tag.includes('bicep')||tag.includes('pull')||nm.includes('pull'))
+      {expanded.add('pull-v');expanded.add('pull-h');expanded.add('iso-pull');}
+  }
+  return available.filter(function(ex){return expanded.has(ex.p)&&!usedIds.has(ex.id);});
+}
+
+function addExerciseToSession(exId){
+  var found=EL.find(function(e){return e.id===exId;});
+  if(!found) return;
+  var ws=weekStyle(goalStyle(S.profile||{}),S.week||1,S.macroBlock||1);
+  var ex={
+    id:found.id,name:found.n,
+    type:found.p.includes('iso')?'Isolation':found.p==='core'?'Core':'Compound',
+    sets:ws.s||found.s||3,lo:ws.lo||found.lo||8,hi:ws.hi||found.hi||12,rest:ws.r||found.r||90,
+    muscles:(found.pm||[]).concat(found.sm||[]),cue:found.cue||'Focus on form and full range of motion.',
+    anim:found.anim||null,yt:found.yt||'',_added:true
+  };
+  if(!S.addedExercises) S.addedExercises={};
+  if(!S.addedExercises[S.day]) S.addedExercises[S.day]=[];
+  S.addedExercises[S.day].push(ex);
+  S.showAddExSheet=false;
+  render();window.scrollTo(0,0);
+}
+
+function renderAddExSheet(){
+  if(!S.showAddExSheet) return '';
+  var opts=getAddExOptions();
+  var PAT_GROUP={'push-h':'Push','push-inc':'Push','push-v':'Push','iso-push':'Push',
+    'pull-h':'Pull','pull-v':'Pull','iso-pull':'Pull',
+    'squat':'Legs','lunge':'Legs','hinge':'Legs','iso-lower':'Legs','core':'Core','cond':'Conditioning'};
+  var groups={'Push':[],'Pull':[],'Legs':[],'Core':[],'Conditioning':[]};
+  opts.forEach(function(ex){var g=PAT_GROUP[ex.p]||null;if(g&&groups[g])groups[g].push(ex);});
+  var groupHtml=Object.keys(groups).filter(function(k){return groups[k].length;}).map(function(label){
+    var items=groups[label].slice(0,10).map(function(ex){
+      return '<div onclick="addExerciseToSession(\''+ex.id+'\')" '+
+        'style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;active:background:var(--s3)">'+
+        '<div>'+
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text)">'+ex.n+'</div>'+
+          '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">'+(ex.pm||[]).join(' · ')+'</div>'+
+        '</div>'+
+        '<span style="font-size:0.75rem;color:var(--green);font-weight:700;white-space:nowrap;margin-left:12px">'+
+          ex.s+'×'+ex.lo+(ex.lo!==ex.hi?'–'+ex.hi:'')+'  +'+
+        '</span>'+
+      '</div>';
+    }).join('');
+    return '<div style="font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;padding:10px 16px 2px;text-transform:uppercase;background:var(--s3)">'+label+'</div>'+items;
+  }).join('');
+  if(!groupHtml) groupHtml='<div style="padding:32px;text-align:center;color:var(--muted);font-size:0.85rem">No exercises left for this day&apos;s training focus</div>';
+  return '<div onclick="if(event.target===this){S.showAddExSheet=false;render();}" '+
+    'style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:flex-end;justify-content:center">'+
+    '<div style="background:var(--s2);border-radius:18px 18px 0 0;width:100%;max-width:600px;max-height:78vh;overflow-y:auto;border-top:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--s2)">'+
+        '<div>'+
+          '<div style="font-size:1rem;font-weight:800">Add Exercise</div>'+
+          '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Matched to today&apos;s training focus</div>'+
+        '</div>'+
+        '<button onclick="S.showAddExSheet=false;render()" '+
+          'style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:0.8rem;cursor:pointer">✕</button>'+
+      '</div>'+
+      groupHtml+
+      '<div style="height:24px"></div>'+
+    '</div>'+
+  '</div>';
+}
+
 // ─── TRAIN ───────────────────────────────────────────────────────────────
-function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};render();}
+function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};S.addedExercises={};render();}
 function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();S.exIdx=0;S.editingSet=null;render();}
 
 function goToWarmup(){
@@ -6986,7 +7099,7 @@ function abandonWorkout(){
     S.trainScreen='home';
     S.day=null;
     S.exIdx=0;
-    S.loggedSets={};S.exerciseNotes={};S.exSwaps={};S.extraSets={};
+    S.loggedSets={};S.exerciseNotes={};S.exSwaps={};S.extraSets={};S.addedExercises={};
     S.warmupChecked=new Set();
     S.cooldownChecked=new Set();
     S.workoutStart=null;
@@ -7025,7 +7138,7 @@ function resumeSession(gIdx){
   window.scrollTo(0,0);
 }
 function nextEx(){
-  var exs=getWorkoutDay(S.day).exercises;
+  var exs=getSessionExercises();
   if(S.exIdx<exs.length-1){S.exIdx++;S.editingSet=null;render();window.scrollTo(0,0);}
   else{S.trainScreen='cooldown';render();window.scrollTo(0,0);}
 }
@@ -7033,7 +7146,9 @@ function prevEx(){if(S.exIdx>0){S.exIdx--;S.editingSet=null;render();window.scro
 // ── YouTube / officialdemic integration ──────────────────────────────────
 var YT_CHANNEL_ID='UC359Dn1EcIKV2uSj7NkLUJQ'; // @officialdemic
 
-function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||'';}
+// Default YT key — restrict this to your GitHub Pages domain in Google Console
+var YT_DEFAULT_KEY='AIzaSyCjHUr_jv0Gcj_dHrQcUW-xQmIYMxLlZMo';
+function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||YT_DEFAULT_KEY||'';}
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
 
 function getYTCache(){
@@ -7589,7 +7704,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v74';
+  window.APP_VERSION='v76';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -7857,4 +7972,4 @@ function renderCoach(){
 initApp();
 </script>
 </body>
-</html>
+</htm
