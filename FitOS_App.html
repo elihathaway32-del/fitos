@@ -535,7 +535,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v78 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v79 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -6785,10 +6785,10 @@ function generateCheckinReview(){
   }
   localStorage.setItem('fitos_checkin_draft',JSON.stringify(c));
 
-  fetch('https://api.anthropic.com/v1/messages',{
+  fetch(FITOS_WORKER_URL,{
     method:'POST',
-    headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,system:buildCoachSystemPrompt(),messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(data){
     S.checkinReviewLoading=false;
     if(data.content&&data.content[0]&&data.content[0].text){
@@ -7153,6 +7153,36 @@ var YT_DEFAULT_KEY='AIzaSyCjHUr_jv0Gcj_dHrQcUW-xQmIYMxLlZMo';
 function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||YT_DEFAULT_KEY||'';}
 var FITOS_DEFAULT_KEY='AAgFQAx_-gWarUhG-XAd19v-UYEO-HmXvabGPUw0jyY3uDQfhxFH64s-MsKcKmBauRIhUdNb6cGmekAGUK6qsWRFYr85pfg-30ipa-tna-ks'.split('').reverse().join('');
 function getClaudeKey(){return localStorage.getItem('fitos_claude_key')||FITOS_DEFAULT_KEY;}
+var FITOS_WORKER_URL='https://fitos-proxy.elihathaway32.workers.dev';
+function buildCoachSystemPrompt(){
+  var p=S.profile||{};
+  var injuries=(p.injuries&&p.injuries.length)?p.injuries.join(', '):'None';
+  var lastCI=S.checkinHistory&&S.checkinHistory.length?S.checkinHistory[S.checkinHistory.length-1]:null;
+  var coachName=typeof getCoachName==='function'?getCoachName():'Coach Alex';
+  var styleMap={tough:'Direct, no-nonsense, push them hard, minimal fluff.',supportive:'Warm, encouraging, celebrate every win.',science:'Evidence-based, cite mechanisms, explain the why.',hype:'High energy, pump them up, big celebration energy.'};
+  var style=styleMap[p.coachStyle]||styleMap.supportive;
+  var prompt='You are '+coachName+', an elite AI personal trainer with Australian PT energy. '+style+'
+
+';
+  prompt+='ATHLETE: '+(p.name||'Champ')+' | '+(p.age||'?')+'yr '+(p.gender||'?')+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg
+';
+  prompt+='GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+' | '+(p.daysPerWeek||'?')+' days/wk
+';
+  prompt+='INJURIES: '+injuries+'
+';
+  prompt+='CURRENT WEEK: Week '+(S.week||1)+' of their training block
+';
+  if(lastCI){
+    prompt+='
+LAST CHECK-IN (Week '+lastCI.week+'):
+';
+    prompt+='Weight: '+(lastCI.weight||'?')+'kg | Energy: '+(lastCI.energy||'?')+'/10 | Sleep: '+(lastCI.sleep||'?')+'hrs
+';
+  }
+  prompt+='
+Always reference their specific data. Never give generic advice. Respect their injury limitations absolutely.';
+  return prompt;
+}
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
 
 function getYTCache(){
@@ -7708,7 +7738,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v78';
+  window.APP_VERSION='v79';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -7894,10 +7924,10 @@ async function sendCoachMessage(){
 
   try{
     var msgs=S.coachMessages.slice(-10).map(function(m){return{role:m.role,content:m.content};});
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+    var resp=await fetch(FITOS_WORKER_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:buildCoachContext(),messages:msgs})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:buildCoachSystemPrompt(),messages:msgs})
     });
     var data=await resp.json();
     S.coachTyping=false;
