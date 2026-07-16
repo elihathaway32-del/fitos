@@ -539,7 +539,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v86 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v87 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -2172,7 +2172,7 @@ const REST_DAY_REHAB=[
 // ═══════════════════════════════════════════════════════════════════════════
 // MEAL DATA
 // ═══════════════════════════════════════════════════════════════════════════
-const MEAL_TARGETS={cal:2450,protein:200,carbs:220,fat:85,fibre:32,water:8};
+const MEAL_TARGETS={cal:2450,protein:200,carbs:220,fat:85,fibre:32,water:10};
 
 // ─── TDEE CALCULATOR (Mifflin-St Jeor) ──────────────────────────────────────
 function calcTDEE(){
@@ -2205,7 +2205,7 @@ function getTargets(){
   const p=S.profile;
   if(!p||!p.weight||!p.height||!p.age) return MEAL_TARGETS;
   const t=calcTDEE();
-  return{cal:t.targetCal,protein:t.proteinG,carbs:t.carbG,fat:t.fatG,fibre:32,water:8};
+  return{cal:t.targetCal,protein:t.proteinG,carbs:t.carbG,fat:t.fatG,fibre:32,water:10};
 }
 const MEALS=[
   {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🍳',
@@ -2449,7 +2449,7 @@ let S={
     sessionsCompleted:4, overloadAchieved:'yes', setsMissed:'none',
     proteinDays:5, calorieDays:5, mealAdherence:'good',
     bodyWeight:'', waist:'', prs:'',
-    stressLevel:5, hydrationGlasses:8,
+    stressLevel:5, hydrationGlasses:2,
     wentWell:'', toImprove:'',
     photoFront:null, photoBack:null, photoSide:null
   }),
@@ -3292,8 +3292,8 @@ function renderToday(){
       <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct(protEaten,T.protein)}%;background:var(--blue)"></div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" style="color:var(--amber)">${data.water}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${T.water}</span></div>
-      <div class="stat-lbl">Water (glasses)</div>
+      <div class="stat-val" style="color:var(--amber)">${(data.water*0.25).toFixed(1)}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${(T.water*0.25).toFixed(1)}L</span></div>
+      <div class="stat-lbl">Water (litres)</div>
       <div class="stat-bar"><div class="stat-bar-fill" style="width:${waterPct}%;background:var(--amber)"></div></div>
     </div>
     <div class="stat-card">
@@ -4797,9 +4797,9 @@ ${hasProfile&&tdeeData?`
     </div>
     <!-- Water — today only -->
     ${isToday?`<div style="margin-top:12px">
-      <div class="macro-label" style="margin-bottom:8px"><span style="color:var(--blue)">💧 Water</span><span style="color:var(--muted)">${S.waterDone} / ${MEAL_TARGETS.water} glasses</span></div>
+      <div class="macro-label" style="margin-bottom:8px"><span style="color:var(--blue)">💧 Water</span><span style="color:var(--muted)">${(S.waterDone*0.25).toFixed(1)}L / ${(MEAL_TARGETS.water*0.25).toFixed(1)}L</span></div>
       <div class="water-track">
-        ${Array.from({length:MEAL_TARGETS.water},(_,i)=>`<div class="water-drop${i<S.waterDone?' filled':''}" onclick="logWater(${i})" title="Glass ${i+1}">💧</div>`).join('')}
+        ${Array.from({length:MEAL_TARGETS.water},(_,i)=>`<div class="water-drop${i<S.waterDone?' filled':''}" onclick="logWater(${i})" title="${((i+1)*0.25).toFixed(2)}L">💧</div>`).join('')}
       </div>
     </div>`:''}
   </div>
@@ -5029,7 +5029,7 @@ function getPersonalisedHabits(){
   var habits=[];
 
   // Core: always present
-  habits.push({id:'h-water',icon:'💧',name:'Drink '+waterGoal+' glasses of water',detail:'Every system in your body runs on hydration. Non-negotiable.'});
+  habits.push({id:'h-water',icon:'💧',name:'Drink '+(waterGoal*0.25).toFixed(1)+'L of water',detail:'Every system in your body runs on hydration. Non-negotiable.'});
   habits.push({id:'h-protein',icon:'🥩',name:'Hit your protein target — '+T.protein+'g',detail:isVegan?'Legumes, tofu, tempeh, seitan — stack them up.':isVeget?'Eggs, dairy + plant sources all count.':'Distribute across 3–4 meals for peak muscle protein synthesis.'});
 
   // Training vs rest day
@@ -5142,7 +5142,7 @@ ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
   <div class="card-title" style="margin-top:16px">Water Intake</div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-weight:600">💧 ${S.waterDone} / ${MEAL_TARGETS.water} glasses</span>
+      <span style="font-weight:600">💧 ${(S.waterDone*0.25).toFixed(1)}L / ${(MEAL_TARGETS.water*0.25).toFixed(1)}L</span>
       <button onclick="S.waterDone=0;render()" style="background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer">Reset</button>
     </div>
     <div class="water-track">
@@ -7088,7 +7088,7 @@ function generateCheckinReview(){
     'RECOVERY\nSleep: '+c.sleepHrs+' hrs | Soreness: '+c.soreness+'/10 | Energy: '+c.energy+'/10\n\n'+
     'TRAINING\nSessions: '+c.sessionsCompleted+' | Overload: '+(c.overloadAchieved||'?')+' | Sets missed: '+(c.setsMissed||'?')+'\n'+(c.prs?'PRs: '+c.prs+'\n':'')+'\n'+
     'NUTRITION\nProtein days: '+c.proteinDays+'/7 | Calorie tracking: '+c.calorieDays+'/7 | Meal adherence: '+(c.mealAdherence||'?')+'\n\n'+
-    'LIFESTYLE\nStress: '+c.stressLevel+'/10 | Water: '+c.hydrationGlasses+' glasses/day\n\n'+
+    'LIFESTYLE\nStress: '+c.stressLevel+'/10 | Water: '+c.hydrationGlasses+'L/day\n\n'+
     'REFLECTION\nWent well: '+(c.wentWell||'Nothing noted')+'\nTo improve: '+(c.toImprove||'Nothing noted')+'\n\n'+
     (notesLines.length?'ATHLETE NOTES (read carefully — explains the WHY behind each rating):\n'+notesLines.join('\n')+'\n\n':'')+
     (weekLines.length?'LOGGED SETS THIS WEEK:\n'+weekLines.join('\n')+'\n\n':'')+
@@ -8063,7 +8063,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v86';
+  window.APP_VERSION='v87';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8224,7 +8224,7 @@ function buildCoachContext(){
     '\nTODAY:\n'+
     '- Calories: '+calToday+' / '+t.targetCal+'\n'+
     '- Protein: '+protToday+'g / '+t.proteinG+'g\n'+
-    '- Water: '+S.waterDone+' glasses\n'+
+    '- Water: '+(S.waterDone*0.25).toFixed(1)+'L\n'+
     '- Habits done: '+(S.habitsChecked?[...S.habitsChecked].length:0)+'\n'+
     (ex?'- Currently mid-workout doing: '+ex.name+' | Coach cue: '+ex.cue+'\n':'')+
     '\nRESPONSE RULES: Be concise — 2–4 sentences unless detail is asked for. Use their first name '+(p.name?'('+p.name+') ':'')+' occasionally. Never recommend exercises that conflict with their listed injuries. If they ask about something medical, give fitness guidance but recommend they consult a professional.';
