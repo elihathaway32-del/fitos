@@ -4332,7 +4332,7 @@ function generateSessionReview(){
   if(!btn||!out) return;
   btn.disabled=true;
   btn.textContent='Getting your review...';
-  var sess=S.lastSession||{};
+  var sess=S.gymHistory[S.gymHistory.length-1]||{};
   var lines=[];
   Object.entries(sess.sets||{}).forEach(function(entry){
     var exId=entry[0]; var sets=entry[1];
@@ -8063,7 +8063,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v87';
+  window.APP_VERSION='v88';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
