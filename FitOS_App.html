@@ -539,7 +539,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v87 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">Loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -8050,8 +8050,30 @@ function addManualSteps(){
 // ═══════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════
+function removeSplash(){
+  var _pl=document.getElementById('pre-load');
+  if(!_pl) return;
+  _pl.style.transition='opacity 0.3s';
+  _pl.style.opacity='0';
+  setTimeout(function(){if(_pl.parentNode)_pl.parentNode.removeChild(_pl);},350);
+}
 function initApp(){
-  var _pl=document.getElementById('pre-load');if(_pl){setTimeout(function(){_pl.style.transition='opacity 0.4s';_pl.style.opacity='0';setTimeout(function(){_pl.remove();},400);},1200);}
+  // onerror FIRST — catches any crash in render() and shows it on screen
+  window.onerror=function(msg,src,line,col,err){
+    removeSplash();
+    var el=document.getElementById('screen');
+    if(el){
+      el.innerHTML='<div style="padding:40px 24px;text-align:center;color:#fff">'
+        +'<div style="font-size:2rem;margin-bottom:12px">⚠️</div>'
+        +'<div style="font-size:0.95rem;font-weight:700;margin-bottom:8px">App crashed on load</div>'
+        +'<div style="font-size:0.75rem;color:#aaa;margin-bottom:6px;word-break:break-all">'+msg+'</div>'
+        +'<div style="font-size:0.7rem;color:#666;margin-bottom:24px">Line '+line+' Col '+col+'</div>'
+        +'<button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;padding:14px 32px;font-weight:700;font-size:1rem;color:#fff;cursor:pointer">Reload App</button></div>';
+    }
+    return false;
+  };
+  // Nuclear fallback — loading screen ALWAYS removed within 3s no matter what
+  setTimeout(removeSplash, 3000);
   // Load saved personalised block (overwrites default WK if present)
   try{
     var savedBlock=localStorage.getItem('fitos_generated_block');
@@ -8062,8 +8084,12 @@ function initApp(){
     }
   }catch(e){}
   checkDayReset();
-  render();
-  window.APP_VERSION='v88';
+  try{render();}catch(renderErr){
+    window.onerror(renderErr.message,'render',0,0,renderErr);
+  }
+  // Remove splash after render (smooth, fast)
+  setTimeout(removeSplash, 800);
+  window.APP_VERSION='v89';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8074,20 +8100,12 @@ function initApp(){
       panel.style.maxHeight=Math.round(vvh*0.97)+'px';
       var overlay=document.querySelector('.food-panel-overlay');
       if(overlay){overlay.style.height=vvh+'px';overlay.style.top=vvTop+'px';}
-      // Scroll input into view after keyboard finishes animating
       setTimeout(function(){
         var inp=document.querySelector('.food-search-input');
         if(inp)inp.scrollIntoView({block:'nearest',behavior:'smooth'});
       },100);
     });
   }
-window.onerror=function(msg,src,line,col,err){
-  var el=document.getElementById('screen');
-  if(el&&el.innerHTML.length<200){
-    el.innerHTML='<div style="padding:40px 24px;text-align:center">'+'<div style="font-size:0.9rem;font-weight:700;margin-bottom:8px">Something crashed</div>'+'<div style="font-size:0.75rem;color:#888;margin-bottom:24px">'+msg+'</div>'+'<button onclick="location.reload()" style="background:#00E87A;border:none;border-radius:12px;padding:14px 32px;font-weight:700;font-size:1rem;cursor:pointer">Reload App</button></div>';
-  }
-  return false;
-};
 // Register SW — caches app shell, auto-updates on close+reopen
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(function(reg){
