@@ -539,7 +539,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 </style>
 </head>
 <body>
-<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v84 loading...</div></div><div id="app">
+<div id="pre-load" style="position:fixed;inset:0;background:#1D9E75;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif"><div style="font-size:2rem;font-weight:900;margin-bottom:8px">FitOS</div><div style="font-size:0.9rem;opacity:0.8">v86 loading...</div></div><div id="app">
   <div class="screen" id="screen"></div>
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
@@ -2458,6 +2458,7 @@ let S={
   checkinDispatch: '',
   checkinReview: null,
   checkinReviewLoading: false,
+  programOverrides: loadJSON('fitos_prog_overrides',null),
 
   // Gleam scan
   showGleam: false,
@@ -2509,7 +2510,18 @@ function saveMeal(){localStorage.setItem('fitos_meal_checked',JSON.stringify([..
 function getWorkoutDay(d){var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');if(sw[d]&&WK_DAY_LIBRARY[sw[d]])return WK_DAY_LIBRARY[sw[d]];var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');if(cd[d]&&WK_DAY_LIBRARY[cd[d]])return WK_DAY_LIBRARY[cd[d]];return WK[d]||null;}
 function getAllDays(){var cd=JSON.parse(localStorage.getItem('fitos_custom_days')||'{}');var all=Object.keys(WK).concat(Object.keys(cd));return all.filter(function(v,i,a){return a.indexOf(v)===i;}).sort();}
 function getSessionExercises(){var d=getWorkoutDay(S.day);if(!d)return[];return d.exercises.concat((S.addedExercises&&S.addedExercises[S.day])||[]);}
-function curEx(){var k=S.day+'_'+S.exIdx;return(S.exSwaps&&S.exSwaps[k])||getSessionExercises()[S.exIdx];}
+function curEx(){
+  var k=S.day+'_'+S.exIdx;
+  if(S.exSwaps&&S.exSwaps[k]) return S.exSwaps[k];
+  var base=getSessionExercises()[S.exIdx];
+  if(!base) return base;
+  var ov=S.programOverrides;
+  if(ov&&ov.swaps&&ov.swaps[S.day]&&ov.swaps[S.day][base.id]){
+    var sw=ov.swaps[S.day][base.id];
+    return Object.assign({},sw,{_subbedFrom:base.name,_coachSwap:true});
+  }
+  return base;
+}
 function totalEx(){return getSessionExercises().length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
 function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
@@ -3155,6 +3167,38 @@ function renderPWABanner(){
     '<button onclick="dismissPWA()" style="background:transparent;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 6px;flex-shrink:0">×</button>'+
   '</div>';
 }
+function renderCoachAdjustments(){
+  var ov=S.programOverrides;
+  if(!ov||!ov.adjustmentLog||!ov.adjustmentLog.length) return '';
+  var items=ov.adjustmentLog.map(function(a){
+    return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.83rem;line-height:1.45">'
+      +'<span style="font-size:1rem;flex-shrink:0">'+a.e+'</span>'
+      +'<span style="color:var(--text)">'+a.t+'</span>'
+      +'</div>';
+  }).join('');
+  var factors='';
+  if(ov.loadFactor&&ov.loadFactor<1){
+    factors+='<span style="background:rgba(240,100,50,0.15);border:1px solid rgba(240,100,50,0.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;font-weight:700;color:#f06432;margin-right:6px">\u25bc Load '+Math.round(ov.loadFactor*100)+'%</span>';
+  }
+  if(ov.volumeFactor&&ov.volumeFactor<1){
+    factors+='<span style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;font-weight:700;color:var(--amber);margin-right:6px">\u25bc Volume '+Math.round(ov.volumeFactor*100)+'%</span>';
+  }
+  var swapCount=Object.values(ov.swaps||{}).reduce(function(a,v){return a+Object.keys(v).length;},0);
+  if(swapCount>0){
+    factors+='<span style="background:rgba(100,180,255,0.12);border:1px solid rgba(100,180,255,0.25);border-radius:6px;padding:3px 9px;font-size:0.72rem;font-weight:700;color:#64b4ff">\u21c4 '+swapCount+' swap'+(swapCount>1?'s':'')+'</span>';
+  }
+  return '<div style="margin:0 16px 12px;background:rgba(29,158,117,0.07);border:1px solid rgba(29,158,117,0.3);border-radius:14px;padding:14px 16px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700">\ud83d\udd27 Coach adjusted your next week</div>'
+    +(factors?'<div>'+factors+'</div>':'')
+    +'</div>'
+    +items
+    +'<div style="margin-top:10px;font-size:0.72rem;color:var(--muted)">These changes apply to Week '+(ov.expiresWeek||((S.week||1)+1))+' automatically. '
+    +'<button onclick="S.programOverrides=null;localStorage.removeItem(\'fitos_prog_overrides\');render()" '
+    +'style="background:none;border:none;color:var(--muted);text-decoration:underline;font-size:0.72rem;cursor:pointer;padding:0">Clear adjustments</button></div>'
+    +'</div>';
+}
+
 function renderCheckinCTA(){
   var now=new Date();
   var isSunday=now.getDay()===0;
@@ -3284,6 +3328,23 @@ function renderToday(){
       <div style="font-size:0.78rem;color:var(--muted)">Tap to log your habits →</div>
     </div>
 
+    <!-- Active coach adjustments banner -->
+    ${(function(){
+      var ov=S.programOverrides;
+      if(!ov||!ov.adjustmentLog||!ov.adjustmentLog.length) return '';
+      if(ov.expiresWeek&&(S.week||1)>ov.expiresWeek){S.programOverrides=null;localStorage.removeItem('fitos_prog_overrides');return '';}
+      var swapCount=Object.values(ov.swaps||{}).reduce(function(a,v){return a+Object.keys(v).length;},0);
+      var b='';
+      if(ov.loadFactor&&ov.loadFactor<1) b+='<span style="background:rgba(240,100,50,0.15);border:1px solid rgba(240,100,50,0.3);border-radius:5px;padding:2px 7px;font-size:0.68rem;font-weight:700;color:#f06432;margin-right:4px">\u25bc Load</span>';
+      if(ov.volumeFactor&&ov.volumeFactor<1) b+='<span style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);border-radius:5px;padding:2px 7px;font-size:0.68rem;font-weight:700;color:var(--amber);margin-right:4px">\u25bc Volume</span>';
+      if(swapCount>0) b+='<span style="background:rgba(100,180,255,0.12);border:1px solid rgba(100,180,255,0.25);border-radius:5px;padding:2px 7px;font-size:0.68rem;font-weight:700;color:#64b4ff">\u21c4 '+swapCount+' swap'+(swapCount>1?'s':'')+'</span>';
+      return '<div style="margin:0 16px 10px;background:rgba(29,158,117,0.07);border:1px solid rgba(29,158,117,0.28);border-radius:12px;padding:12px 14px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div><div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--green);font-weight:700;margin-bottom:3px">\ud83d\udd27 Coach adjustments active</div>'
+        +'<div style="font-size:0.78rem;color:var(--text)">Week '+(ov.weekApplied||'?')+' check-in applied to your training</div></div>'
+        +(b?'<div>'+b+'</div>':'')
+        +'</div></div>';
+    })()}
     <!-- Weekly check-in CTA -->
     ${renderCheckinCTA()}
 ${renderWeekSummary()}
@@ -3538,6 +3599,21 @@ function renderWarmup(){
 </div>`;
 }
 
+function getAdjSets(ex){
+  var ov=S.programOverrides;
+  var vf=(ov&&ov.volumeFactor&&ov.volumeFactor<1)?ov.volumeFactor:1;
+  return vf<1?Math.max(1,Math.round(ex.sets*vf)):ex.sets;
+}
+function getAdjBadge(){
+  var ov=S.programOverrides;
+  if(!ov) return '';
+  var parts=[];
+  if(ov.loadFactor&&ov.loadFactor<1) parts.push('\u25bc Load '+Math.round(ov.loadFactor*100)+'%');
+  if(ov.volumeFactor&&ov.volumeFactor<1) parts.push('\u25bc Vol '+Math.round(ov.volumeFactor*100)+'%');
+  if(!parts.length) return '';
+  return '<span style="margin-left:8px;background:rgba(240,100,50,0.15);border:1px solid rgba(240,100,50,0.3);border-radius:5px;padding:2px 8px;font-size:0.67rem;font-weight:700;color:#f06432">'+parts.join(' \u00b7 ')+'</span>';
+}
+
 function renderWorkout(){
   const ex=curEx();
   const day=getWorkoutDay(S.day);
@@ -3555,7 +3631,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   <div class="ex-type-badge ${badgeClass(ex.type)}">${ex.type}</div>
   ${ex._subbedFrom?'<div style="font-size:0.68rem;color:var(--amber);margin-top:4px">\u21c4 Subbed in \u00b7 was '+ex._subbedFrom+'</div>':''}
   <div class="ex-name">${ex.name}</div>
-  <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
+  <div class="ex-target"><strong>${getAdjSets(ex)} sets × ${ex.lo}${ex.lo!==ex.hi?'--'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest${getAdjBadge()}</div>
 </div>
 <div class="demo-area">
   <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
@@ -4242,12 +4318,62 @@ function renderComplete(){
       <div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--blue)">${totalVol.toLocaleString()}</div><div style="font-size:0.72rem;color:var(--muted)">Volume (kg)</div></div>
     </div>
   </div>
-  <div class="card-title">Sunday Dispatch — paste this to Claude</div>
-  <div class="dispatch-box" id="dispatch-text">${dispatch}</div>
-  <button class="btn btn-outline" style="margin-bottom:10px" onclick="copyDispatch()">📋 Copy Dispatch</button>
+  <div id="session-review-wrap" style="margin-bottom:10px">
+    <button class="btn btn-green" style="width:100%;margin-bottom:8px" id="session-ai-btn" onclick="generateSessionReview()">🤖 Get AI Session Review</button>
+    <div id="session-review-output" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;margin-top:8px;color:var(--text)"></div>
+  </div>
   <button class="btn btn-green" onclick="goTrainHome()">← Back to Train</button>
 </div>`;
 }
+
+function generateSessionReview(){
+  var btn=document.getElementById('session-ai-btn');
+  var out=document.getElementById('session-review-output');
+  if(!btn||!out) return;
+  btn.disabled=true;
+  btn.textContent='Getting your review...';
+  var sess=S.lastSession||{};
+  var lines=[];
+  Object.entries(sess.sets||{}).forEach(function(entry){
+    var exId=entry[0]; var sets=entry[1];
+    if(!sets||!sets.length) return;
+    var exName=exId;
+    Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===exId)exName=e.name;});});
+    var setStr=sets.filter(Boolean).map(function(s){return s.weight+'kg\xd7'+s.reps;}).join(', ');
+    lines.push(exName+': '+setStr);
+  });
+  var p=S.profile||{};
+  var prompt='You are FitOS AI Coach, an elite Australian PT. Give a sharp, punchy post-session review.\n\n'
+    +'ATHLETE: '+(p.name||'Athlete')+' | '+(p.age||'?')+'yr | '+(p.weight||'?')+'kg\n'
+    +'GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+'\n'
+    +'INJURIES: '+(p.injuries&&p.injuries.length?p.injuries.join(', '):'None')+'\n'
+    +'SESSION: Day '+(sess.day||'?')+' — Week '+(sess.week||'?')+'\n\n'
+    +'WHAT THEY DID:\n'+(lines.length?lines.join('\n'):'No sets logged')+'\n\n'
+    +'Write a short post-session review with:\n'
+    +'💪 GOOD WORK (what they nailed)\n'
+    +'🎯 KEY FOCUS FOR NEXT SESSION (one specific cue or load target)\n'
+    +'🔄 RECOVERY TIP (practical, specific to what they just did)\n\n'
+    +'Tone: Australian PT energy, direct, no waffle. Max 150 words.';
+  fetch(FITOS_WORKER_URL,{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:400,system:buildCoachSystemPrompt(),messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    btn.style.display='none';
+    out.style.display='block';
+    if(data.content&&data.content[0]&&data.content[0].text){
+      out.textContent=data.content[0].text;
+    } else {
+      out.textContent='Could not get review right now. Try again shortly.';
+    }
+  }).catch(function(err){
+    btn.disabled=false;
+    btn.textContent='🤖 Get AI Session Review';
+    out.style.display='block';
+    out.textContent='Connection error. Check your internet and try again.';
+  });
+}
+
 
 function renderRestDay(){
   const configs={
@@ -6751,7 +6877,8 @@ function renderCheckin(){
       '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:10px">&#x1F3AF; Week '+weekNum+' Coach Review</div>'+
       '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;white-space:pre-wrap;font-size:0.84rem;color:var(--text);line-height:1.7">'+S.checkinReview+'</div>'+
       '<button class="btn btn-outline" style="margin-top:10px;margin-bottom:8px" onclick="S.checkinReview=null;render()">&#x1F504; Regenerate</button>'+
-    '</div>'
+    '</div>'+
+    renderCoachAdjustments()
   :'')+
 
   '<div style="height:30px"></div>'+
@@ -6759,12 +6886,166 @@ function renderCheckin(){
 }
 
 
-function generateCheckinReview(){
-  var key=localStorage.getItem('fitos_claude_key');
-  if(!key){
-    alert('Add your Claude API key in Settings to use the AI Coach Review.');
-    return;
+
+// ─── EXERCISE SWAP LIBRARY ────────────────────────────────────────────────────
+// Maps exercise IDs to safe substitutes, tagged by injury context keywords
+var SWAP_LIBRARY={
+  'bench':[
+    {ex:{id:'db-bench',name:'Dumbbell Flat Press',type:'Secondary compound',sets:3,lo:10,hi:12,rest:90,muscles:['Chest','Front Delt','Triceps'],cue:'Neutral or slight supination. 3-sec eccentric. Full pec stretch at bottom. No crash at top.',anim:'bench',yt:'dumbbell+flat+press+form+tutorial'},keys:['shoulder','impingement','pinch','AC','rotator','cuff','pec','chest']},
+    {ex:{id:'machine-press',name:'Machine Chest Press',type:'Secondary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Chest','Front Delt','Triceps'],cue:'Fixed path protects shoulder. Set seat so handles start at chest. Full extension without locking.',anim:'bench',yt:'machine+chest+press+form'},keys:['shoulder','wrist','elbow','pain']}
+  ],
+  'squat':[
+    {ex:{id:'hack-squat',name:'Hack Squat Machine',type:'Primary compound',sets:4,lo:8,hi:10,rest:120,muscles:['Quads','Glutes'],cue:'Feet shoulder width. Knees track toes. No butt wink. Much safer for the lower back than free bar.',anim:'squat',yt:'hack+squat+machine+form+tutorial'},keys:['back','lower back','spine','disc','lumbar','sciatica']},
+    {ex:{id:'leg-press',name:'Leg Press (High Foot)',type:'Secondary compound',sets:4,lo:10,hi:12,rest:120,muscles:['Quads','Glutes'],cue:'High foot = more glute. Do NOT let lower back curl off pad at bottom.',anim:'leg-press',yt:'leg+press+high+foot+form'},keys:['back','lower back','knee','pain','hip']}
+  ],
+  'incline-db':[
+    {ex:{id:'incline-machine',name:'Incline Machine Press',type:'Secondary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Upper Chest','Front Delt'],cue:'Set incline 30-45\xb0. Full stretch, no slamming weight stack.',anim:'bench',yt:'incline+chest+press+machine+form'},keys:['shoulder','wrist','elbow','pain']}
+  ],
+  'bss':[
+    {ex:{id:'split-squat',name:'Split Squat (DB)',type:'Unilateral',sets:3,lo:10,hi:12,rest:90,muscles:['Quads','Glutes'],cue:'REAR FOOT FLAT (not elevated). Same movement, less hip flexor stretch. Safer for tight hips.',anim:'split-squat',yt:'dumbbell+split+squat+form+tutorial'},keys:['knee','hip','back','groin','hip flexor']}
+  ],
+  'sl-rdl':[
+    {ex:{id:'pull-through',name:'Cable Pull-Through',type:'Hip hinge rehab',sets:3,lo:15,hi:15,rest:90,muscles:['Glutes','Hamstrings'],cue:'Push hips BACK. Feel hamstring stretch. Drive forward. Zero spinal load.',anim:'pull-through',yt:'cable+pull+through+form'},keys:['back','hamstring','knee','pain']}
+  ],
+  'pull-up':[
+    {ex:{id:'lat-pulldown',name:'Lat Pulldown (Machine)',type:'Primary compound',sets:4,lo:10,hi:12,rest:120,muscles:['Lats','Biceps'],cue:'Pronated grip. Drive elbows to hips. Chest tall. Same pattern as pull-up, less load.',anim:'pull',yt:'lat+pulldown+form+tutorial'},keys:['elbow','shoulder','wrist','pain']}
+  ],
+  'cs-row':[
+    {ex:{id:'machine-row',name:'Seated Machine Row',type:'Secondary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Mid Back','Rhomboids'],cue:'Chest against pad. Pull to lower chest. Fixed path = lumbar safe.',anim:'row',yt:'seated+machine+row+form'},keys:['back','lower back','lumbar','elbow']}
+  ]
+};
+
+function getSwapFor(exId,injuryText){
+  var txt=(injuryText||'').toLowerCase();
+  var opts=SWAP_LIBRARY[exId];
+  if(!opts||!opts.length) return null;
+  // Score each option by keyword matches
+  var best=null,bestScore=0;
+  opts.forEach(function(opt){
+    var score=opt.keys.filter(function(k){return txt.indexOf(k)>-1;}).length;
+    if(score>bestScore){bestScore=score;best=opt.ex;}
+  });
+  return bestScore>0?best:opts[0].ex; // fallback to first option if any injury text present
+}
+
+// ─── RULE-BASED ADJUSTMENTS ───────────────────────────────────────────────────
+function getRuleAdjustments(c){
+  var log=[];
+  var ov={swaps:{},injuryNotes:{},volumeFactor:1.0,loadFactor:1.0};
+
+  // Deload trigger: energy ≤3 OR soreness ≥8 + energy ≤5
+  if(c.energy<=3){
+    ov.loadFactor=0.6;ov.volumeFactor=0.75;
+    log.push({e:'⚡',t:'DELOAD triggered — energy was '+c.energy+'/10. All loads dropped 40%, volume cut 25% for the coming week.'});
+  } else if(c.soreness>=8&&c.energy<=5){
+    ov.loadFactor=0.8;ov.volumeFactor=0.8;
+    log.push({e:'⚡',t:'Recovery week: soreness '+c.soreness+'/10 + energy '+c.energy+'/10. Loads at 80%, volume cut 20%.'});
+  } else if(c.energy<=5){
+    ov.volumeFactor=0.85;
+    log.push({e:'⬇️',t:'Volume trimmed 15% — energy was only '+c.energy+'/10 this week.'});
   }
+
+  // High stress
+  if(c.stressLevel>=8&&ov.volumeFactor===1.0){
+    ov.volumeFactor=0.85;
+    log.push({e:'\u{1f9e0}',t:'Stress load is high ('+c.stressLevel+'/10) — volume dialled back 15%.'});
+  }
+
+  // Low sessions — flag only
+  if(c.sessionsCompleted<=1){
+    log.push({e:'\u{1f4cb}',t:'Only '+c.sessionsCompleted+' session logged. If life is busy, we can simplify the split — ask your coach.'});
+  }
+
+  // PRs logged — note for next session
+  if(c.prs&&c.prs.trim()){
+    log.push({e:'\u{1f3c6}',t:'PRs logged ('+c.prs.trim()+') — load progression accelerated for those lifts next session.'});
+  }
+
+  return {ov:ov,log:log};
+}
+
+// ─── COACH ADJUSTMENT ENGINE ──────────────────────────────────────────────────
+function applyCheckinAdjustments(checkinData,reviewText){
+  var rule=getRuleAdjustments(checkinData);
+  var ov=rule.ov;
+  var log=rule.log;
+
+  // Build injury context from notes + wentWell/toImprove
+  var injuryText='';
+  var noteFields=['sleep','soreness','energy','sessions','overload','sets','protein','calories','meals','stress','hydration'];
+  noteFields.forEach(function(f){var v=checkinData['notes_'+f];if(v&&v.trim())injuryText+=' '+v;});
+  if(checkinData.wentWell) injuryText+=' '+checkinData.wentWell;
+  if(checkinData.toImprove) injuryText+=' '+checkinData.toImprove;
+  injuryText=injuryText.toLowerCase();
+
+  // Apply SWAP_LIBRARY matches for any injury keywords found
+  var injuryKeywords=['pain','pinch','tight','stiff','sore','tweak','hurt','strain','ache','uncomfortable','discomfort','injury','injured','aggravate'];
+  var hasInjuryMention=injuryKeywords.some(function(k){return injuryText.indexOf(k)>-1;});
+
+  if(hasInjuryMention){
+    Object.keys(SWAP_LIBRARY).forEach(function(exId){
+      var swap=getSwapFor(exId,injuryText);
+      if(swap){
+        // Find which day(s) this exercise appears in
+        Object.entries(WK).forEach(function(entry){
+          var dayId=entry[0];var dayData=entry[1];
+          if(dayData.exercises.some(function(e){return e.id===exId;})){
+            if(!ov.swaps[dayId]) ov.swaps[dayId]={};
+            ov.swaps[dayId][exId]=swap;
+            log.push({e:'✏️',t:dayData.exercises.find(function(e){return e.id===exId;}).name+' → '+swap.name+' (pain/discomfort flagged in check-in notes)'});
+            if(!ov.injuryNotes) ov.injuryNotes={};
+            ov.injuryNotes[exId]='⚠️ Coach flagged: check notes from Week '+(S.week||1)+' check-in';
+          }
+        });
+      }
+    });
+  }
+
+  // Now make an AI call for nuanced structured adjustments
+  var prompt='Based on this weekly check-in, return ONLY a valid JSON object (no markdown, no explanation).\n\n'
+    +'CHECK-IN DATA:\n'
+    +'Energy: '+checkinData.energy+'/10 | Sleep: '+checkinData.sleepHrs+'hrs | Soreness: '+checkinData.soreness+'/10\n'
+    +'Stress: '+checkinData.stressLevel+'/10 | Sessions: '+checkinData.sessionsCompleted+' | PRs: '+(checkinData.prs||'none')+'\n'
+    +'Overload achieved: '+checkinData.overloadAchieved+' | Sets missed: '+checkinData.setsMissed+'\n'
+    +'Notes from athlete: '+injuryText.substring(0,400)+'\n\n'
+    +'AVAILABLE EXERCISE IDs: '+Object.values(WK).flatMap(function(d){return d.exercises.map(function(e){return e.id;});}).join(', ')+'\n\n'
+    +'Return ONLY this JSON structure (fill arrays with 0-3 items based on what is genuinely warranted — empty arrays if nothing needed):\n'
+    +'{"ai_log":["short coach message about a specific adjustment"],"injury_flags":{"exerciseId":"brief warning for athlete"},"load_note":"one sentence on intensity for next week or empty string"}\n'
+    +'Exercise IDs must match the available list exactly. Be conservative — only flag real issues.';
+
+  fetch(FITOS_WORKER_URL,{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:400,system:'You are a precise fitness coaching assistant. Return only valid JSON as instructed.',messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.content&&data.content[0]&&data.content[0].text){
+      try{
+        var txt=data.content[0].text.trim().replace(/^```[a-z]*\n?/,'').replace(/```$/,'');
+        var ai=JSON.parse(txt);
+        if(ai.ai_log&&Array.isArray(ai.ai_log)) ai.ai_log.forEach(function(msg){if(msg&&msg.trim())log.push({e:'\u{1f916}',t:msg.trim()});});
+        if(ai.injury_flags){Object.assign(ov.injuryNotes=ov.injuryNotes||{},ai.injury_flags);}
+        if(ai.load_note&&ai.load_note.trim()) log.push({e:'\u{1f3af}',t:ai.load_note.trim()});
+      }catch(e){}
+    }
+    // Save final overrides
+    ov.weekApplied=S.week||1;
+    ov.expiresWeek=(S.week||1)+1;
+    ov.adjustmentLog=log;
+    S.programOverrides=ov;
+    localStorage.setItem('fitos_prog_overrides',JSON.stringify(ov));
+    render();
+  }).catch(function(){
+    // Save rule-based overrides even if AI call fails
+    ov.weekApplied=S.week||1;
+    ov.expiresWeek=(S.week||1)+1;
+    ov.adjustmentLog=log;
+    S.programOverrides=ov;
+    localStorage.setItem('fitos_prog_overrides',JSON.stringify(ov));
+    render();
+  });
+}
+
+function generateCheckinReview(){
   const c=S.checkin;
   const p=S.profile;
   const weekNum=S.week||1;
@@ -6846,8 +7127,9 @@ function generateCheckinReview(){
     S.checkinReviewLoading=false;
     if(data.content&&data.content[0]&&data.content[0].text){
       S.checkinReview=data.content[0].text;
+      applyCheckinAdjustments(c,S.checkinReview);
     } else {
-      S.checkinReview='Error getting review. Check your API key in Settings and try again.';
+      S.checkinReview='Hmm, something went wrong getting your review. Check your internet and try again.';
     }
     render();
     setTimeout(function(){
@@ -6856,7 +7138,7 @@ function generateCheckinReview(){
     },150);
   }).catch(function(err){
     S.checkinReviewLoading=false;
-    S.checkinReview='Connection error: '+err.message+'. Check your internet and API key.';
+    S.checkinReview='Connection error: '+err.message+'. Check your internet and try again.';
     render();
   });
 }
@@ -7781,7 +8063,7 @@ function initApp(){
   }catch(e){}
   checkDayReset();
   render();
-  window.APP_VERSION='v84';
+  window.APP_VERSION='v86';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -7963,8 +8245,6 @@ async function sendCoachMessage(){
   refreshCoach();
   setTimeout(function(){var el=document.getElementById('coach-msgs');if(el)el.scrollTop=el.scrollHeight;},50);
 
-  var apiKey=getClaudeKey();
-
   try{
     var msgs=S.coachMessages.slice(-10).map(function(m){return{role:m.role,content:m.content};});
     var resp=await fetch(FITOS_WORKER_URL,{
@@ -8022,7 +8302,6 @@ function renderCoach(){
         '<div style="font-size:1rem;font-weight:700">'+name+'</div>'+
         '<div style="font-size:0.72rem;color:var(--green)">Your AI Personal Trainer</div>'+
       '</div>'+
-      '<button onclick="setApiKey()" style="background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);padding:6px 10px;font-size:0.72rem;cursor:pointer">⚙️</button>'+
       '<button onclick="closeCoach()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 10px;font-size:0.85rem;cursor:pointer;margin-left:6px">✕</button>'+
     '</div>'+
     '<div class="coach-messages" id="coach-msgs">'+
