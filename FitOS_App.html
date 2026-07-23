@@ -4640,8 +4640,189 @@ function renderComplete(){
     <button class="btn btn-green" style="width:100%;margin-bottom:8px" id="session-ai-btn" onclick="generateSessionReview()">🤖 Get AI Session Review</button>
     <div id="session-review-output" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;margin-top:8px;color:var(--text)"></div>
   </div>
+  <button class="btn" style="width:100%;margin-bottom:8px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;font-weight:700" onclick="shareWorkoutCard()">📲 Share to Instagram Story</button>
   <button class="btn btn-green" onclick="goTrainHome()">← Back to Train</button>
 </div>`;
+}
+
+function shareWorkoutCard(){
+  var sess=S.gymHistory[S.gymHistory.length-1];
+  if(!sess) return;
+
+  // ── build exercise lines ─────────────────────────────────────────────────
+  var exLines=[];
+  var dayData=WK[sess.day]||{exercises:[]};
+  dayData.exercises.forEach(function(ex){
+    var sets=(sess.sets[ex.id]||[]).filter(Boolean);
+    if(!sets.length) return;
+    // find best set
+    var best=sets.reduce(function(b,s){return(!b||s.weight>b.weight||(s.weight===b.weight&&s.reps>b.reps))?s:b;},null);
+    exLines.push({name:ex.name,sets:sets.length,best:best?best.weight+'kg × '+best.reps+'reps':''});
+  });
+
+  var totalSets=Object.values(sess.sets).reduce(function(a,s){return a+s.length;},0);
+  var totalVol=Object.values(sess.sets).reduce(function(a,s){return a+s.reduce(function(b,x){return b+(x?x.weight*x.reps:0);},0);},0);
+  var userName=(S.profile&&S.profile.name)||'Athlete';
+  var dateLabel=new Date(sess.date).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+  var dayName=dayData.name||('Day '+sess.day);
+  var wkLabel='Week '+sess.week+' · Block '+(S.macroBlock||1);
+
+  // ── draw canvas ─────────────────────────────────────────────────────────
+  var C=document.createElement('canvas');
+  C.width=1080; C.height=1920;
+  var ctx=C.getContext('2d');
+
+  // background
+  ctx.fillStyle='#0d0d0d';
+  ctx.fillRect(0,0,1080,1920);
+
+  // top gradient bar
+  var gTop=ctx.createLinearGradient(0,0,1080,0);
+  gTop.addColorStop(0,'#1D9E75');
+  gTop.addColorStop(1,'#0d5c42');
+  ctx.fillStyle=gTop;
+  ctx.fillRect(0,0,1080,8);
+
+  // bottom gradient bar
+  ctx.fillStyle=gTop;
+  ctx.fillRect(0,1912,1080,8);
+
+  // ── FitOS logo area ──
+  ctx.font='bold 56px -apple-system,sans-serif';
+  ctx.fillStyle='#1D9E75';
+  ctx.fillText('FitOS',72,110);
+  ctx.font='400 32px -apple-system,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.38)';
+  ctx.fillText('AI Personal Trainer',72,156);
+
+  // ── "Session Complete" heading ──
+  ctx.font='bold 88px -apple-system,sans-serif';
+  ctx.fillStyle='#ffffff';
+  ctx.fillText('Session',72,310);
+  ctx.fillStyle='#1D9E75';
+  ctx.fillText('Complete 🔥',72,408);
+
+  // ── athlete + day info ──
+  ctx.font='500 38px -apple-system,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillText(userName+' · '+dayName+' · '+wkLabel,72,490);
+  ctx.font='34px -apple-system,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  ctx.fillText(dateLabel,72,538);
+
+  // ── divider ──
+  ctx.strokeStyle='rgba(29,158,117,0.35)';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(72,575);
+  ctx.lineTo(1008,575);
+  ctx.stroke();
+
+  // ── stats boxes ──
+  function statBox(x,y,w,h,val,label){
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    roundRect(ctx,x,y,w,h,20);
+    ctx.fill();
+    ctx.strokeStyle='rgba(29,158,117,0.3)';
+    ctx.lineWidth=2;
+    roundRect(ctx,x,y,w,h,20);
+    ctx.stroke();
+    ctx.font='bold 64px -apple-system,sans-serif';
+    ctx.fillStyle='#1D9E75';
+    ctx.textAlign='center';
+    ctx.fillText(val,x+w/2,y+80);
+    ctx.font='28px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText(label,x+w/2,y+118);
+    ctx.textAlign='left';
+  }
+  statBox(72,600,448,148,String(totalSets),'Sets logged');
+  statBox(560,600,448,148,totalVol>=1000?(totalVol/1000).toFixed(1)+'t':totalVol.toLocaleString()+'kg','Total volume');
+
+  // ── exercise list ──
+  ctx.font='bold 40px -apple-system,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.fillText('What went down:',72,840);
+
+  var yEx=900;
+  var maxLines=Math.min(exLines.length,8);
+  for(var i=0;i<maxLines;i++){
+    var ex=exLines[i];
+    // row bg
+    ctx.fillStyle=i%2===0?'rgba(255,255,255,0.04)':'transparent';
+    ctx.fillRect(60,yEx-44,960,66);
+    // exercise name
+    ctx.font='500 36px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.88)';
+    var shortName=ex.name.length>30?ex.name.slice(0,28)+'…':ex.name;
+    ctx.fillText(shortName,80,yEx);
+    // sets badge + best
+    ctx.font='32px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(29,158,117,0.9)';
+    ctx.textAlign='right';
+    ctx.fillText(ex.best||ex.sets+' sets',1000,yEx);
+    ctx.textAlign='left';
+    yEx+=76;
+  }
+  if(exLines.length>maxLines){
+    ctx.font='30px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.fillText('+ '+(exLines.length-maxLines)+' more exercises',80,yEx+10);
+    yEx+=50;
+  }
+
+  // ── motivational strip ──
+  var motives=['No reps left behind.','Progress. Every session.','Consistent beats perfect.','The body follows the mind.','Show up. Do the work.'];
+  var motive=motives[(totalSets+sess.week)%motives.length];
+  var stripY=1740;
+  var gStrip=ctx.createLinearGradient(0,stripY,1080,stripY);
+  gStrip.addColorStop(0,'rgba(29,158,117,0.18)');
+  gStrip.addColorStop(1,'rgba(29,158,117,0.04)');
+  ctx.fillStyle=gStrip;
+  ctx.fillRect(0,stripY,1080,120);
+  ctx.font='italic 44px Georgia,serif';
+  ctx.fillStyle='rgba(255,255,255,0.65)';
+  ctx.textAlign='center';
+  ctx.fillText('"'+motive+'"',540,stripY+72);
+  ctx.textAlign='left';
+
+  // ── branding footer ──
+  ctx.font='32px -apple-system,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.fillText('fitos.app · Your AI Personal Trainer',72,1888);
+
+  // ── helper: rounded rect ────────────────────────────────────────────────
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y);
+    c.lineTo(x+w-r,y);
+    c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r);
+    c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h);
+    c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r);
+    c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+
+  // ── share or download ────────────────────────────────────────────────────
+  C.toBlob(function(blob){
+    var file=new File([blob],'fitos-session-day'+sess.day+'-week'+sess.week+'.png',{type:'image/png'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({
+        files:[file],
+        title:'FitOS — Session Complete',
+        text:'Day '+sess.day+' done! Week '+sess.week+' in the books. 💪 #FitOS #GymLife'
+      }).catch(function(){});
+    } else {
+      // Fallback — download the image
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='fitos-session-day'+sess.day+'-week'+sess.week+'.png';
+      a.click();
+    }
+  },'image/png');
 }
 
 function generateSessionReview(){
@@ -8670,7 +8851,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v101';
+  window.APP_VERSION='v102';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
