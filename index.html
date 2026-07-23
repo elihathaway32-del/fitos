@@ -259,7 +259,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .hist-swipe-wrap:last-child{margin-bottom:0}
 .set-swipe-wrap{position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px;}
 .set-swipe-wrap .set-row{margin-bottom:0;}
-.set-del-zone{position:absolute;right:0;top:0;bottom:0;width:90px;display:flex;align-items:center;justify-content:center;background:var(--red);font-size:0.78rem;font-weight:700;color:#fff;gap:4px;pointer-events:none;}
+.set-del-zone{display:none}
 /* hist-delete-zone removed — velocity swipe replaces it */
 .hist-item{position:relative;background:var(--s1);transition:transform 0.22s cubic-bezier(.22,1,.36,1),opacity .2s;border-radius:12px;}
 .hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
@@ -1353,10 +1353,8 @@ function buildBlock(p,progData){
       var pd=progData?progData[ex.id]:null;
       var startWt=null;
       if(pd&&pd.sessions&&pd.sessions.length>0){
-        startWt=pd.last;
-        if(pd.trend==='up') startWt=pd.last+2.5;
-        else if(pd.trend==='flat'&&pd.sessions.length>=2) startWt=pd.last+1.25;
-        startWt=Math.round(startWt*4)/4;
+        // Use most recent top set as block start point (no trend projection across blocks)
+        startWt=Math.round(pd.last*4)/4;
       }
       var exStalled=!!(pd&&pd.trend==='down'&&(pd.sessions||[]).length>=3);
       exercises.push({
@@ -3679,7 +3677,6 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
     const isEditing=S.editingSet&&S.editingSet.exId===ex.id&&S.editingSet.idx===i;
     const editable=!done||isEditing;
     return`<div class="set-swipe-wrap" id="ssw-${ex.id}-${i}">
-      <div class="set-del-zone">🗑 Delete</div>
       <div class="set-row" id="ssi-${ex.id}-${i}"
         ontouchstart="swipeSetStart(event,'${ex.id}',${i})"
         ontouchmove="swipeSetMove(event,'${ex.id}',${i})"
@@ -4683,7 +4680,7 @@ function getPersonalisedGrocery(){
     {id:'g18',name:'Cherry tomatoes',detail:'250g punnet'},
     isAthlete||isBuild?{id:'g18b',name:'Asparagus',detail:'1 bunch — folate, recovery'}:null
   ].filter(Boolean);
-  var isAthlete=goal.match(/athlet|hyrox/);
+  // isAthlete already declared above
 
   var fats=noNuts?[
     {id:'g19',name:'Avocado',detail:'3–4 — healthy fat, fibre'},
@@ -4935,14 +4932,14 @@ function renderGrocerySection(){
   var pctVal=total?Math.round(ticked/total*100):0;
   var rows=ACTIVE_GROCERY.map(function(cat){
     var items=cat.items.map(function(item,idx){
-      var key=cat.name+'_'+idx;
+      var key=(cat.name||cat.cat||'cat')+'_'+idx;
       var done=S.shopTicked.has(key);
       return '<div class="shop-item'+(done?' ticked':'')+'" onclick="toggleShop(\''+key+'\')">'  
         +'<div class="shop-check">'+(done?'✓':'')+'</div>'
         +'<div style="flex:1"><div class="shop-name">'+item.name+'</div>'+(item.detail?'<div class="shop-detail">'+item.detail+'</div>':'')+'</div>'
         +'</div>';
     }).join('');
-    return '<div class="shop-category"><div class="shop-cat-title">'+cat.name+'</div>'+items+'</div>';
+    return '<div class="shop-category"><div class="shop-cat-title">'+(cat.name||cat.cat||'')+'</div>'+items+'</div>';
   }).join('');
   return '<div style="margin-top:8px">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px">'
@@ -5105,7 +5102,7 @@ function getPersonalisedHabits(){
 
   // Fat loss / recomp extras
   if(isFatLoss||isRecomp){
-    habits.push({id:'h-deficit',icon:'📊',name:'Stay in your calorie target — '+T.calories+'kcal',detail:'Deficit is already engineered. No need to go lower — just hit the number.'});
+    habits.push({id:'h-deficit',icon:'📊',name:'Stay in your calorie target — '+T.cal+'kcal',detail:'Deficit is already engineered. No need to go lower — just hit the number.'});
     habits.push({id:'h-steps',icon:'👟',name:'Hit '+(Math.round(S.stepsGoal/1000))+'K steps',detail:'NEAT accounts for 300–600kcal/day. Walk it in. It compounds.'});
   }
   // Build extras
@@ -7615,9 +7612,27 @@ function buildCoachSystemPrompt(){
   var injuries=(p.injuries&&p.injuries.length)?p.injuries.join(', '):'None';
   var lastCI=S.checkinHistory&&S.checkinHistory.length?S.checkinHistory[S.checkinHistory.length-1]:null;
   var coachName=typeof getCoachName==='function'?getCoachName():'Coach Alex';
-  var styleMap={tough:'Direct, no-nonsense, push them hard, minimal fluff.',supportive:'Warm, encouraging, celebrate every win.',science:'Evidence-based, cite mechanisms, explain the why.',hype:'High energy, pump them up, big celebration energy.'};
-  var style=styleMap[p.coachStyle]||styleMap.supportive;
-  var prompt='You are '+coachName+', an elite AI personal trainer with Australian PT energy. '+style+'\n\n';
+  var styleMap={
+    tough:'Be direct and no-nonsense. Challenge them hard, push through excuses, celebrate results over effort. Australian PT energy — blunt but caring.',
+    balanced:'Mix real talk with genuine encouragement. Call out what needs work but celebrate every win. Matey, warm, professional.',
+    supportive:'Be warm, patient and deeply empathetic. Celebrate every win no matter how small. Normalise struggle. Make them feel completely safe to be honest about setbacks.',
+    science:'Lead with evidence and mechanisms. Explain the WHY behind every recommendation. Data-driven, precise, minimal fluff — they want to understand, not just be told.',
+    hype:'Maximum energy at all times. Make every rep feel epic. Big celebrations, relentless positivity.'
+  };
+  // Auto-default: beginners and weight-loss journeys get supportive by default
+  var autoStyle=p.coachStyle;
+  if(!autoStyle){
+    if(p.experience==='beginner'||p.experience==='never') autoStyle='supportive';
+    else autoStyle='balanced';
+  }
+  var style=styleMap[autoStyle]||styleMap.balanced;
+  var prompt='You are '+coachName+', an elite AI personal trainer. '+style+'\n\n';
+  // Gender sensitivity
+  if(p.gender==='female') prompt+='IMPORTANT: Use empowering, inclusive language. Focus on strength, capability and health — never body-shame or use language that reduces the athlete to their appearance.\n';
+  // Goal sensitivity
+  if(p.goal&&/lose|fat|weight/i.test(p.goal)&&!/muscle|strength/i.test(p.goal)) prompt+='IMPORTANT: This is a weight loss journey — emotionally loaded for many people. Lead with health and energy gains, use scale as one tool among many, never weaponise the number.\n';
+  // Beginner sensitivity
+  if(p.experience==='beginner'||p.experience==='never') prompt+='IMPORTANT: They are new to training. Explain movements simply. Normalise soreness and struggle. Celebrate showing up consistently above all else.\n';
   prompt+='ATHLETE: '+(p.name||'Champ')+' | '+(p.age||'?')+'yr '+(p.gender||'?')+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg\n';
   prompt+='GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+' | '+(p.daysPerWeek||'?')+' days/wk\n';
   prompt+='INJURIES: '+injuries+'\n';
@@ -8022,6 +8037,20 @@ function renderSettings(){
       '</div>'+
       '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
 
+        '<div style="background:var(--s2);border-radius:14px;padding:16px;margin-bottom:0">'+
+          '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Coaching Style</div>'+
+          '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px">How do you want Coach to speak to you?</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+            [['supportive','🤗 Supportive','Warm & encouraging'],['balanced','⚖️ Balanced','Real talk + support'],['tough','💪 Tough Love','No sugarcoating'],['science','🔬 Scientific','Evidence-based']].map(function(opt){
+              var active=(S.profile&&S.profile.coachStyle===opt[0])||(!S.profile.coachStyle&&opt[0]==='balanced');
+              return '<button onclick="S.profile.coachStyle=\''+opt[0]+'\';localStorage.setItem(\'fitos_profile\',JSON.stringify(S.profile));render()" style="background:'+(active?'var(--green)':'var(--s3)')+';border:'+(active?'none':'1px solid var(--border)')+';border-radius:10px;padding:10px 8px;color:'+(active?'#fff':'var(--text)')+';cursor:pointer;text-align:center">'+
+                '<div style="font-size:1.1rem">'+opt[1].split(' ')[0]+'</div>'+
+                '<div style="font-size:0.72rem;font-weight:700;margin-top:2px">'+opt[1].split(' ').slice(1).join(' ')+'</div>'+
+                '<div style="font-size:0.62rem;color:'+(active?'rgba(255,255,255,0.8)':'var(--muted)')+'">'+opt[2]+'</div>'+
+              '</button>';
+            }).join('')+
+          '</div>'+
+        '</div>'+
         renderThemePicker()+'\n'+
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
           '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Data Backup</div>'+
@@ -8288,7 +8317,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v94';
+  window.APP_VERSION='v95';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
