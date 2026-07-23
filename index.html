@@ -257,6 +257,9 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .week-pill.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
 .hist-swipe-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:8px;}
 .hist-swipe-wrap:last-child{margin-bottom:0}
+.set-swipe-wrap{position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px;}
+.set-swipe-wrap .set-row{margin-bottom:0;}
+.set-del-zone{position:absolute;right:0;top:0;bottom:0;width:90px;display:flex;align-items:center;justify-content:center;background:var(--red);font-size:0.78rem;font-weight:700;color:#fff;gap:4px;pointer-events:none;}
 /* hist-delete-zone removed — velocity swipe replaces it */
 .hist-item{position:relative;background:var(--s1);transition:transform 0.22s cubic-bezier(.22,1,.36,1),opacity .2s;border-radius:12px;}
 .hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
@@ -3675,16 +3678,22 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
     const smartWt=!prevSet&&i===0?(ex.startWeight||null):null;
     const isEditing=S.editingSet&&S.editingSet.exId===ex.id&&S.editingSet.idx===i;
     const editable=!done||isEditing;
-    return`<div class="set-row">
-      <div class="set-num${done&&!isEditing?' done':''}">${done&&!isEditing?'✓':i+1}</div>
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:smartWt||'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
+    return`<div class="set-swipe-wrap" id="ssw-${ex.id}-${i}">
+      <div class="set-del-zone">🗑 Delete</div>
+      <div class="set-row" id="ssi-${ex.id}-${i}"
+        ontouchstart="swipeSetStart(event,'${ex.id}',${i})"
+        ontouchmove="swipeSetMove(event,'${ex.id}',${i})"
+        ontouchend="swipeSetEnd(event,'${ex.id}',${i},${i>=ex.sets?1:0})">
+        <div class="set-num${done&&!isEditing?' done':''}">${done&&!isEditing?'✓':i+1}</div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <input type="number" class="set-input${isEditing?' editing':''}" id="w-${i}" placeholder="${prevSet?prevSet.weight:smartWt||'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${editable?'':'readonly'}/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
+        </div>
+        <button class="log-btn${done&&!isEditing?' done-btn':''}" onclick="logSet(${i})">${done&&!isEditing?'✓ Done':isEditing?'Save':'Log'}</button>
+        ${done&&!isEditing?`<button class="edit-btn" onclick="editSet('${ex.id}',${i})" title="Edit">✏️</button>`:'<div></div>'}
       </div>
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <input type="number" class="set-input${isEditing?' editing':''}" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${editable?'':'readonly'}/>
-      </div>
-      <button class="log-btn${done&&!isEditing?' done-btn':''}" onclick="logSet(${i})">${done&&!isEditing?'✓ Done':isEditing?'Save':'Log'}</button>
-      ${done&&!isEditing?`<button class="edit-btn" onclick="editSet('${ex.id}',${i})" title="Edit">✏️</button>`:'<div></div>'}
     </div>`;
   }).join('')}
   <button onclick="addExtraSet('${ex.id}')" style="width:100%;background:transparent;border:1.5px dashed rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:var(--muted);font-size:0.8rem;font-weight:600;cursor:pointer;margin-top:4px">+ Add Set</button>
@@ -7479,9 +7488,57 @@ function logSet(i){
   render();
 }
 function editSet(exId,idx){S.editingSet={exId:exId,idx:idx};render();}
-function deleteSet(exId,idx){
-  if(!S.loggedSets[exId])return;
-  S.loggedSets[exId].splice(idx,1);
+var _ssd={};
+function swipeSetStart(e,exId,i){
+  var t=e.touches[0];
+  _ssd[exId+'-'+i]={x:t.clientX,y:t.clientY,t:Date.now(),dx:0,dead:false,locked:false};
+}
+function swipeSetMove(e,exId,i){
+  var key=exId+'-'+i;
+  var d=_ssd[key];if(!d||d.dead)return;
+  var t=e.touches[0];
+  var dx=t.clientX-d.x;
+  var dy=t.clientY-d.y;
+  if(!d.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10){d.dead=true;return;}
+  if(dx>=0)return;
+  d.locked=true;
+  d.dx=dx;
+  e.preventDefault();
+  var el=document.getElementById('ssi-'+exId+'-'+i);
+  if(el){
+    var tx=Math.max(dx*0.85,-110);
+    el.style.transition='none';
+    el.style.transform='translateX('+tx+'px)';
+    el.style.opacity=Math.max(0.3,1+tx/180);
+  }
+}
+function swipeSetEnd(e,exId,i,isExtra){
+  var key=exId+'-'+i;
+  var d=_ssd[key];if(!d)return;
+  var dx=d.dx||0;
+  var dt=Date.now()-d.t;
+  var velocity=Math.abs(dx)/Math.max(dt,1)*1000;
+  delete _ssd[key];
+  var el=document.getElementById('ssi-'+exId+'-'+i);
+  if(velocity>400||dx<-90){
+    if(el){
+      el.style.transition='transform .2s cubic-bezier(.4,0,1,1),opacity .2s';
+      el.style.transform='translateX(-110%)';
+      el.style.opacity='0';
+    }
+    haptic([15,8,25]);
+    setTimeout(function(){deleteSet(exId,i,isExtra);},200);
+  } else {
+    if(el){
+      el.style.transition='transform .25s cubic-bezier(.22,1,.36,1),opacity .25s';
+      el.style.transform='translateX(0)';
+      el.style.opacity='1';
+    }
+  }
+}
+function deleteSet(exId,idx,isExtra){
+  if(S.loggedSets[exId])S.loggedSets[exId].splice(idx,1);
+  if(isExtra)S.extraSets[exId]=Math.max(0,(S.extraSets[exId]||0)-1);
   saveLog();render();
 }
 function saveLog(){
@@ -8231,7 +8288,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v92';
+  window.APP_VERSION='v94';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8250,7 +8307,7 @@ function initApp(){
   }
 // Springy button press feedback
   document.addEventListener('touchstart',function(e){
-    var btn=e.target.closest('.btn,.log-btn,.btn-green,.coach-send,.tab-orb-btn,.day-btn,.check-item,.habit-item');
+    var btn=e.target.closest('.btn,.log-btn,.btn-green,.coach-send,.tab-orb-btn,.day-btn,.check-item,.habit-item,.tab-item,.adherence-btn,.rating-btn,.edit-btn,.food-scan-btn,.rest-btn-extend,.rest-btn-skip,.step-btn,.swap-ex-btn,.woolies-btn,.food-result-item,.food-memory-item,.shop-item,.hist-item,.done-btn');
     if(btn&&!btn.classList.contains('btn-springing')){
       btn.classList.add('btn-springing');
       btn.addEventListener('animationend',function(){btn.classList.remove('btn-springing');},{once:true});
