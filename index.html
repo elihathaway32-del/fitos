@@ -531,6 +531,28 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .photo-slot-label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;pointer-events:none}
+.gallery-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.gallery-header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.gallery-timeline{display:flex;gap:10px;overflow-x:auto;padding:14px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gallery-timeline::-webkit-scrollbar{display:none}
+.gallery-week-thumb{flex:0 0 80px;cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid transparent;transition:border-color .15s}
+.gallery-week-thumb.selected{border-color:var(--green)}
+.gallery-week-thumb img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.gallery-week-thumb .thumb-label{font-size:0.62rem;font-weight:700;text-align:center;padding:4px 2px;background:var(--s2);color:var(--muted)}
+.gallery-week-thumb .thumb-label.has-a{background:var(--green);color:#fff}
+.gallery-week-thumb .thumb-label.has-b{background:var(--blue);color:#fff}
+.gallery-compare{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:0 16px;border-radius:12px;overflow:hidden}
+.gallery-compare-slot{position:relative;aspect-ratio:3/4;background:var(--s2);overflow:hidden}
+.gallery-compare-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-compare-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 8px 6px;font-size:0.7rem;font-weight:700;color:#fff}
+.gallery-angle-row{display:flex;gap:8px;padding:12px 16px 0;justify-content:center}
+.gallery-angle-btn{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;max-width:90px}
+.gallery-angle-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+.gallery-empty{text-align:center;padding:60px 32px;color:var(--muted)}
+.gallery-share-btn{display:flex;align-items:center;gap:8px;margin:14px 16px 0;padding:13px 16px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;width:100%;justify-content:center}
+.progress-photos-card{margin:0 16px 12px;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.progress-photos-thumbs{display:flex;gap:4px;flex:1;overflow:hidden}
+.progress-photos-thumbs img{width:44px;height:58px;object-fit:cover;border-radius:6px;flex:0 0 44px}
 
 /* ── WEEKLY CHECK-IN ── */
 .checkin-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;padding:0 0 40px}
@@ -2480,6 +2502,10 @@ let S={
   streak: parseInt(localStorage.getItem('fitos_streak')||'0'),
   lastActiveDate: localStorage.getItem('fitos_last_active')||'',
   stepTrackingActive: false,
+  showPhotoGallery: false,
+  photoGalleryAngle: 'front',
+  photoGalleryWeekA: null,
+  photoGalleryWeekB: null,
 
   // Weekly check-in
   showCheckin: false,
@@ -2652,6 +2678,11 @@ function render(){
     }
     if(S.showGleam){
       document.getElementById('screen').innerHTML=renderGleam();
+      document.getElementById('tab-bar').innerHTML='';
+      return;
+    }
+    if(S.showPhotoGallery){
+      document.getElementById('screen').innerHTML=renderPhotoGallery();
       document.getElementById('tab-bar').innerHTML='';
       return;
     }
@@ -3133,6 +3164,223 @@ function renderDevotional(){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ── PHOTO GALLERY ─────────────────────────────────────────────────────────────
+function getWeekPhotos(weekNum){
+  try{return JSON.parse(localStorage.getItem('fitos_photos_w'+weekNum)||'null');}catch(e){return null;}
+}
+
+function getAllPhotoWeeks(){
+  return (S.checkinHistory||[]).filter(function(h){return h.hasPhotos;});
+}
+
+function openPhotoGallery(){
+  var weeks=getAllPhotoWeeks();
+  S.showPhotoGallery=true;
+  // Default: compare week 1 vs latest
+  if(weeks.length>=2){
+    S.photoGalleryWeekA=weeks[0].week;
+    S.photoGalleryWeekB=weeks[weeks.length-1].week;
+  } else if(weeks.length===1){
+    S.photoGalleryWeekA=weeks[0].week;
+    S.photoGalleryWeekB=null;
+  } else {
+    S.photoGalleryWeekA=null;
+    S.photoGalleryWeekB=null;
+  }
+  render();window.scrollTo(0,0);
+}
+function closePhotoGallery(){S.showPhotoGallery=false;render();}
+
+function selectGalleryWeek(weekNum){
+  // First tap sets A, second sets B, third resets to just A
+  if(S.photoGalleryWeekA===weekNum){S.photoGalleryWeekA=S.photoGalleryWeekB;S.photoGalleryWeekB=null;}
+  else if(S.photoGalleryWeekB===weekNum){S.photoGalleryWeekB=null;}
+  else if(!S.photoGalleryWeekA){S.photoGalleryWeekA=weekNum;}
+  else if(!S.photoGalleryWeekB){S.photoGalleryWeekB=weekNum;}
+  else{S.photoGalleryWeekA=weekNum;S.photoGalleryWeekB=null;}
+  render();
+}
+
+async function sharePhotoComparison(){
+  var angle=S.photoGalleryAngle||'front';
+  var pA=S.photoGalleryWeekA?getWeekPhotos(S.photoGalleryWeekA):null;
+  var pB=S.photoGalleryWeekB?getWeekPhotos(S.photoGalleryWeekB):null;
+  if(!pA&&!pB){alert('No photos to share.');return;}
+
+  var weekA=S.checkinHistory.find(function(h){return h.week===S.photoGalleryWeekA;});
+  var weekB=S.checkinHistory.find(function(h){return h.week===S.photoGalleryWeekB;});
+  var deltaText='';
+  if(weekA&&weekB&&weekA.weight&&weekB.weight){
+    var d=(weekB.weight-weekA.weight).toFixed(1);
+    deltaText=(d>0?'+':'')+d+'kg';
+  }
+
+  // Build a 1080×1920 canvas (Instagram Story format)
+  var cvs=document.createElement('canvas');
+  cvs.width=1080;cvs.height=1920;
+  var ctx=cvs.getContext('2d');
+
+  // Background
+  ctx.fillStyle='#0d0d0d';
+  ctx.fillRect(0,0,1080,1920);
+
+  var loadImg=function(src){return new Promise(function(res,rej){if(!src){res(null);return;}var i=new Image();i.onload=function(){res(i);};i.onerror=function(){res(null);};i.src=src;});};
+
+  var imgA=pA?await loadImg(pA[angle]):null;
+  var imgB=pB?await loadImg(pB[angle]):null;
+
+  var drawPanelPhoto=function(img,x,y,w,h){
+    if(!img){ctx.fillStyle='#1a1a1a';ctx.fillRect(x,y,w,h);ctx.fillStyle='#444';ctx.font='80px sans-serif';ctx.textAlign='center';ctx.fillText('📷',x+w/2,y+h/2+30);return;}
+    // Cover fit
+    var ar=img.width/img.height;var pr=w/h;
+    var sw,sh,sx,sy;
+    if(ar>pr){sh=img.height;sw=sh*pr;sx=(img.width-sw)/2;sy=0;}
+    else{sw=img.width;sh=sw/pr;sx=0;sy=(img.height-sh)/2;}
+    ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+  };
+
+  var hasTwo=imgA&&imgB;
+  if(hasTwo){
+    drawPanelPhoto(imgA,0,160,536,1440);
+    drawPanelPhoto(imgB,544,160,536,1440);
+    // Divider line
+    ctx.fillStyle='#0d0d0d';ctx.fillRect(536,160,8,1440);
+    // Labels
+    var grad=ctx.createLinearGradient(0,1480,0,1600);
+    grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,'rgba(0,0,0,0.85)');
+    ctx.fillStyle=grad;ctx.fillRect(0,1480,1080,280);
+    ctx.fillStyle='#fff';ctx.font='bold 52px -apple-system, sans-serif';ctx.textAlign='center';
+    ctx.fillText('Week '+(S.photoGalleryWeekA||'?'),268,1720);
+    ctx.fillText('Week '+(S.photoGalleryWeekB||'?'),812,1720);
+    if(deltaText){ctx.font='bold 68px -apple-system, sans-serif';ctx.fillStyle=parseFloat(deltaText)<0?'#22c55e':'#ef4444';ctx.fillText(deltaText,540,1800);}
+  } else {
+    drawPanelPhoto(imgA||imgB,140,160,800,1500);
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,1520,1080,400);
+    ctx.fillStyle='#fff';ctx.font='bold 60px -apple-system, sans-serif';ctx.textAlign='center';
+    ctx.fillText('Week '+(S.photoGalleryWeekA||S.photoGalleryWeekB||'?'),540,1680);
+  }
+
+  // Top bar
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,1080,160);
+  ctx.fillStyle='#fff';ctx.font='bold 56px -apple-system, sans-serif';ctx.textAlign='left';
+  ctx.fillText('📸 Progress Check',48,108);
+  // Branding
+  ctx.fillStyle='#22c55e';ctx.font='bold 36px -apple-system, sans-serif';ctx.textAlign='right';
+  ctx.fillText('FitOS',1032,1888);
+
+  cvs.toBlob(async function(blob){
+    if(!blob){alert('Could not generate image.');return;}
+    var file=new File([blob],'fitos-progress.jpg',{type:'image/jpeg'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'My FitOS Progress'});}
+      catch(e){if(e.name!=='AbortError')alert('Sharing failed: '+e.message);}
+    } else {
+      // Fallback: download
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;a.download='fitos-progress.jpg';a.click();
+      setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    }
+  },'image/jpeg',0.92);
+}
+
+function renderProgressPhotosCard(){
+  var weeks=getAllPhotoWeeks();
+  if(!weeks.length) return '';
+  var latest=weeks[weeks.length-1];
+  var first=weeks[0];
+  var latestPhotos=getWeekPhotos(latest.week);
+  var firstPhotos=first.week!==latest.week?getWeekPhotos(first.week):null;
+  var thumbs='';
+  if(firstPhotos&&firstPhotos.front) thumbs+='<img src="'+firstPhotos.front+'" alt="Week '+first.week+'"/>';
+  if(latestPhotos&&latestPhotos.front) thumbs+='<img src="'+latestPhotos.front+'" alt="Week '+latest.week+'"/>';
+  var weeksCount=weeks.length;
+  return '<div class="progress-photos-card" onclick="openPhotoGallery()">'+
+    '<div class="progress-photos-thumbs">'+thumbs+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:2px">📸 Progress Photos</div>'+
+      '<div style="font-size:0.9rem;font-weight:700">'+weeksCount+' check-in'+(weeksCount>1?'s':'')+' tracked</div>'+
+      (first.weight&&latest.weight&&first.week!==latest.week?'<div style="font-size:0.75rem;color:var(--green);margin-top:2px">'+(latest.weight-first.weight>0?'+':'')+(latest.weight-first.weight).toFixed(1)+'kg since Week '+first.week+'</div>':'')+
+    '</div>'+
+    '<div style="color:var(--muted);font-size:1.1rem">›</div>'+
+  '</div>';
+}
+
+function renderPhotoGallery(){
+  var weeks=getAllPhotoWeeks();
+  var angle=S.photoGalleryAngle||'front';
+  var angleLabel={front:'Front',back:'Back',side:'Side'};
+
+  var photosA=S.photoGalleryWeekA?getWeekPhotos(S.photoGalleryWeekA):null;
+  var photosB=S.photoGalleryWeekB?getWeekPhotos(S.photoGalleryWeekB):null;
+  var imgA=photosA?photosA[angle]:null;
+  var imgB=photosB?photosB[angle]:null;
+
+  var weekInfoA=S.checkinHistory.find(function(h){return h.week===S.photoGalleryWeekA;});
+  var weekInfoB=S.checkinHistory.find(function(h){return h.week===S.photoGalleryWeekB;});
+  var deltaKg='';
+  if(weekInfoA&&weekInfoB&&weekInfoA.weight&&weekInfoB.weight){
+    var d=(weekInfoB.weight-weekInfoA.weight).toFixed(1);
+    deltaKg=(d>0?'+':'')+d+'kg';
+  }
+
+  // Timeline thumbnails
+  var timeline=weeks.map(function(h){
+    var ph=getWeekPhotos(h.week);
+    var thumb=ph?(ph[angle]||ph.front||ph.back||ph.side):null;
+    var isA=S.photoGalleryWeekA===h.week;
+    var isB=S.photoGalleryWeekB===h.week;
+    var labelClass=isA?'has-a':isB?'has-b':'';
+    var labelText=isA?'A '+(S.photoGalleryWeekB?'':''):isB?'B ':'';
+    return '<div class="gallery-week-thumb'+(isA||isB?' selected':'')+'" onclick="selectGalleryWeek('+h.week+')">'+
+      (thumb?'<img src="'+thumb+'" alt="Week '+h.week+'"/>':'<div style="aspect-ratio:3/4;background:var(--s2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1.5rem">📷</div>')+
+      '<div class="thumb-label '+labelClass+'">'+labelText+'Wk '+h.week+(h.weight?' · '+h.weight+'kg':'')+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Compare panels
+  var compareHTML='';
+  if(S.photoGalleryWeekA||S.photoGalleryWeekB){
+    var slotA='<div class="gallery-compare-slot">'+
+      (imgA?'<img src="'+imgA+'" alt="Week A"/>':'<div style="width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:2rem;background:var(--s2)">📷</div>')+
+      '<div class="gallery-compare-label"><div style="font-size:0.62rem;opacity:.7">WEEK '+(S.photoGalleryWeekA||'—')+'</div>'+(weekInfoA?'<div>'+weekInfoA.weight+'kg</div>':'')+'</div>'+
+    '</div>';
+    var slotB='<div class="gallery-compare-slot">'+
+      (S.photoGalleryWeekB?(imgB?'<img src="'+imgB+'" alt="Week B"/>':'<div style="width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:2rem;background:var(--s2)">📷</div>'):'<div style="width:100%;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--s2);color:var(--muted);font-size:0.75rem;text-align:center;padding:12px">Tap a second week<br>to compare</div>')+
+      (S.photoGalleryWeekB?'<div class="gallery-compare-label"><div style="font-size:0.62rem;opacity:.7">WEEK '+(S.photoGalleryWeekB||'—')+'</div>'+(weekInfoB?'<div>'+weekInfoB.weight+'kg</div>':'')+'</div>':'')+
+    '</div>';
+    compareHTML='<div class="gallery-compare">'+slotA+slotB+'</div>';
+    if(deltaKg){
+      var dNum=parseFloat(deltaKg);
+      compareHTML+='<div style="text-align:center;margin:10px 16px 0;font-size:1.05rem;font-weight:800;color:'+(dNum<0?'var(--green)':'var(--red)')+'">'+deltaKg+' change</div>';
+    }
+  }
+
+  var canShare=!!(S.photoGalleryWeekA&&(photosA||photosB));
+  var shareBtn=canShare?'<button class="gallery-share-btn" onclick="sharePhotoComparison()">📤 Share to Instagram Story</button>':'';
+
+  var noPhotosMsg=weeks.length===0?'<div class="gallery-empty"><div style="font-size:3rem;margin-bottom:16px">📷</div><div style="font-size:1rem;font-weight:700;margin-bottom:8px">No progress photos yet</div><div style="font-size:0.82rem;line-height:1.6">Add photos during your next weekly check-in.<br>Before/after comparisons are the most powerful progress tracker you have.</div></div>':'';
+
+  return '<div class="gallery-overlay">'+
+    '<div class="gallery-header">'+
+      '<div>'+
+        '<div style="font-weight:800;font-size:1rem">📸 Progress Photos</div>'+
+        (weeks.length?'<div style="font-size:0.72rem;color:var(--muted)">'+weeks.length+' week'+(weeks.length>1?'s':'')+' tracked · Tap weeks to compare</div>':'')+''+
+      '</div>'+
+      '<button onclick="closePhotoGallery()" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 12px;cursor:pointer;font-size:0.85rem">✕ Close</button>'+
+    '</div>'+
+    noPhotosMsg+
+    (weeks.length?
+      '<div class="gallery-angle-row">'+
+        ['front','back','side'].map(function(a){return '<button class="gallery-angle-btn'+(angle===a?' active':'')+'" onclick="S.photoGalleryAngle=\''+a+'\';render()">'+{front:'Front',back:'Back',side:'Side'}[a]+'</button>';}).join('')+
+      '</div>'+
+      '<div class="gallery-timeline">'+timeline+'</div>'+
+      compareHTML+
+      shareBtn+
+      '<div style="height:30px"></div>'
+    :'')+
+  '</div>';
+}
+
 function renderWeightTrend(){
   if(!S.checkinHistory||S.checkinHistory.length<2) return '';
   var hist=S.checkinHistory.filter(function(h){return h.weight>0;});
@@ -3404,6 +3652,8 @@ ${renderWeekSummary()}
 
     <!-- Weight trend sparkline (shows after first check-in with weight) -->
     ${renderWeightTrend()}
+    <!-- Progress Photos card (shows when any check-in has photos) -->
+    ${renderProgressPhotosCard()}
 
     <!-- Consequence card (only if habits not fully done and it's after 8pm) -->
     ${hour>=20&&habitsDone<habitsTotal?`<div class="consequence-card">
@@ -6977,7 +7227,7 @@ function renderCheckin(){
   (S.checkinReview?
     '<div style="padding:14px 16px 0">'+
       '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:10px">&#x1F3AF; Week '+weekNum+' Coach Review</div>'+
-      '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;white-space:pre-wrap;font-size:0.84rem;color:var(--text);line-height:1.7">'+S.checkinReview+'</div>'+
+      '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;font-size:0.84rem;color:var(--text);line-height:1.7">'+(function(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^[-•] (.+)$/gm,'&bull; $1').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');})(S.checkinReview)+'</div>'+
       '<button class="btn btn-outline" style="margin-top:10px;margin-bottom:8px" onclick="S.checkinReview=null;render()">&#x1F504; Regenerate</button>'+
     '</div>'+
     renderCoachAdjustments()
@@ -7209,7 +7459,12 @@ function generateCheckinReview(){
 
   // Save snapshot to history
   if(c.bodyWeight){
-    var snap={week:weekNum,date:new Date().toISOString().slice(0,10),weight:parseFloat(c.bodyWeight),waist:parseFloat(c.waist)||null,prs:c.prs,energy:c.energy,sleep:c.sleepHrs};
+    // Save photos to separate keys (base64 too large for checkinHistory array)
+    var hasPhotos=!!(c.photoFront||c.photoBack||c.photoSide);
+    if(hasPhotos){
+      localStorage.setItem('fitos_photos_w'+weekNum,JSON.stringify({front:c.photoFront||null,back:c.photoBack||null,side:c.photoSide||null,date:new Date().toISOString().slice(0,10)}));
+    }
+    var snap={week:weekNum,date:new Date().toISOString().slice(0,10),weight:parseFloat(c.bodyWeight),waist:parseFloat(c.waist)||null,prs:c.prs,energy:c.energy,sleep:c.sleepHrs,hasPhotos:hasPhotos};
     S.checkinHistory=S.checkinHistory.filter(function(h){return h.week!==weekNum;});
     S.checkinHistory.push(snap);
     S.checkinHistory.sort(function(a,b){return a.week-b.week;});
@@ -7300,7 +7555,37 @@ function renderGleam(){
 }
 
 // ─── CHECK-IN HANDLERS ────────────────────────────────────────────────────
-function openCheckin(weekOverride){S.checkinDispatch='';S.checkinWeekOverride=(weekOverride||null);S.showCheckin=true;render();window.scrollTo(0,0);}
+function openCheckin(weekOverride){
+  S.checkinDispatch='';
+  S.checkinWeekOverride=(weekOverride||null);
+
+  // ── Auto-populate from tracked data ───────────────────────────────────────
+  var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-7);
+  var last7=[...Array(7)].map(function(_,i){var d=new Date();d.setDate(d.getDate()-i);return d.toDateString();});
+
+  // Sessions completed this week from gym history
+  var sessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=cutoff;}).length;
+  if(sessions>0) S.checkin.sessionsCompleted=Math.min(sessions,7);
+
+  // Days with food logged (calorie days)
+  var ml=S.mealLog||{};
+  var calDays=last7.filter(function(d){return ml[d]&&ml[d].length>0;}).length;
+  if(calDays>0) S.checkin.calorieDays=calDays;
+
+  // Days hitting protein target (count days where protein >= 90% of target)
+  var T=getTargets();
+  var protTarget=(T&&T.protein)||150;
+  var protDays=last7.filter(function(d){
+    var entries=ml[d]||[];
+    var tot=entries.reduce(function(s,e){return s+(e.p||0);},0);
+    return tot>=protTarget*0.9;
+  }).length;
+  if(protDays>0) S.checkin.proteinDays=protDays;
+
+  S.showCheckin=true;
+  render();
+  window.scrollTo(0,0);
+}
 function closeCheckin(){S.showCheckin=false;render();}
 function setCheckinPhoto(field,file){
   if(!file)return;
@@ -8364,7 +8649,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v98';
+  window.APP_VERSION='v100';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
