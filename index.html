@@ -145,13 +145,20 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:calc(var(--tab-h) + 8px)}
 
 /* ── TAB BAR ── */
-.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px)}
-.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px);overflow:visible}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:6px 4px 4px;position:relative}
 .tab-item.active{color:var(--green)}
-.tab-item:active,.tab-item.pressed{transform:scale(0.92);opacity:0.7;transition:transform .08s,opacity .08s;}
+.tab-item.active::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:18px;height:3px;background:var(--green);border-radius:2px}
+.tab-item:active,.tab-item.pressed{transform:scale(0.88);opacity:0.7;transition:transform .08s,opacity .08s;}
 button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .tab-item svg{width:22px;height:22px}
-.tab-label{font-size:0.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tab-label{font-size:0.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.tab-orb-btn{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0;margin-top:-20px;position:relative;z-index:10}
+.tab-orb-btn:active .tab-coach-orb{transform:scale(0.88)}
+.tab-coach-orb{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(240,248,255,0.55) 0%,rgba(140,210,255,0.35) 30%,rgba(80,160,240,0.2) 60%,rgba(30,80,180,0.15) 100%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1.5px solid rgba(160,210,255,0.5);box-shadow:0 0 20px rgba(80,160,240,0.4),0 6px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;animation:orb-pulse 3s ease-in-out infinite;transition:transform .15s}
+.tab-coach-orb::before{content:"";position:absolute;top:8%;left:20%;width:38%;height:26%;background:radial-gradient(ellipse,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0) 100%);border-radius:50%;pointer-events:none}
+.tab-coach-orb::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.18) 50%,transparent 60%);animation:orb-shimmer 4s ease-in-out infinite;border-radius:50%;pointer-events:none}
+.tab-orb-label{font-size:0.58rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,255,0.85);margin-top:3px;margin-bottom:6px}
 
 /* ── TOP BAR ── */
 .top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -2365,7 +2372,7 @@ function checkDayReset(){
 
 let S={
   // App state
-  tab:'today',         // today | train | eat | shop | habits
+  tab:'today',         // today | train | eat | habits
   showIntake: !localStorage.getItem('fitos_profile'),
   intakeStep:0,
 
@@ -2600,12 +2607,7 @@ async function startStepTracking(){
 // ═══════════════════════════════════════════════════════════════════════════
 function render(){
   try{
-    var _fab=document.getElementById('coach-fab');
-    if(S.showIntake||S.showCheckin||S.showGleam){
-      if(_fab) _fab.style.display='none';
-    } else {
-      if(_fab) _fab.style.display='flex';
-    }
+    // coach orb is in tab bar — no FAB to show/hide
     if(S.showIntake){
       document.getElementById('screen').innerHTML=renderIntake();
       document.getElementById('tab-bar').innerHTML='';
@@ -2622,18 +2624,10 @@ function render(){
       return;
     }
     document.getElementById('tab-bar').innerHTML=renderTabBar();
-    const screens={today:renderToday,train:renderTrain,eat:renderEat,shop:renderShop,habits:renderHabits};
+    const screens={today:renderToday,train:renderTrain,eat:renderEat,habits:renderHabits};
     const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
     document.getElementById('screen').innerHTML=mainHTML;
-    // Coach FAB — floating button always visible (not in intake/gleam/checkin)
-    var existFab=document.getElementById('coach-fab');
-    if(!existFab){
-      var fab=document.createElement('button');
-      fab.id='coach-fab';fab.className='coach-fab';
-      fab.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;pointer-events:none"><div style="font-size:0.42rem;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.4)">Tap here to</div><div style="font-size:0.5rem;font-weight:800;color:#fff;letter-spacing:.03em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,0.5)">get coached</div></div>';fab.title='Ask your coach';
-      fab.onclick=function(){openCoach();};
-      document.body.appendChild(fab);
-    }
+    // Coach orb is now in the tab bar — no floating FAB needed
     // YouTube demo replaces Three.js animation — no canvas hook needed
   }catch(err){
     console.error('render error:',err);
@@ -2653,11 +2647,27 @@ const TAB_DEFS=[
   {id:'today',label:'Today',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`},
   {id:'train',label:'Train',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>`},
   {id:'eat',label:'Eat',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`},
-  {id:'shop',label:'Shop',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`},
   {id:'habits',label:'Habits',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`}
 ];
 function renderTabBar(){
-  return TAB_DEFS.map(t=>`<button class="tab-item${S.tab===t.id?' active':''}" onclick="switchTab('${t.id}')">${t.icon}<span class="tab-label">${t.label}</span></button>`).join('');
+  function tabBtn(id){
+    var t=TAB_DEFS.find(function(x){return x.id===id;});
+    if(!t) return '';
+    return '<button class="tab-item'+(S.tab===id?' active':'')+'" onclick="switchTab(\''+id+'\')">'
+      +t.icon+'<span class="tab-label">'+t.label+'</span></button>';
+  }
+  var coachOrb='<button class="tab-orb-btn" onclick="openCoach()">'
+    +'<div class="tab-coach-orb">'
+    +'<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:28px">'
+    +'<circle cx="20" cy="20" r="12" fill="rgba(120,190,255,0.25)" stroke="rgba(160,220,255,0.6)" stroke-width="1.5"/>'
+    +'<ellipse cx="15" cy="14" rx="5" ry="3.5" fill="rgba(255,255,255,0.45)"/>'
+    +'<circle cx="26" cy="25" r="3" fill="rgba(255,255,255,0.12)"/>'
+    +'<circle cx="13" cy="26" r="1.5" fill="rgba(140,210,255,0.3)"/>'
+    +'</svg>'
+    +'</div>'
+    +'<span class="tab-orb-label">Coach</span>'
+    +'</button>';
+  return tabBtn('today')+tabBtn('train')+coachOrb+tabBtn('eat')+tabBtn('habits');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4895,14 +4905,47 @@ ${hasProfile&&tdeeData?`
     </div>`;
   }).join(''):'<div style="padding:12px 0;text-align:center;font-size:0.78rem;color:var(--muted)">Meal plan shown for today + future only — use the food log above to see what was eaten on past days.</div>'}
   <div style="height:16px"></div>
+
+  <!-- SHOPPING LIST SECTION (folded from Shop tab) -->
+  ${renderGrocerySection()}
+
+  <div style="height:20px"></div>
 </div>`;
 }
 
+function renderGrocerySection(){
+  var ACTIVE_GROCERY=getPersonalisedGrocery();
+  var total=ACTIVE_GROCERY.reduce(function(a,c){return a+c.items.length;},0);
+  var ticked=S.shopTicked.size;
+  var pctVal=total?Math.round(ticked/total*100):0;
+  var rows=ACTIVE_GROCERY.map(function(cat){
+    var items=cat.items.map(function(item,idx){
+      var key=cat.name+'_'+idx;
+      var done=S.shopTicked.has(key);
+      return '<div class="shop-item'+(done?' ticked':'')+'" onclick="toggleShop(\''+key+'\')">'  
+        +'<div class="shop-check">'+(done?'✓':'')+'</div>'
+        +'<div style="flex:1"><div class="shop-name">'+item.name+'</div>'+(item.detail?'<div class="shop-detail">'+item.detail+'</div>':'')+'</div>'
+        +'</div>';
+    }).join('');
+    return '<div class="shop-category"><div class="shop-cat-title">'+cat.name+'</div>'+items+'</div>';
+  }).join('');
+  return '<div style="margin-top:8px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px">'
+      +'<div><div style="font-size:0.95rem;font-weight:700">🛒 Shopping List</div>'
+      +'<div style="font-size:0.72rem;color:var(--muted)">'+(ticked)+' of '+total+' items ticked</div></div>'
+      +'<button class="btn btn-sm btn-outline" onclick="clearShop()">Clear ticked</button>'
+    +'</div>'
+    +'<div style="margin:0 16px 10px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden">'
+      +'<div style="height:100%;background:var(--green);border-radius:2px;transition:width .4s;width:'+pctVal+'%"></div>'
+    +'</div>'
+    +rows
+    +'<a class="woolies-btn" href="https://www.woolworths.com.au" target="_blank">🛒 Shop at Woolworths</a>'
+    +'<div style="height:8px"></div>'
+    +'</div>';
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// SHOP TAB
-// ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// SHOP TAB
+// SHOP TAB (kept for backward compat — tab removed, content now in Eat)
 // ═══════════════════════════════════════════════════════════════════════════
 function renderShop(){
   const ACTIVE_GROCERY=getPersonalisedGrocery();
@@ -7315,7 +7358,7 @@ function renderAddExSheet(){
 }
 
 // ─── TRAIN ───────────────────────────────────────────────────────────────
-function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};S.addedExercises={};render();}
+function selectDay(d){S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};S.addedExercises={};startWorkout();}
 function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();S.exIdx=0;S.editingSet=null;render();}
 
 function goToWarmup(){
@@ -7506,6 +7549,37 @@ function buildCoachSystemPrompt(){
     prompt+='Weight: '+(lastCI.weight||'?')+'kg | Energy: '+(lastCI.energy||'?')+'/10 | Sleep: '+(lastCI.sleep||'?')+'hrs\n';
   }
   prompt+='\nAlways reference their specific data. Never give generic advice. Respect their injury limitations absolutely.';
+  // LIVE SESSION CONTEXT — injected when athlete is mid-workout
+  if(S.trainScreen==='workout'&&S.day){
+    var dayInfo=getWorkoutDay(S.day);
+    var dayName=dayInfo?dayInfo.name:('Day '+S.day);
+    var allEx=getSessionExercises()||[];
+    var ex=null;try{ex=curEx();}catch(e){}
+    var exName=ex?ex.name:'Unknown';
+    var exMuscles=ex&&ex.muscles?ex.muscles.join(', '):'?';
+    var exCue=ex&&ex.cue?ex.cue:'';
+    var exPos=S.exIdx+1;
+    var exTotal=allEx.length;
+    // Logged sets for current exercise
+    var loggedThisEx=(S.loggedSets&&ex&&S.loggedSets[ex.id])||[];
+    var setLines=loggedThisEx.filter(Boolean).map(function(s,i){return 'Set '+(i+1)+': '+s.weight+'kg x '+s.reps+' reps';}).join(', ');
+    // Summary of all logged sets this session
+    var sessionSummary=Object.entries(S.loggedSets||{}).map(function(e){
+      var id=e[0]; var sets=e[1];
+      var n=id;
+      allEx.forEach(function(x){if(x.id===id)n=x.name;});
+      var vol=sets.filter(Boolean).reduce(function(a,s){return a+(s.weight*s.reps);},0);
+      return n+': '+sets.filter(Boolean).length+' sets, '+vol+'kg volume';
+    }).join(' | ');
+    prompt+='\n\nLIVE SESSION — '+dayName+' | Week '+(S.week||1)+'\n';
+    prompt+='CURRENT EXERCISE ('+exPos+' of '+exTotal+'): '+exName+'\n';
+    prompt+='Target muscles: '+exMuscles+'\n';
+    if(exCue) prompt+='Coaching cue: '+exCue+'\n';
+    prompt+=(setLines?'Sets logged this exercise: '+setLines:'No sets logged yet for this exercise')+'\n';
+    prompt+=(sessionSummary?'Session so far: '+sessionSummary:'Session just started — no exercises logged yet')+'\n';
+    prompt+='Remaining exercises: '+allEx.slice(S.exIdx+1).map(function(x){return x.name;}).join(', ')+'\n';
+    prompt+='The athlete is ACTIVELY TRAINING RIGHT NOW. Be their in-ear coach. Direct, specific, no fluff.';
+  }
   return prompt;
 }
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
@@ -8089,7 +8163,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v89';
+  window.APP_VERSION='v91';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
