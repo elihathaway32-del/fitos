@@ -4633,6 +4633,7 @@ function getPersonalisedGrocery(){
   var noNuts=allergies.includes('nuts');
   var isFatLoss=goal.match(/fat|lose|lean|cut/);
   var isBuild=goal.match(/build|muscle|bulk/);
+  var isAthlete=goal.match(/athlet|hyrox/);
 
   var protein=isVegan?[
     {id:'g1',name:'Firm tofu',detail:'2 × 300g blocks — press and batch cook'},
@@ -4680,7 +4681,6 @@ function getPersonalisedGrocery(){
     {id:'g18',name:'Cherry tomatoes',detail:'250g punnet'},
     isAthlete||isBuild?{id:'g18b',name:'Asparagus',detail:'1 bunch — folate, recovery'}:null
   ].filter(Boolean);
-  // isAthlete already declared above
 
   var fats=noNuts?[
     {id:'g19',name:'Avocado',detail:'3–4 — healthy fat, fibre'},
@@ -8317,7 +8317,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v95';
+  window.APP_VERSION='v96';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
