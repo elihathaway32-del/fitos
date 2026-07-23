@@ -5669,6 +5669,16 @@ const POPULAR_FOODS_DB=[
   {name:'Salmon (cooked)',brand:'Generic',cal:208,p:28,c:0,f:10,fiber:0,sugars:0,sodium:59,sat_fat:1.9},
   {name:'Tuna in Spring Water',brand:'Generic',cal:109,p:25,c:0,f:1,fiber:0,sugars:0,sodium:340,sat_fat:0.3},
   {name:'Beef Mince 90% lean (cooked)',brand:'Generic',cal:215,p:26,c:0,f:12,fiber:0,sugars:0,sodium:67,sat_fat:5},
+  {name:'Beef Mince 80/20 (cooked)',brand:'Generic',cal:254,p:24,c:0,f:17,fiber:0,sugars:0,sodium:75,sat_fat:6.7},
+  {name:'Pork Mince (raw)',brand:'Generic',cal:145,p:17,c:0,f:9,fiber:0,sugars:0,sodium:55,sat_fat:3.2},
+  {name:'Pork Mince (cooked)',brand:'Generic',cal:185,p:22,c:0,f:11,fiber:0,sugars:0,sodium:70,sat_fat:4},
+  {name:'Lamb Mince (cooked)',brand:'Generic',cal:270,p:24,c:0,f:19,fiber:0,sugars:0,sodium:75,sat_fat:8.5},
+  {name:'Chicken Thigh (cooked, skinless)',brand:'Generic',cal:209,p:26,c:0,f:11,fiber:0,sugars:0,sodium:88,sat_fat:3},
+  {name:'Chicken Drumstick (cooked)',brand:'Generic',cal:216,p:27,c:0,f:11,fiber:0,sugars:0,sodium:90,sat_fat:3},
+  {name:'Pork Chop (grilled)',brand:'Generic',cal:231,p:30,c:0,f:12,fiber:0,sugars:0,sodium:65,sat_fat:4.3},
+  {name:'Pork Fillet (cooked)',brand:'Generic',cal:187,p:29,c:0,f:7,fiber:0,sugars:0,sodium:63,sat_fat:2.5},
+  {name:'Lamb Chop (grilled)',brand:'Generic',cal:294,p:28,c:0,f:20,fiber:0,sugars:0,sodium:75,sat_fat:9.2},
+  {name:'Beef Steak (grilled)',brand:'Generic',cal:211,p:30,c:0,f:10,fiber:0,sugars:0,sodium:69,sat_fat:4},
   {name:'Turkey Breast (cooked)',brand:'Generic',cal:135,p:30,c:0,f:1,fiber:0,sugars:0,sodium:70,sat_fat:0.3},
   {name:'Tofu (firm)',brand:'Generic',cal:76,p:8,c:2,f:4,fiber:0.3,sugars:0.5,sodium:10,sat_fat:0.6},
   {name:'Greek Yoghurt (full fat)',brand:'Generic',cal:97,p:9,c:4,f:5,fiber:0,sugars:4,sodium:36,sat_fat:3.5},
@@ -6346,6 +6356,13 @@ async function doFoodSearch(type){
   const popularHits=POPULAR_FOODS_DB.filter(function(item){
     const n=item.name.toLowerCase();
     return n.includes(qLow0)||qWords0.some(function(w){return w.length>2&&n.includes(w);});
+  }).sort(function(a,b){
+    // Rank: exact full match > all words match > partial word match
+    var an=a.name.toLowerCase(),bn=b.name.toLowerCase();
+    var aExact=an.includes(qLow0)?2:0, bExact=bn.includes(qLow0)?2:0;
+    var aWords=qWords0.filter(function(w){return w.length>2&&an.includes(w);}).length;
+    var bWords=qWords0.filter(function(w){return w.length>2&&bn.includes(w);}).length;
+    return (bExact+bWords)-(aExact+aWords);
   });
   const auLocalMatches=qWords0.length>0?AU_RESTAURANT_DB.filter(function(item){
     const hay=(item.name+' '+(item.brand||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
@@ -6412,20 +6429,25 @@ async function doFoodSearch(type){
       });
   };
   var apiResults=[];
+  const qs='&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments';
+  const apiHeaders={'User-Agent':'FitOS/1.0 (elihathaway32@gmail.com) fitness-app'};
+  // AU endpoint — separate try so a 503 doesn't kill the world fallback
   try{
-    const qs='&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments';
-    const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
-    const d1=await r1.json();
-    apiResults=parseProds(d1.products||[]);
-    if(apiResults.length<5){
-      // Not enough AU hits — pull world results too
-      const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs);
-      const d2=await r2.json();
-      var worldHits=parseProds(d2.products||[]);
-      var auNames=new Set(apiResults.map(function(x){return x.name.toLowerCase();}));
-      apiResults=[...apiResults,...worldHits.filter(function(x){return!auNames.has(x.name.toLowerCase());})].slice(0,15);
-    }
-  }catch(e){apiResults=[];}
+    const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders});
+    if(r1.ok){const d1=await r1.json();apiResults=parseProds(d1.products||[]);}
+  }catch(e){}
+  // World endpoint — always run if AU gave <5 results (or failed)
+  if(apiResults.length<5){
+    try{
+      const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders});
+      if(r2.ok){
+        const d2=await r2.json();
+        var worldHits=parseProds(d2.products||[]);
+        var auNames=new Set(apiResults.map(function(x){return x.name.toLowerCase();}));
+        apiResults=[...apiResults,...worldHits.filter(function(x){return!auNames.has(x.name.toLowerCase());})].slice(0,15);
+      }
+    }catch(e){}
+  }
 
   // ── Step 4: Merge — memory → local DB → API, deduplicated ────────────────
   var memFinal=getMemoryResults(S.foodQuery);
@@ -8317,7 +8339,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v96';
+  window.APP_VERSION='v97';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
