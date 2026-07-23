@@ -2504,6 +2504,7 @@ let S={
   lastActiveDate: localStorage.getItem('fitos_last_active')||'',
   stepTrackingActive: false,
   showPhotoGallery: false,
+  showPhotoReminderCard: false,
   photoGalleryAngle: 'front',
   photoGalleryWeekA: null,
   photoGalleryWeekB: null,
@@ -2528,8 +2529,10 @@ let S={
 
   // Gleam scan
   showGleam: false,
+  gleamPhase: 'scanning',  // 'scanning' | 'result'
   gleamResult: null,
   gleamBF: null,
+  referralCode: localStorage.getItem('fitos_referral')||null,
 };
 // THEME SYSTEM
 function loadTheme(){var t=localStorage.getItem('fitos_theme')||'dark-electric';document.documentElement.setAttribute('data-theme',t);}
@@ -3019,8 +3022,11 @@ function renderIntake(){
 
   // ── Step 7: Photos ──
   else if(step===7) body=`
-    <div style="font-size:0.88rem;color:var(--muted);line-height:1.7;margin-bottom:16px">
-      Optional but powerful. Your AI PT uses these to assess posture and track your visual transformation. <strong style="color:var(--text)">Photos stay on your device only — never uploaded.</strong>
+    <div style="font-size:0.88rem;color:var(--muted);line-height:1.7;margin-bottom:8px">
+      Optional but powerful. Your AI PT uses these to track your visual transformation. <strong style="color:var(--text)">Photos stay on your device only — never uploaded.</strong>
+    </div>
+    <div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:10px 14px;font-size:0.78rem;color:rgba(255,255,255,0.55);line-height:1.6;margin-bottom:14px">
+      💡 Not ready right now? No worries — tap <strong style="color:rgba(255,255,255,0.75)">Add Later</strong> below. You'll get a reminder to do it at home.
     </div>
     <div class="wizard-label">Front / Back / Side</div>
     <div class="photo-upload-row">
@@ -3030,7 +3036,9 @@ function renderIntake(){
         return '<div class="photo-slot">'+(photo?'<img src="'+photo+'" alt="'+label+'"/>':'<div style="font-size:1.5rem">📷</div><div class="photo-slot-label">'+label+'</div>')+'<input type="file" accept="image/*" capture="environment" onchange="setPhoto(\''+field+'\',this.files[0])"/></div>';
       }).join('')}
     </div>
-    <div style="margin-top:14px;font-size:0.72rem;color:var(--muted);line-height:1.6">Tap each box to take or upload a photo. You can skip this and add them later from your profile settings.</div>`;
+    <div style="margin-top:12px;text-align:center">
+      <button onclick="skipPhotosForNow()" style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:0.8rem;cursor:pointer;padding:8px 16px;text-decoration:underline">Add photos later →</button>
+    </div>`;
 
   // ── Step 8: All Set! ──
   else body=`
@@ -3454,6 +3462,24 @@ function installPWA(){
     render();
   });
 }
+function renderPhotoReminderBanner(){
+  // Show only if: reminder is pending AND no photos on profile AND not already dismissed this session
+  if(!checkPhotoReminder()) return '';
+  if(localStorage.getItem('fitos_photo_reminder_dismissed')) return '';
+  return '<div style="margin:12px 16px 0;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);border-radius:12px;padding:13px 14px">'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:0.82rem;font-weight:700;color:var(--amber);margin-bottom:3px">📸 Add your before photos</div>'+
+        '<div style="font-size:0.76rem;color:rgba(255,255,255,0.55);line-height:1.5">Tracking your transformation is 10× more motivating with photos. Takes 60 seconds.</div>'+
+      '</div>'+
+      '<button onclick="localStorage.setItem(\'fitos_photo_reminder_dismissed\',\'1\');render()" style="background:transparent;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 4px;flex-shrink:0">×</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px">'+
+      '<button onclick="S.tab=\'settings\';S.settingsTab=\'profile\';S.showSettings=true;localStorage.removeItem(\'fitos_photo_reminder\');render()" style="background:var(--amber);border:none;color:#000;font-size:0.78rem;font-weight:700;border-radius:8px;padding:7px 14px;cursor:pointer;flex:1">Add now 📷</button>'+
+      '<button onclick="schedulePhotoReminder(\'19:00\')" style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.35);color:var(--amber);font-size:0.78rem;font-weight:600;border-radius:8px;padding:7px 12px;cursor:pointer;flex:1">Remind me @ 7pm</button>'+
+    '</div>'+
+  '</div>';
+}
 function renderPWABanner(){
   var isStandalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone;
   if(isStandalone||localStorage.getItem('fitos_pwa_dismissed')) return '';
@@ -3555,7 +3581,7 @@ function renderToday(){
   const isFuture=false;
   const canGoForward=new Date(vd)<new Date(new Date().toDateString());
 
-  return`${renderPWABanner()}<div class="today-hero" style="position:relative">
+  return`${renderPWABanner()}${renderPhotoReminderBanner()}<div class="today-hero" style="position:relative">
     <div class="today-greeting">${isToday?greeting:'📅 '+viewDateLabel(vd)}</div>
     <div class="today-name">${isToday?userName():new Date(vd).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
     <div class="today-sub">${isToday?now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'}):'Tap ▶ to move forward'}</div>
@@ -7705,53 +7731,169 @@ function generateCheckinReview(){
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GLEAM — BF% SCAN RESULT (fires from intake wizard — determines subscription)
+// GLEAM — AI SCAN (fires from intake wizard, universal 7-day trial)
 // ═══════════════════════════════════════════════════════════════════════════
+function getGleamInsights(p){
+  var insights=[];
+  // Goal
+  var goal=(p.goal||'').toLowerCase();
+  if(goal.match(/recomp/)) insights.push({icon:'⚡',text:'Body recomp protocol loaded. Caloric cycling built around your TDEE to burn fat and build muscle simultaneously.'});
+  else if(goal.match(/muscle|build|mass|hyper/)) insights.push({icon:'💪',text:'Hypertrophy protocol locked in. Progressive overload across 8 weeks of structured training blocks.'});
+  else if(goal.match(/fat|lose|cut|weight/)) insights.push({icon:'🔥',text:'Fat loss protocol active. Moderate deficit calculated with high protein to preserve every gram of muscle.'});
+  else insights.push({icon:'⚡',text:'Custom training protocol built around your goal. Progressive overload across 8 weeks.'});
+  // Experience
+  var exp=(p.experience||'').toLowerCase();
+  if(exp.match(/never|beginner|new|starter/)) insights.push({icon:'🌱',text:'First-timer setup activated. Exercises simplified, loads conservative, form cues prioritised for injury-free progress.'});
+  else if(exp.match(/advanc|expert|competitive|5\+/)) insights.push({icon:'🏆',text:'Advanced athlete profile. Program intensity set high — this will challenge you.'});
+  else insights.push({icon:'📈',text:'Intermediate athlete detected. Volume and intensity calibrated for accelerated adaptation.'});
+  // Injury / health
+  var injuries=p.injuries&&p.injuries.length?p.injuries:[];
+  if(injuries.length) insights.push({icon:'🩺',text:'Injury flags noted: '+injuries.join(', ')+'. High-risk movements automatically swapped for safer alternatives.'});
+  else insights.push({icon:'✅',text:'No injury flags. Full movement library unlocked — train hard, recover smart.'});
+  // Diet
+  var diet=(p.dietStyle||'').toLowerCase();
+  if(diet.match(/veg/)) insights.push({icon:'🥦',text:'Plant-based diet flagged. Meal plan adapted — complete protein combinations, B12 and iron sources prioritised.'});
+  else if(diet.match(/keto|low.carb/)) insights.push({icon:'🥑',text:'Low-carb/keto preference noted. Macros and meal suggestions adjusted accordingly.'});
+  else insights.push({icon:'🍗',text:'Meal plan built around your TDEE with high protein and flexible macro splits.'});
+  return insights;
+}
+
 function renderGleam(){
-  var isRed=S.gleamResult==='red';
-  var bf=S.gleamBF||parseFloat(S.profile.bodyFatPct)||0;
-  var name=S.profile.name||'Champion';
-  var bgGrad=isRed
-    ?'linear-gradient(160deg,#1a0505 0%,#2a0808 40%,#0d0d0d 100%)'
-    :'linear-gradient(160deg,#051a0f 0%,#082a15 40%,#0d0d0d 100%)';
-  var glowClass=isRed?'gleam-red':'gleam-green';
-  var accentColor=isRed?'var(--red)':'var(--green)';
+  if(S.gleamPhase==='scanning') return renderGleamScan();
+  return renderGleamResult();
+}
 
-  return '<div style="min-height:100vh;background:'+bgGrad+';display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;position:relative;overflow:hidden">'+
+function renderGleamScan(){
+  var p=S.profile||{};
+  var photo=p.photoFront||null;
+  var SCAN_METRICS=[
+    {label:'Postural pattern',value:'Assessing alignment...'},
+    {label:'Muscle balance',value:'Checking symmetry...'},
+    {label:'Training readiness',value:'Evaluating capacity...'},
+    {label:'Goal alignment',value:'Matching protocols...'},
+    {label:'TDEE calculation',value:'Computing targets...'}
+  ];
 
-  // Glow orb background
-  '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;height:340px;border-radius:50%;background:'+(isRed?'rgba(224,80,80,.08)':'rgba(29,158,117,.08)')+';filter:blur(60px);pointer-events:none"></div>'+
+  var metricsHTML=SCAN_METRICS.map(function(m,i){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06);opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:'+(0.5+i*0.55)+'s">'+
+      '<span style="font-size:0.8rem;color:rgba(255,255,255,0.5)">'+m.label+'</span>'+
+      '<span style="font-size:0.8rem;color:#1D9E75;font-weight:600">'+m.value+'</span>'+
+    '</div>';
+  }).join('');
 
-  // BF% circle
-  '<div class="'+glowClass+'" style="width:160px;height:160px;border-radius:50%;border:3px solid '+accentColor+';display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 28px;position:relative;background:'+(isRed?'rgba(224,80,80,.08)':'rgba(29,158,117,.08)')+'" >'+
-    '<div style="font-size:2.4rem;font-weight:900;color:'+accentColor+';line-height:1">'+bf+'%</div>'+
-    '<div style="font-size:0.72rem;color:'+accentColor+';text-transform:uppercase;letter-spacing:.1em;margin-top:4px">Body Fat</div>'+
+  var photoHTML=photo
+    ?'<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:top;opacity:0.7"/>'
+    :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(29,158,117,0.06)"><svg width="80" height="140" viewBox="0 0 80 140" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="22" r="16" fill="rgba(29,158,117,0.4)"/><rect x="24" y="44" width="32" height="52" rx="8" fill="rgba(29,158,117,0.3)"/><rect x="8" y="44" width="14" height="40" rx="7" fill="rgba(29,158,117,0.2)"/><rect x="58" y="44" width="14" height="40" rx="7" fill="rgba(29,158,117,0.2)"/><rect x="26" y="96" width="12" height="40" rx="6" fill="rgba(29,158,117,0.25)"/><rect x="42" y="96" width="12" height="40" rx="6" fill="rgba(29,158,117,0.25)"/></svg></div>';
+
+  return '<style>@keyframes gleamFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes gleamPulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>'+
+  '<div style="min-height:100vh;background:#080f0c;display:flex;flex-direction:column;align-items:center;padding:56px 24px 40px;text-align:center;position:relative;overflow:hidden">'+
+
+  // Ambient glow
+  '<div style="position:absolute;top:20%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;border-radius:50%;background:rgba(29,158,117,0.07);filter:blur(80px);pointer-events:none"></div>'+
+
+  // Header
+  '<div style="font-size:0.7rem;letter-spacing:.2em;color:#1D9E75;font-weight:800;text-transform:uppercase;margin-bottom:6px;opacity:0;animation:gleamFadeUp 0.4s ease forwards">Gleam AI</div>'+
+  '<div style="font-size:1.3rem;font-weight:800;margin-bottom:28px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.15s">Scanning your profile...</div>'+
+
+  // Photo frame + scan line
+  '<div style="position:relative;width:160px;height:220px;border-radius:16px;overflow:hidden;border:1.5px solid rgba(29,158,117,0.5);margin-bottom:28px;box-shadow:0 0 40px rgba(29,158,117,0.12)">'+
+    photoHTML+
+    '<div style="position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent 0%,rgba(29,158,117,0.8) 40%,#1D9E75 50%,rgba(29,158,117,0.8) 60%,transparent 100%);animation:scan-line 1.6s linear infinite;box-shadow:0 0 16px rgba(29,158,117,0.7)"></div>'+
+    '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,158,117,0.08) 0%,transparent 40%,transparent 60%,rgba(29,158,117,0.08) 100%)"></div>'+
   '</div>'+
 
-  (isRed?
-    // RED — FREE UNLOCK
-    '<div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--red);margin-bottom:12px;font-weight:700">Your Journey Starts NOW</div>'+
-    '<div style="font-size:2rem;font-weight:900;line-height:1.2;margin-bottom:16px">'+name+',<br>we\'ve got<br>your back.</div>'+
-    '<div style="font-size:0.9rem;color:var(--muted);line-height:1.8;max-width:280px;margin:0 auto 28px">This isn\'t a judgement. It\'s a starting line. FitOS is going to fight for you &mdash; for free.</div>'+
-    '<div style="background:rgba(224,80,80,.12);border:1px solid rgba(224,80,80,.4);border-radius:16px;padding:20px;width:100%;max-width:320px;margin-bottom:28px">'+
-      '<div style="font-size:2rem;margin-bottom:8px">&#x1F513;</div>'+
-      '<div style="font-size:1.2rem;font-weight:800;color:var(--red);margin-bottom:6px">4 Months FREE</div>'+
-      '<div style="font-size:0.82rem;color:#ddd;line-height:1.6">Full access. No credit card. No catch.<br>Your AI PT is activated and ready.</div>'+
+  // Metrics list
+  '<div style="width:100%;max-width:320px;text-align:left">'+
+    metricsHTML+
+  '</div>'+
+
+  // Progress indicator
+  '<div style="margin-top:24px;display:flex;align-items:center;gap:8px">'+
+    '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;animation:gleamPulse 1.2s ease-in-out infinite"></div>'+
+    '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;animation:gleamPulse 1.2s ease-in-out infinite;animation-delay:.4s"></div>'+
+    '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;animation:gleamPulse 1.2s ease-in-out infinite;animation-delay:.8s"></div>'+
+  '</div>'+
+  '<div style="margin-top:10px;font-size:0.78rem;color:rgba(255,255,255,0.3)">Building your personalised program...</div>'+
+
+  '</div>';
+}
+
+function shareReferral(){
+  var code=S.referralCode||'FITOS';
+  var msg='I\'m using FitOS as my AI Personal Trainer. Use my code '+code+' to get 7 days free. https://elihathaway32-del.github.io/fitos/';
+  if(navigator.share){
+    navigator.share({title:'FitOS — 7 Days Free',text:msg}).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(msg).then(function(){
+      alert('Link copied! Share it with your mates.');
+    });
+  }
+}
+
+function renderGleamResult(){
+  var p=S.profile||{};
+  var name=p.name||'Champion';
+  var insights=getGleamInsights(p);
+  var tdee=null;
+  try{tdee=calcTDEE();}catch(e){}
+  var code=S.referralCode||'—';
+
+  // Trial end date — 7 days from now
+  var trialEnd=new Date();
+  trialEnd.setDate(trialEnd.getDate()+7);
+  var trialLabel=trialEnd.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+
+  var insightsHTML=insights.slice(0,3).map(function(ins){
+    return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)">'+
+      '<div style="font-size:1.3rem;flex-shrink:0;line-height:1.4">'+ins.icon+'</div>'+
+      '<div style="font-size:0.82rem;color:rgba(255,255,255,0.78);line-height:1.6">'+ins.text+'</div>'+
+    '</div>';
+  }).join('');
+
+  return '<style>@keyframes gleamFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes unlockPop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}</style>'+
+  '<div style="min-height:100vh;background:linear-gradient(180deg,#070f0a 0%,#0d0d0d 60%);display:flex;flex-direction:column;align-items:center;padding:48px 20px 48px;text-align:center;position:relative;overflow:hidden">'+
+
+  // Ambient glow
+  '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(29,158,117,0.14) 0%,transparent 70%);pointer-events:none"></div>'+
+
+  // Checkmark unlock
+  '<div style="animation:unlockPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275) forwards;margin-bottom:16px">'+
+    '<div style="width:72px;height:72px;border-radius:50%;background:rgba(29,158,117,0.15);border:2px solid rgba(29,158,117,0.6);display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 0 40px rgba(29,158,117,0.25)">'+
+      '<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M6 16l8 8 12-14" stroke="#1D9E75" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
     '</div>'+
-    '<button class="btn btn-green" style="width:100%;max-width:320px;padding:16px;font-size:1.05rem" onclick="S.showGleam=false;saveProfile();render()">Let\'s Build Your Body &#x2192;</button>'+
-    '<div style="margin-top:14px;font-size:0.72rem;color:var(--muted)">Free for 4 months &middot; $19.99 AUD/mo after</div>'
-  :
-    // GREEN — SUBSCRIPTION
-    '<div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--green);margin-bottom:12px;font-weight:700">Already In The Zone</div>'+
-    '<div style="font-size:2rem;font-weight:900;line-height:1.2;margin-bottom:16px">'+name+',<br>you\'re already<br>performing.</div>'+
-    '<div style="font-size:0.9rem;color:var(--muted);line-height:1.8;max-width:280px;margin:0 auto 28px">Your base is solid. Now let\'s get surgical about training and nutrition to push to the next level.</div>'+
-    '<div style="background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.4);border-radius:16px;padding:20px;width:100%;max-width:320px;margin-bottom:28px">'+
-      '<div style="font-size:2rem;margin-bottom:8px">&#x26A1;</div>'+
-      '<div style="font-size:1.2rem;font-weight:800;color:var(--green);margin-bottom:6px">AI PT Activated</div>'+
-      '<div style="font-size:0.82rem;color:#ddd;line-height:1.6">$19.99 AUD/month &middot; Cancel anytime.<br>Results guaranteed.</div>'+
+  '</div>'+
+
+  // Heading
+  '<div style="font-size:0.7rem;letter-spacing:.18em;color:#1D9E75;font-weight:800;text-transform:uppercase;margin-bottom:8px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.3s">Scan complete</div>'+
+  '<div style="font-size:1.75rem;font-weight:900;line-height:1.2;margin-bottom:6px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.45s">'+name+', your AI PT<br>is ready.</div>'+
+  (tdee?'<div style="font-size:0.85rem;color:rgba(255,255,255,0.45);margin-bottom:24px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.6s">TDEE: '+tdee.tdee+' cal &middot; Target: '+tdee.targetCal+' cal &middot; Protein: '+tdee.proteinG+'g</div>':'<div style="margin-bottom:24px"></div>')+
+
+  // Insights
+  '<div style="width:100%;max-width:360px;text-align:left;margin-bottom:24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:4px 16px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.7s">'+
+    insightsHTML+
+  '</div>'+
+
+  // 7-day trial card
+  '<div style="width:100%;max-width:360px;background:linear-gradient(135deg,rgba(29,158,117,0.18),rgba(29,158,117,0.08));border:1.5px solid rgba(29,158,117,0.45);border-radius:20px;padding:22px 20px;margin-bottom:16px;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:.9s">'+
+    '<div style="font-size:2rem;margin-bottom:8px">🔓</div>'+
+    '<div style="font-size:1.3rem;font-weight:900;color:#1D9E75;margin-bottom:6px">7 Days Free</div>'+
+    '<div style="font-size:0.83rem;color:rgba(255,255,255,0.7);line-height:1.7;margin-bottom:10px">Full access. No credit card needed. Your trial ends <strong style="color:#fff">'+trialLabel+'</strong>. Cancel anytime — no drama.</div>'+
+    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.35)">$28.99 AUD/month after trial</div>'+
+  '</div>'+
+
+  // Referral card
+  '<div style="width:100%;max-width:360px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.35);border-radius:16px;padding:16px 18px;margin-bottom:24px;text-align:left;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:1.1s">'+
+    '<div style="font-size:0.72rem;letter-spacing:.12em;color:#a5b4fc;font-weight:700;text-transform:uppercase;margin-bottom:6px">Refer a mate → +7 days free</div>'+
+    '<div style="font-size:0.83rem;color:rgba(255,255,255,0.65);line-height:1.6;margin-bottom:12px">Every friend who signs up using your code extends your trial by 7 days. No cap.</div>'+
+    '<div style="display:flex;align-items:center;gap:10px">'+
+      '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.4);border-radius:10px;padding:8px 14px;font-family:monospace;font-size:0.95rem;font-weight:700;color:#a5b4fc;letter-spacing:.08em;flex:1;text-align:center">'+code+'</div>'+
+      '<button onclick="shareReferral()" style="background:#6366f1;border:none;color:#fff;font-weight:700;font-size:0.8rem;padding:9px 16px;border-radius:10px;cursor:pointer;white-space:nowrap">Share 📲</button>'+
     '</div>'+
-    '<button class="btn btn-green" style="width:100%;max-width:320px;padding:16px;font-size:1.05rem" onclick="closeGleam()">Start Training &#x2192;</button>'
-  )+
+  '</div>'+
+
+  // CTA
+  '<button class="btn btn-green" style="width:100%;max-width:360px;padding:18px;font-size:1.1rem;font-weight:800;letter-spacing:.02em;opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:1.3s" onclick="closeGleam()">Activate My 7 Days &#x2192;</button>'+
+  '<div style="margin-top:14px;font-size:0.72rem;color:rgba(255,255,255,0.22);opacity:0;animation:gleamFadeUp 0.4s ease forwards;animation-delay:1.5s">No credit card required &middot; Cancel anytime</div>'+
 
   '</div>';
 }
@@ -8738,13 +8880,21 @@ function wizNext(){
     try{localStorage.setItem('fitos_steps_goal',S.stepsGoal);}catch(e){}
     S.showIntake=false;
     try{generateAndSaveBlock();}catch(e){}
-    var bf=parseFloat(S.profile.bodyFatPct);
-    var gender=S.profile.gender;
-    if(bf>0){
-      var isOver=(gender==='male'&&bf>35)||(gender==='female'&&bf>42);
-      S.gleamBF=bf;S.gleamResult=isOver?'red':'green';S.showGleam=true;
-    }
+    // Always show Gleam scan (universal 7-day trial, no BF% gating)
+    S.gleamPhase='scanning';
+    S.showGleam=true;
     render();
+    // Auto-transition to result after scan animation completes
+    setTimeout(function(){
+      S.gleamPhase='result';
+      if(!S.referralCode){
+        var n=(S.profile.name||'FIT').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4)||'FIT';
+        S.referralCode=n+(Math.random().toString(36).slice(2,6).toUpperCase());
+        localStorage.setItem('fitos_referral',S.referralCode);
+      }
+      render();
+      window.scrollTo(0,0);
+    },4200);
   }
 }
 function wizBack(){if(S.intakeStep>0){S.intakeStep--;render();}}
@@ -8851,7 +9001,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v102';
+  window.APP_VERSION='v103';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8907,7 +9057,62 @@ if('serviceWorker' in navigator){
   });
 }
 }
-function closeGleam(){S.showGleam=false;try{saveProfile();}catch(e){}render();}
+function skipPhotosForNow(){
+  // Set a reminder and advance past the photo step
+  localStorage.setItem('fitos_photo_reminder','pending');
+  wizNext();
+}
+function schedulePhotoReminder(timeKey){
+  // timeKey: '19:00' (7pm) or '07:00' (7am)
+  if(!timeKey) timeKey='19:00';
+  localStorage.setItem('fitos_photo_reminder','pending');
+  localStorage.setItem('fitos_photo_reminder_time',timeKey);
+  // Try browser notifications
+  if('Notification' in window){
+    Notification.requestPermission().then(function(perm){
+      if(perm==='granted'){
+        var now=new Date();
+        var parts=timeKey.split(':');
+        var target=new Date(now.getFullYear(),now.getMonth(),now.getDate(),parseInt(parts[0]),parseInt(parts[1]),0,0);
+        if(target<=now) target.setDate(target.getDate()+1); // next day if time passed
+        var delay=target-now;
+        setTimeout(function(){
+          new Notification('FitOS — Before photos 📸',{
+            body:'Add your before photos now so you can track your transformation over time.',
+            icon:'icon-192.png'
+          });
+        },delay);
+        alert('Done! You\'ll get a reminder at '+timeKey+' to take your before photos.');
+      } else {
+        alert('Reminder saved. Head to Settings → Profile to add your photos when you\'re ready.');
+      }
+    });
+  } else {
+    alert('Reminder saved. Head to Settings → Profile to add your photos when you\'re ready.');
+  }
+  S.showPhotoReminderCard=false;
+  render();
+}
+function checkPhotoReminder(){
+  // Called on render — shows a banner if reminder is pending and user has no photos
+  if(!localStorage.getItem('fitos_photo_reminder')) return false;
+  var p=S.profile||{};
+  if(p.photoFront||p.photoBack||p.photoSide){
+    localStorage.removeItem('fitos_photo_reminder');
+    return false;
+  }
+  return true;
+}
+function closeGleam(){
+  S.showGleam=false;
+  try{saveProfile();}catch(e){}
+  // Check if photos were skipped — set reminder flag
+  var p=S.profile||{};
+  if(!p.photoFront&&!p.photoBack&&!p.photoSide){
+    S.showPhotoReminderCard=true;
+  }
+  render();
+}
 
 function checkMeal(id){
   if(S.mealChecked.has(id)) S.mealChecked.delete(id);
