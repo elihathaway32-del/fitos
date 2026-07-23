@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-visual">
-  <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#0d0d0d">
-  <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1D9E75">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FitOS">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1D9E75">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
 <title>FitOS — Your AI Personal Trainer</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -3444,11 +3445,31 @@ function viewDateLabel(dateStr){
   return new Date(dateStr).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
 }
 function dismissPWA(){localStorage.setItem('fitos_pwa_dismissed','1');render();}
+function installPWA(){
+  if(!window._pwaPrompt) return;
+  window._pwaPrompt.prompt();
+  window._pwaPrompt.userChoice.then(function(r){
+    if(r.outcome==='accepted') localStorage.setItem('fitos_pwa_dismissed','1');
+    window._pwaPrompt=null;
+    render();
+  });
+}
 function renderPWABanner(){
   var isStandalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone;
   if(isStandalone||localStorage.getItem('fitos_pwa_dismissed')) return '';
   var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
   var isAndroid=/android/i.test(navigator.userAgent);
+  var hasPrompt=!!(window._pwaPrompt);
+  // Android with native install prompt — show real Install button
+  if(isAndroid&&hasPrompt){
+    return '<div style="margin:12px 16px 0;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.35);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+      '<div style="font-size:0.82rem;color:var(--text);line-height:1.4;flex:1">📲 <strong>Install FitOS</strong> — add it to your home screen for offline access &amp; the full app feel.</div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0">'+
+        '<button onclick="installPWA()" style="background:var(--accent);border:none;color:#fff;font-size:0.78rem;font-weight:700;border-radius:8px;padding:7px 14px;cursor:pointer">Install</button>'+
+        '<button onclick="dismissPWA()" style="background:transparent;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 6px">×</button>'+
+      '</div>'+
+    '</div>';
+  }
   var msg=isIOS?'📱 Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> for the full app experience':
            isAndroid?'📱 Tap <strong>Menu (⋮)</strong> then <strong>Add to Home Screen</strong> to install FitOS':
            '🖥 Open on your phone and add to home screen for the best experience';
@@ -8649,7 +8670,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v100';
+  window.APP_VERSION='v101';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8674,6 +8695,19 @@ function initApp(){
       btn.addEventListener('animationend',function(){btn.classList.remove('btn-springing');},{once:true});
     }
   },{passive:true});
+  // Capture Android install prompt — deferred so we can trigger it from our own button
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  window._pwaPrompt=e;
+  // Re-render banner so Android users see the real Install button
+  render();
+});
+window.addEventListener('appinstalled',function(){
+  window._pwaPrompt=null;
+  localStorage.setItem('fitos_pwa_dismissed','1');
+  render();
+});
+
   // Register SW — caches app shell, auto-updates on close+reopen
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(function(reg){
