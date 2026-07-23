@@ -879,7 +879,7 @@ function goalStyle(p){
 // Experience → difficulty range
 function expDiff(p){
   const e=(p.experience||'beginner').toLowerCase();
-  if(e.includes('begin')||e.includes('new')) return [1,2];
+  if(e.includes('begin')||e.includes('new')||e==='never') return [1,2];
   if(e.includes('inter')) return [2,3];
   if(e.includes('advanc')||e.includes('elite')) return [3,5];
   return [1,3];
@@ -1073,7 +1073,7 @@ function buildBlock(p,progData){
   var template;
 
   // ── BEGINNER (simple full-body patterns, max 4 days) ──
-  if(style==='beginner'||(p.experience||'').toLowerCase().match(/begin|new to|starter/)){
+  if(style==='beginner'||(p.experience||'').toLowerCase().match(/begin|new to|starter|never/)){
     var bd=Math.min(days,4);
     var BT={
       1:[{n:'Full Body',col:'#1D9E75',tag:'Learn the Basics',pat:['push-h','squat','pull-v','hinge','core']}],
@@ -1463,11 +1463,36 @@ function renderProgressionCard(){
       rows+
     '</div>';
 }
+// Swap barbell/advanced exercises for machine/beginner alternatives
+// Only fires for experience:'never' — first-time gym-goers need guided machines, not free bars
+function swapBeginnerExercises(block,p){
+  var exp=(p.experience||'').toLowerCase();
+  if(exp!=='never') return block;
+  var SWAPS={
+    'bb-bench':{id:'machine-press',name:'Machine Chest Press',type:'Primary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Chest','Front Delt','Triceps'],cue:'Adjust seat so handles are at mid-chest. Fixed path = safe for first-timers. Full ROM. Focus on squeezing pecs.',anim:'bench',yt:'machine+chest+press+form+tutorial'},
+    'bench':{id:'machine-press',name:'Machine Chest Press',type:'Primary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Chest','Front Delt','Triceps'],cue:'Adjust seat so handles are at mid-chest. Fixed path = safe for first-timers. Full ROM. Focus on squeezing pecs.',anim:'bench',yt:'machine+chest+press+form+tutorial'},
+    'chin-up':{id:'lat-pulldown-wide',name:'Lat Pulldown (Wide Grip)',type:'Primary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Lats','Rhomboids','Biceps'],cue:'Depress scapula before pulling. Drive elbows to hips. Cable provides assisted resistance — perfect for beginners building pull strength.',anim:'pull',yt:'lat+pulldown+wide+grip+form+beginner'},
+    'pull-up':{id:'lat-pulldown-wide',name:'Lat Pulldown (Wide Grip)',type:'Primary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Lats','Rhomboids','Biceps'],cue:'Depress scapula before pulling. Drive elbows to hips. Cable provides assisted resistance — perfect for beginners building pull strength.',anim:'pull',yt:'lat+pulldown+wide+grip+form+beginner'},
+    'bb-ohp':{id:'seated-db-press',name:'Seated DB Shoulder Press',type:'Primary compound',sets:3,lo:12,hi:15,rest:90,muscles:['Side Delt','Front Delt','Triceps'],cue:'Back supported. DBs at ear height. Press up and slightly in. Control the eccentric.',anim:'shoulder-press',yt:'seated+dumbbell+shoulder+press+beginner+form'}
+  };
+  Object.keys(block).forEach(function(dayKey){
+    var day=block[dayKey];
+    if(!day.exercises) return;
+    day.exercises=day.exercises.map(function(ex){
+      var swap=SWAPS[ex.id];
+      if(!swap) return ex;
+      return Object.assign({},ex,swap,{sets:ex.sets,lo:ex.lo,hi:ex.hi,rest:ex.rest,stalled:ex.stalled,startWeight:null});
+    });
+  });
+  return block;
+}
+
 function generateAndSaveBlock(){
   var p=S.profile;
   if(!p||!p.goal) return;
   var prog=getProgressionData();
   var block=buildBlock(p,prog);
+  block=swapBeginnerExercises(block,p);
   localStorage.setItem('fitos_generated_block',JSON.stringify(block));
   localStorage.setItem('fitos_block_profile',JSON.stringify({goal:p.goal,daysPerWeek:p.daysPerWeek,gymType:p.gymType,experience:p.experience}));
   // Clear old day keys first so a 3-day user doesn't inherit a 6-day split
@@ -8339,7 +8364,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v97';
+  window.APP_VERSION='v98';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -8582,7 +8607,18 @@ function renderCoach(){
     '</div>'+
     '<div class="coach-messages" id="coach-msgs">'+
       msgs.map(function(m){
-        return '<div class="coach-bubble '+(m.role==='user'?'user':'coach')+'">'+m.content+'</div>';
+        var md=m.content
+          .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g,'<em>$1</em>')
+          .replace(/^### (.+)$/gm,'<strong>$1</strong>')
+          .replace(/^## (.+)$/gm,'<strong>$1</strong>')
+          .replace(/^# (.+)$/gm,'<strong>$1</strong>')
+          .replace(/^[-•] (.+)$/gm,'&bull; $1')
+          .replace(/\n\n/g,'<br><br>')
+          .replace(/\n/g,'<br>');
+        return '<div class="coach-bubble '+(m.role==='user'?'user':'coach')+'">'+md+'</div>';
       }).join('')+
       (S.coachTyping?'<div class="coach-bubble coach"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div>':'')+
     '</div>'+
