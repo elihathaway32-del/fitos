@@ -2505,6 +2505,7 @@ let S={
   stepTrackingActive: false,
   showPhotoGallery: false,
   showPhotoReminderCard: false,
+  mealSwaps: loadJSON('fitos_meal_swaps',{}),
   photoGalleryAngle: 'front',
   photoGalleryWeekA: null,
   photoGalleryWeekB: null,
@@ -4982,6 +4983,117 @@ function renderRestDay(){
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MEAL SWAP ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function swapMeal(mealId,dateStr){
+  if(!S.mealSwaps) S.mealSwaps={};
+  var alts=getMealAlternatives(mealId);
+  if(!alts.length) return;
+  var key=dateStr+'_'+mealId;
+  var cur=S.mealSwaps[key]||0;
+  S.mealSwaps[key]=(cur+1)%(alts.length+1);
+  try{localStorage.setItem('fitos_meal_swaps',JSON.stringify(S.mealSwaps));}catch(e){}
+  render();
+}
+function getActiveMeal(meal,dateStr){
+  if(!S.mealSwaps) return meal;
+  var key=dateStr+'_'+meal.id;
+  var idx=S.mealSwaps[key];
+  if(!idx) return meal;
+  var alts=getMealAlternatives(meal.id);
+  return alts[idx-1]||meal;
+}
+function getMealAlternatives(mealId){
+  var p=S.profile||{};
+  var goal=(p.goal||'').toLowerCase();
+  var diet=Array.isArray(p.dietStyle)?p.dietStyle:(p.dietStyle?[p.dietStyle]:[]);
+  var isVegan=diet.some(function(d){return /vegan|plant/i.test(d);});
+  var isFatLoss=!!/fat|lose|lean|cut/.test(goal);
+
+  if(mealId==='m1'){
+    if(isVegan) return [
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🌿',cookTime:'8 min',prepTime:'3 min',serves:1,
+        items:[{name:'Firm tofu scramble (180g)',cal:158,p:19,c:3,f:8},{name:'Sourdough toast (2 slices)',cal:200,p:7,c:38,f:2},{name:'Cherry tomatoes (80g)',cal:14,p:1,c:3,f:0},{name:'Nutritional yeast (10g)',cal:35,p:5,c:4,f:0}],
+        recipe:[{s:'Crumble firm tofu into a hot pan. Season with turmeric, garlic powder, black salt (kala namak) and pepper. Cook 5–7 min stirring until golden and slightly dry.'},{s:'Add nutritional yeast at the end — gives cheesy, umami depth and a hit of B12.'},{s:'Toast sourdough. Plate scramble alongside with halved cherry tomatoes and hot sauce.'},{s:'Black salt (kala namak) smells and tastes like egg — game changer. Find it at Indian grocery stores. Buy it once and never look back.'}]},
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🫐',cookTime:'3 min',prepTime:'5 min',serves:1,
+        items:[{name:'Soy protein powder (35g)',cal:140,p:28,c:4,f:2},{name:'Frozen açaí (100g)',cal:70,p:1,c:7,f:4},{name:'Banana (medium)',cal:90,p:1,c:23,f:0},{name:'Oat milk (200ml)',cal:88,p:2,c:13,f:3},{name:'Granola (40g)',cal:180,p:4,c:28,f:6},{name:'Chia seeds (15g)',cal:72,p:3,c:6,f:4}],
+        recipe:[{s:'Blend açaí, banana, soy protein and oat milk 45 seconds until thick and smooth. Thick enough that a spoon stands up.'},{s:'Pour into a bowl. Top with granola and chia seeds. Add sliced strawberry or kiwi for colour.'},{s:'This is dessert-quality nutrition: 32g protein, complex carbs, omega-3 from chia. Eats like a treat, performs like a weapon.'}]}
+    ];
+    if(isFatLoss) return [
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🧀',cookTime:'0 min',prepTime:'3 min',serves:1,
+        items:[{name:'Cottage cheese (200g)',cal:140,p:24,c:5,f:3},{name:'Mixed berries (100g)',cal:50,p:1,c:12,f:0},{name:'Pumpkin seeds (15g)',cal:83,p:4,c:2,f:7}],
+        recipe:[{s:'Spoon cottage cheese into a bowl. Top with mixed berries and pumpkin seeds.'},{s:'Optional: pinch of cinnamon and a thin drizzle of honey if not in an aggressive deficit.'},{s:'24g protein under 280 calories. Zero cooking. High satiety from casein. Best bang-for-buck fat loss breakfast.'},{s:'Use full-fat cottage cheese — more satiating than low-fat, and the extra calories are worth the satiety gain when cutting.'}]},
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🥚',cookTime:'8 min',prepTime:'3 min',serves:1,
+        items:[{name:'Eggs 3 large',cal:210,p:18,c:1,f:15},{name:'Turkey breast (60g)',cal:66,p:14,c:0,f:1},{name:'Baby spinach (30g)',cal:7,p:1,c:1,f:0},{name:'Mushrooms (80g)',cal:18,p:2,c:3,f:0}],
+        recipe:[{s:'Sauté mushrooms in minimal oil 3–4 min until golden. Add spinach — wilt 1 minute. Set aside.'},{s:'Whisk 3 eggs, pour into the same pan. When edges set, add turkey and veg to one half.'},{s:'Fold omelette over. Cook 1 more minute. Slide onto plate.'},{s:'Under 300 calories, 35g protein. This is the fat loss breakfast. Nothing comes close.'}]}
+    ];
+    return [
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🥤',cookTime:'3 min',prepTime:'5 min',serves:1,
+        items:[{name:'Whey protein (40g)',cal:160,p:32,c:5,f:2},{name:'Banana (medium)',cal:90,p:1,c:23,f:0},{name:'Oat milk (300ml)',cal:132,p:4,c:19,f:5},{name:'Frozen berries (80g)',cal:40,p:1,c:10,f:0},{name:'Peanut butter (20g)',cal:117,p:5,c:4,f:10}],
+        recipe:[{s:'Chuck everything in a blender. Blend 45 seconds until smooth and frothy.'},{s:'Pre-freeze banana chunks the night before for a colder, thicker result without ice watering it down.'},{s:'Want it even thicker? Use 200ml oat milk and eat as a smoothie bowl with granola on top.'},{s:'39g protein, fast, zero dishes, zero excuses. Best days start with this.'}]},
+      {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🥑',cookTime:'5 min',prepTime:'5 min',serves:1,
+        items:[{name:'Sourdough bread (2 slices)',cal:200,p:7,c:38,f:2},{name:'Eggs 3 large, poached',cal:210,p:18,c:1,f:15},{name:'Avocado (half)',cal:120,p:1,c:6,f:11},{name:'Smoked salmon (60g)',cal:88,p:14,c:0,f:4}],
+        recipe:[{s:'Bring water to gentle simmer with a splash of white vinegar. Swirl water, lower each egg in carefully from a small cup. 3 min = runny yolk. 4 = firm. Don\'t leave.'},{s:'Toast sourdough. Mash avocado with salt, lemon juice and chilli flakes — season hard.'},{s:'Spread avo on toast, lay smoked salmon, top with poached eggs and cracked pepper.'},{s:'Omega-3 from salmon genuinely reduces DOMS and supports joint health. Treat this as recovery fuel disguised as a café breakfast.'}]}
+    ];
+  }
+
+  if(mealId==='m3'){
+    if(isVegan) return [
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🍛',cookTime:'18 min',prepTime:'5 min',serves:1,
+        items:[{name:'Red lentils cooked (200g)',cal:230,p:18,c:40,f:1},{name:'Chickpeas (100g canned)',cal:164,p:9,c:27,f:3},{name:'Basmati rice (180g cooked)',cal:234,p:4,c:52,f:0},{name:'Coconut milk (50ml)',cal:100,p:1,c:3,f:10}],
+        recipe:[{s:'Simmer lentils in 300ml water with cumin, coriander, turmeric, garlic and ginger 12–15 min until soft.'},{s:'Add drained chickpeas and coconut milk. Stir and cook 3 more minutes.'},{s:'Serve over basmati rice with a squeeze of fresh lemon. Add chilli for heat.'},{s:'Lentils + chickpeas together give a near-complete amino acid profile. Coconut milk slows digestion and keeps you full. Real athlete plant food.'}]},
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🥢',cookTime:'12 min',prepTime:'5 min',serves:1,
+        items:[{name:'Tempeh (180g)',cal:320,p:31,c:15,f:18},{name:'White rice (200g cooked)',cal:260,p:5,c:57,f:0},{name:'Edamame (80g)',cal:98,p:9,c:8,f:4},{name:'Bok choy (100g)',cal:13,p:2,c:2,f:0}],
+        recipe:[{s:'Slice tempeh into thin strips. Pan-fry in soy sauce, garlic and sesame oil on medium-high 4 min each side until caramelised and crispy on edges.'},{s:'Add edamame and bok choy — 2 minutes, toss through.'},{s:'Serve over rice. Finish with extra soy sauce and rice wine vinegar.'},{s:'Tempeh is fermented — better protein digestibility than raw tofu, plus genuine gut health benefits. This is a serious athlete plant meal.'}]}
+    ];
+    if(isFatLoss) return [
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🥗',cookTime:'5 min',prepTime:'8 min',serves:1,
+        items:[{name:'Chicken breast (180g grilled)',cal:297,p:56,c:0,f:6},{name:'Mixed salad leaves (80g)',cal:15,p:1,c:2,f:0},{name:'Cherry tomatoes (100g)',cal:18,p:1,c:4,f:0},{name:'Cucumber (100g)',cal:16,p:1,c:3,f:0},{name:'Olive oil + lemon dressing (10ml)',cal:88,p:0,c:0,f:10}],
+        recipe:[{s:'Grill or pan-fry chicken with Italian herbs, salt and garlic. Rest 2 min before slicing.'},{s:'Assemble: leaves, halved tomatoes, sliced cucumber. Protein on top.'},{s:'Dressing: 10ml EVOO + lemon juice + pinch salt + Dijon mustard. Shake in a jar.'},{s:'High volume, very low calorie, extremely high protein. Add a boiled egg if you want even more protein without meaningful fat.'}]},
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🐟',cookTime:'0 min',prepTime:'5 min',serves:1,
+        items:[{name:'Canned tuna in water (185g)',cal:175,p:39,c:0,f:2},{name:'Brown rice (180g cooked)',cal:214,p:4,c:44,f:2},{name:'Avocado (half)',cal:120,p:1,c:6,f:11},{name:'Cucumber + cherry tomatoes (100g)',cal:30,p:1,c:6,f:0}],
+        recipe:[{s:'Drain tuna, flake into bowl. Season with lemon juice, pepper, tiny drizzle olive oil.'},{s:'Layer rice in bowl — tuna mix on top. Avocado sliced alongside. Cherry tomatoes halved around.'},{s:'Optional: drizzle of soy sauce adds depth without many calories.'},{s:'40g+ protein, healthy fat from avo, moderate carbs. Zero cooking on the tuna. If rice is prepped, this is a 3-minute meal.'}]}
+    ];
+    return [
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🍣',cookTime:'0 min',prepTime:'5 min',serves:1,
+        items:[{name:'Canned tuna in spring water (185g)',cal:175,p:39,c:0,f:2},{name:'White rice (200g cooked)',cal:260,p:5,c:57,f:0},{name:'Edamame (100g)',cal:122,p:11,c:10,f:5},{name:'Sesame seeds (10g)',cal:57,p:2,c:2,f:5},{name:'Soy sauce (15ml)',cal:10,p:1,c:1,f:0}],
+        recipe:[{s:'Drain and flake tuna. Season with soy sauce, a splash of rice wine vinegar and sesame seeds.'},{s:'Layer rice in a bowl. Tuna mix on top. Edamame around the sides.'},{s:'Optional: sliced avocado, pickled ginger, soft-boiled egg — turns this into a full poke bowl.'},{s:'50g protein in under 5 minutes if rice is prepped. Meal prep rice on Sunday — this becomes effortless all week.'}]},
+      {id:'m3',name:'Post-Training Lunch',time:'1:00 PM',icon:'🍜',cookTime:'12 min',prepTime:'5 min',serves:1,
+        items:[{name:'Turkey mince (200g)',cal:240,p:44,c:0,f:7},{name:'White rice (200g cooked)',cal:260,p:5,c:57,f:0},{name:'Mixed frozen veg (150g)',cal:75,p:4,c:12,f:1},{name:'Garlic + soy sauce',cal:15,p:1,c:2,f:0}],
+        recipe:[{s:'Brown turkey mince in a hot pan, breaking it up. Season with garlic, ginger and pepper. Cook 5–6 min until no pink.'},{s:'Add frozen veg straight from the bag — stir through 3 minutes.'},{s:'Soy sauce and sesame oil at the end. Toss through. Serve over rice.'},{s:'Lean protein, post-workout carbs, veg for micros. Batch cook 4× Sunday and refrigerate — reheat 90 seconds all week.'}]}
+    ];
+  }
+
+  if(mealId==='m5'){
+    if(isVegan) return [
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🫘',cookTime:'20 min',prepTime:'10 min',serves:1,
+        items:[{name:'Black beans (200g canned)',cal:220,p:15,c:40,f:1},{name:'Sweet potato (200g)',cal:172,p:3,c:40,f:0},{name:'Corn tortillas (2)',cal:120,p:2,c:24,f:2},{name:'Avocado (half)',cal:120,p:1,c:6,f:11},{name:'Red cabbage + lime (80g)',cal:25,p:1,c:5,f:0}],
+        recipe:[{s:'Dice sweet potato, toss in cumin + olive oil. Roast 200°C 20 min until caramelised.'},{s:'Drain beans, heat in pan with smoked paprika, cumin, garlic and lime juice. 5 min on medium.'},{s:'Warm tortillas in dry pan 30 sec each side. Load: beans, sweet potato, sliced avo, shredded cabbage.'},{s:'Finish with lime juice and hot sauce. Black beans + sweet potato covers all amino acids needed from a plant dinner.'}]},
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🥢',cookTime:'15 min',prepTime:'10 min',serves:1,
+        items:[{name:'Firm tofu (200g)',cal:176,p:21,c:4,f:9},{name:'Rice noodles (80g dry)',cal:280,p:5,c:65,f:0},{name:'Mixed vegetables (200g)',cal:70,p:4,c:12,f:0},{name:'Peanut butter (30g) + soy sauce',cal:193,p:8,c:8,f:15}],
+        recipe:[{s:'Press tofu 10 min, cube, fry in sesame oil until golden all sides — 8–10 min. Season with soy sauce.'},{s:'Soak rice noodles in boiling water 5 min, drain.'},{s:'Stir-fry veg in same pan 3 min. Add noodles and tofu back in.'},{s:'Peanut sauce: whisk peanut butter + soy + rice vinegar + garlic + chilli + splash of water. Toss everything. High protein plant dinner with serious flavour.'}]}
+    ];
+    if(isFatLoss) return [
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🍗',cookTime:'15 min',prepTime:'5 min',serves:1,
+        items:[{name:'Chicken breast (200g)',cal:330,p:62,c:0,f:7},{name:'Zucchini spiralised (200g)',cal:34,p:3,c:7,f:0},{name:'Cherry tomatoes (150g)',cal:27,p:1,c:6,f:0},{name:'Basil pesto (20g)',cal:90,p:1,c:1,f:9}],
+        recipe:[{s:'Season chicken with Italian herbs, salt and garlic. Pan-fry medium-high 5–6 min per side. Rest 2 min before slicing.'},{s:'Spiralise zucchini (or buy pre-spiralised). Toss in a hot pan with tiny bit of oil 2 min — just slightly wilted.'},{s:'Add halved tomatoes to pan for 1 min.'},{s:'Plate zoodles + tomatoes, slice chicken over, drizzle pesto. Under 500 cal, 62g protein. Fat loss dinner at its best.'}]},
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🐟',cookTime:'15 min',prepTime:'5 min',serves:1,
+        items:[{name:'Barramundi fillet (200g)',cal:180,p:38,c:0,f:3},{name:'Green beans (150g)',cal:47,p:3,c:10,f:0},{name:'Cauliflower rice (200g)',cal:50,p:4,c:10,f:0}],
+        recipe:[{s:'Season barramundi with lemon, dill, salt and garlic. Pan-sear 4 min each side until golden and flaking.'},{s:'Steam green beans 4 min — still slightly firm. Microwave cauli rice 3 min.'},{s:'Plate fish over cauli rice with green beans. Squeeze fresh lemon over everything.'},{s:'Under 280 cal, 45g protein. Barramundi is one of the leanest high-protein proteins available. The lemon is not optional — it transforms this dish.'}]}
+    ];
+    return [
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🐟',cookTime:'15 min',prepTime:'5 min',serves:1,
+        items:[{name:'Atlantic salmon fillet (180g)',cal:357,p:40,c:0,f:20},{name:'Sweet potato (200g)',cal:172,p:3,c:40,f:0},{name:'Asparagus (120g)',cal:28,p:3,c:5,f:0}],
+        recipe:[{s:'Cube sweet potato, toss in olive oil + salt + pepper. Roast 200°C 20 min until caramelised.'},{s:'Season salmon skin-side up with salt, lemon and dill. Heat pan to medium-high. Place skin-down — press lightly 30 sec.'},{s:'Cook 4 min skin-down until skin is crispy. Flip — 2 min more. Centre should be slightly translucent. Don\'t overcook salmon.'},{s:'Grill asparagus alongside with olive oil — 5 min at 200°C.'},{s:'Omega-3 from salmon reduces DOMS, supports joint health and improves insulin sensitivity. Eat salmon twice a week minimum.'}]},
+      {id:'m5',name:'Dinner',time:'7:00 PM',icon:'🍗',cookTime:'25 min',prepTime:'10 min',serves:1,
+        items:[{name:'Chicken thigh skinless (220g)',cal:330,p:45,c:0,f:15},{name:'Quinoa (80g dry)',cal:284,p:11,c:50,f:5},{name:'Roasted capsicum (150g)',cal:45,p:1,c:10,f:0},{name:'Zucchini (150g)',cal:25,p:2,c:5,f:0}],
+        recipe:[{s:'Cook quinoa: 1 part quinoa, 2 parts water, boil then simmer covered 15 min. Fluff with fork.'},{s:'Season chicken thighs with paprika, oregano, garlic and salt. Sear in oven-safe pan 3–4 min each side then bake 200°C 15 min.'},{s:'Dice capsicum and zucchini, toss in olive oil + za\'atar or Italian herbs. Roast alongside chicken 15–18 min.'},{s:'Chicken thigh has more fat than breast — more flavour, more satiety, more fat-soluble vitamins. Don\'t fear it on a recomp.'}]}
+    ];
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PERSONALISED MEAL + GROCERY ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 function getPersonalisedMeals(){
@@ -5279,8 +5391,8 @@ function eatDateLabel(ds){
   return new Date(ds).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
 }
 function renderEat(){
-  const ACTIVE_MEALS=getPersonalisedMeals();
   const eatDate=S.logDate||todayStr();
+  const ACTIVE_MEALS=getPersonalisedMeals().map(function(m){return getActiveMeal(m,eatDate);});
   const isToday=eatDate===todayStr();
   const isFuture=new Date(eatDate)>new Date(todayStr());
   const isPast=!isToday&&!isFuture;
@@ -5437,13 +5549,18 @@ ${hasProfile&&tdeeData?`
     const isOpen=S.expandedMeal===m.id;
     const mCal=m.items.reduce((a,i)=>a+i.cal,0);
     const mProt=m.items.reduce((a,i)=>a+i.p,0);
+    const swappable=['m1','m3','m5'].includes(m.id);
+    const swapAlts=swappable?getMealAlternatives(m.id):[];
+    const swapIdx=(S.mealSwaps&&S.mealSwaps[eatDate+'_'+m.id])||0;
+    const swapLabel=swapAlts.length?`${swapIdx+1}/${swapAlts.length+1}`:'';
     return`<div class="meal-card${isChecked?' ':''}" style="${isChecked?'opacity:.7':''};${isFuture?'border-color:rgba(74,144,217,0.3)':''}">
       <div class="meal-header" onclick="toggleMeal('${m.id}')">
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="meal-title">${m.icon} ${m.name} <span style="font-size:0.7rem;color:var(--muted)">${m.time}</span>${isFuture?'<span style="font-size:0.62rem;background:rgba(74,144,217,0.15);color:var(--blue);border-radius:5px;padding:1px 5px;margin-left:6px">Planned</span>':''}</div>
           <div class="meal-cals">${mCal} cal · ${mProt}g protein</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${swappable&&!isChecked?`<button onclick="event.stopPropagation();swapMeal('${m.id}','${eatDate}')" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:4px 9px;color:#a5b4fc;font-size:0.68rem;font-weight:700;cursor:pointer;white-space:nowrap;line-height:1.5">🔄 ${swapLabel}</button>`:''}
           ${isToday?`<button onclick="event.stopPropagation();checkMeal('${m.id}')" style="background:${isChecked?'var(--green)':'var(--s2)'};border:2px solid ${isChecked?'var(--green)':'var(--border)'};border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;flex-shrink:0">${isChecked?'✓':''}</button>`:''}
           <span style="color:var(--muted);font-size:0.9rem">${isOpen?'▲':'▼'}</span>
         </div>
@@ -9047,7 +9164,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v104';
+  window.APP_VERSION='v105';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
