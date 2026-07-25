@@ -2633,6 +2633,7 @@ let S={
 
   // Habits / Today
   habitDate: localStorage.getItem('fitos_habit_date')||'',
+  sleepLog: loadJSON('fitos_sleep_log',{}),
   waterDone: parseInt(localStorage.getItem('fitos_water')||'0'),
   habitsChecked: new Set(loadJSON('fitos_habits_checked',[])),
   stepsToday: parseInt(localStorage.getItem('fitos_steps')||'0'),
@@ -2653,7 +2654,7 @@ let S={
     sleepHrs:7, soreness:5, energy:7,
     sessionsCompleted:4, overloadAchieved:'yes', setsMissed:'none',
     proteinDays:5, calorieDays:5, mealAdherence:'good',
-    bodyWeight:'', waist:'', prs:'',
+    bodyWeight:'', waist:'', arm:'', chest:'', hip:'', thigh:'', prs:'',
     stressLevel:5, hydrationGlasses:2,
     wentWell:'', toImprove:'',
     photoFront:null, photoBack:null, photoSide:null
@@ -2671,6 +2672,22 @@ let S={
   gleamResult: null,
   gleamBF: null,
   referralCode: localStorage.getItem('fitos_referral')||null,
+  // Cloud sync (Supabase)
+  supaUser: loadJSON('fitos_supa_user',null),
+  supaSession: localStorage.getItem('fitos_supa_session')||null,
+  showAuthModal: false,
+  authMode: 'signin', // 'signin' | 'signup'
+  authEmail: '',
+  authPassword: '',
+  authLoading: false,
+  authError: '',
+  lastCloudSync: localStorage.getItem('fitos_last_sync')||null,
+  // Notifications
+  notifEnabled: localStorage.getItem('fitos_notif_enabled')==='true',
+  notifGymDays: loadJSON('fitos_notif_gym_days',['Mon','Wed','Fri']),
+  notifGymTime: localStorage.getItem('fitos_notif_gym_time')||'07:00',
+  notifCheckinEnabled: localStorage.getItem('fitos_notif_checkin')==='true',
+  notifCheckinTime: localStorage.getItem('fitos_notif_checkin_time')||'08:00',
 };
 // THEME SYSTEM
 function loadTheme(){var t=localStorage.getItem('fitos_theme')||'dark-electric';document.documentElement.setAttribute('data-theme',t);}
@@ -3610,6 +3627,54 @@ function renderWeightTrend(){
   '</div>';
 }
 
+function renderMeasurementsTrend(){
+  if(!S.checkinHistory||S.checkinHistory.length<2) return '';
+  var metrics=[
+    {key:'waist',label:'Waist',col:'#f06432'},
+    {key:'arm',label:'Arm',col:'#1D9E75'},
+    {key:'chest',label:'Chest',col:'#4a90d9'},
+    {key:'hip',label:'Hip',col:'#a5b4fc'},
+    {key:'thigh',label:'Thigh',col:'#f5a623'}
+  ];
+  // Only show metrics that have at least 2 data points
+  var active=metrics.filter(function(m){
+    return S.checkinHistory.filter(function(h){return h[m.key]>0;}).length>=2;
+  });
+  if(!active.length) return '';
+  var W=260,H=60,pad=8;
+  var lines=active.map(function(m){
+    var hist=S.checkinHistory.filter(function(h){return h[m.key]>0;});
+    var vals=hist.map(function(h){return h[m.key];});
+    var minV=Math.min.apply(null,vals),maxV=Math.max.apply(null,vals),range=maxV-minV||1;
+    var pts=vals.map(function(v,i){
+      var x=pad+i*((W-pad*2)/(vals.length-1));
+      var y=H-pad-(v-minV)/range*(H-pad*2);
+      return x.toFixed(1)+','+y.toFixed(1);
+    }).join(' ');
+    var delta=(vals[vals.length-1]-vals[0]).toFixed(1);
+    var arrow=parseFloat(delta)<0?'↓':parseFloat(delta)>0?'↑':'→';
+    return {line:'<polyline points="'+pts+'" fill="none" stroke="'+m.col+'" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.85"/>',label:m.label,col:m.col,delta:delta,arrow:arrow};
+  });
+  return '<div style="margin-top:8px;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px">'+
+    '<div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">📐 Measurements Trend</div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" style="overflow:visible;display:block;margin-bottom:10px">'+
+      lines.map(function(l){return l.line;}).join('')+
+    '</svg>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+      lines.map(function(l){
+        var negGood=(l.label==='Waist'||l.label==='Hip'||l.label==='Thigh');
+        var good=negGood?parseFloat(l.delta)<0:parseFloat(l.delta)>0;
+        var statCol=parseFloat(l.delta)===0?'var(--muted)':good?'var(--green)':'var(--amber)';
+        return '<span style="font-size:0.72rem;background:var(--s3);border-radius:8px;padding:3px 9px;display:flex;align-items:center;gap:4px">'+
+          '<span style="width:8px;height:8px;border-radius:50%;background:'+l.col+';display:inline-block;flex-shrink:0"></span>'+
+          '<span style="color:var(--text);font-weight:600">'+l.label+'</span>'+
+          '<span style="color:'+statCol+';font-weight:700">'+l.arrow+' '+Math.abs(parseFloat(l.delta))+'cm</span>'+
+        '</span>';
+      }).join('')+
+    '</div>'+
+  '</div>';
+}
+
 function getDateData(dateStr){
   var isT=dateStr===todayStr();
   var log=S.foodLog.filter(function(f){return f.date===dateStr;});
@@ -3883,6 +3948,8 @@ ${renderWeekSummary()}
 
     <!-- Weight trend sparkline (shows after first check-in with weight) -->
     ${renderWeightTrend()}
+    <!-- Measurements trend (shows once 2+ check-ins have measurement data) -->
+    ${renderMeasurementsTrend()}
     <!-- Progress Photos card (shows when any check-in has photos) -->
     ${renderProgressPhotosCard()}
 
@@ -4570,12 +4637,35 @@ function getSwapAlts(ex){
     var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
     if(overlap){seen[a.id]=true;candidates.push(a);}
   });});
-  // 3. Muscle-match from EXERCISE_LIBRARY — 103-exercise master database
+  // 3. Muscle-match from EXERCISE_LIBRARY — 110+ exercise master database
   if(typeof EXERCISE_LIBRARY_ALL!=='undefined'){
     EXERCISE_LIBRARY_ALL.forEach(function(a){
       if(seen[a.id])return;
       var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
       if(overlap){seen[a.id]=true;candidates.push(a);}
+    });
+  }
+  // 4. Muscle-match from EL — 108-exercise database with coaching cues
+  var EL_MUSCLE_MAP={'tri':'triceps','bi':'biceps','hams':'hamstrings','rhom':'rhomboids','erectors':'erectors','front-delt':'front-delt','side-delt':'side-delt','quads':'quads','glutes':'glutes','chest':'chest','back':'back','core':'core','calves':'calves','lats':'lats','traps':'traps','abs':'core','adductors':'adductors'};
+  var EL_EQUIP_MAP={'bw':'bodyweight','barbell':'barbell','dumbbell':'dumbbell','cable':'cable','machine':'machine','band':'band','kettlebell':'kettlebell','smith':'smith'};
+  if(typeof EL!=='undefined'){
+    EL.forEach(function(e){
+      if(seen[e.id])return;
+      var eMuscles=(e.pm||[]).concat(e.sm||[]).map(function(m){return EL_MUSCLE_MAP[m]||m;});
+      var overlap=eMuscles.some(function(m){return exMuscles.indexOf(m)>=0;});
+      if(overlap){
+        seen[e.id]=true;
+        candidates.push({
+          id:e.id,
+          name:e.n,
+          muscles:eMuscles,
+          equip:EL_EQUIP_MAP[e.t]||e.t||'bodyweight',
+          cue:e.cue||'',
+          anim:e.anim||null,
+          yt:e.yt||null,
+          _fromEL:true
+        });
+      }
     });
   }
   // Filter by user equipment
@@ -5769,11 +5859,30 @@ function renderGrocerySection(){
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SHOP TAB (kept for backward compat — tab removed, content now in Eat)
+function getMealGroceryList(){
+  // Get active meals (today, respecting swaps) and extract unique ingredients
+  var today=todayStr();
+  var meals=getPersonalisedMeals();
+  var seen={};
+  var list=[];
+  meals.forEach(function(m){
+    var active=getActiveMeal(m,today);
+    (active.items||[]).forEach(function(item){
+      // Normalise name: strip quantity in parens, lowercase for dedup
+      var raw=item.name;
+      var base=raw.replace(/\s*\(.*?\)/g,'').replace(/\s*[\d]+g\b/gi,'').trim();
+      var key=base.toLowerCase();
+      if(!seen[key]){seen[key]=true;list.push({name:base,meal:active.name,cal:item.cal,p:item.p});}
+    });
+  });
+  return list;
+}
 // ═══════════════════════════════════════════════════════════════════════════
 function renderShop(){
   const ACTIVE_GROCERY=getPersonalisedGrocery();
   const total=ACTIVE_GROCERY.reduce((a,c)=>a+c.items.length,0);
   const ticked=S.shopTicked.size;
+  const mealIngredients=getMealGroceryList();
   return`<div class="top-bar">
   <div><div class="top-title">Shop</div><div class="top-sub">Weekly grocery list · ${ticked}/${total} items</div></div>
   <button class="btn btn-sm btn-outline" onclick="clearShop()">Clear ticked</button>
@@ -5785,6 +5894,27 @@ function renderShop(){
   <div style="font-size:0.72rem;color:var(--muted)">${ticked} of ${total} items ticked</div>
 </div>
 <div>
+${mealIngredients.length?`
+<div class="shop-category">
+  <div class="shop-cat-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>🍽️ This Week's Meal Ingredients</span>
+    <span style="font-size:0.65rem;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">from your active meal plan</span>
+  </div>
+  ${mealIngredients.map((item,idx)=>{
+    const key='mealingr_'+idx;
+    const done=S.shopTicked.has(key);
+    return`<div class="shop-item${done?' ticked':''}" onclick="toggleShop('${key}')">
+      <div class="shop-check">${done?'✓':''}</div>
+      <div style="flex:1">
+        <div class="shop-name">${item.name}</div>
+        <div class="shop-detail">${item.meal} · ${item.cal}cal, ${item.p}g protein</div>
+      </div>
+    </div>`;
+  }).join('')}
+</div>
+<div style="margin:0 16px 12px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.72rem;color:var(--muted)">
+  💡 Swap a meal in the Eat tab → this list updates automatically
+</div>`:''}
 ${ACTIVE_GROCERY.map(cat=>`
 <div class="shop-category">
   <div class="shop-cat-title">${cat.name}</div>
@@ -5980,6 +6110,29 @@ ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
     <div class="streak-sub">Keep showing up. Every day compounds.</div>
   </div>
 </div></div>`:''}
+<div style="padding:12px 16px 0">
+  <div class="card-title">💤 Last Night's Sleep</div>
+  <div class="card" style="padding:12px 14px">
+    ${(()=>{
+      var yest=new Date(Date.now()-864e5).toDateString();
+      var hrs=S.sleepLog[yest]||null;
+      var hrsLabel=hrs?hrs+'h':null;
+      var options=[5,5.5,6,6.5,7,7.5,8,8.5,9,9.5];
+      var col=!hrs?'var(--muted)':hrs>=7?'var(--green)':hrs>=6?'var(--amber)':'var(--red)';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:0.78rem;color:var(--muted)">How many hours did you sleep?</div>'+
+        (hrsLabel?'<div style="font-size:1rem;font-weight:800;color:'+col+'">'+hrsLabel+'</div>':'<div style="font-size:0.72rem;color:var(--muted);font-style:italic">not logged</div>')+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">'+
+        options.map(function(h){
+          var sel=S.sleepLog[yest]===h;
+          var c=h>=7?'var(--green)':h>=6?'var(--amber)':'var(--red)';
+          return '<button onclick="logSleepHours('+h+')" style="padding:5px 9px;border-radius:8px;border:1.5px solid '+(sel?c:'var(--border)')+';background:'+(sel?'rgba(29,158,117,0.15)':'var(--s2)')+';color:'+(sel?c:'var(--muted)')+';font-size:0.78rem;font-weight:'+(sel?'800':'500')+';cursor:pointer">'+h+'h</button>';
+        }).join('')+
+      '</div>';
+    })()}
+  </div>
+</div>
 <div style="padding:12px 16px">
   <div class="card-title">Daily Habits</div>
   ${habits.map(h=>{
@@ -7703,6 +7856,14 @@ function renderCheckin(){
       '<input class="wizard-input" type="number" placeholder="e.g. 87.5" value="'+c.bodyWeight+'" oninput="S.checkin.bodyWeight=this.value" step="0.1"/></div>'+
       '<div><div class="wizard-label" style="margin-bottom:6px">Waist (cm) <span style="color:var(--muted)">opt.</span></div>'+
       '<input class="wizard-input" type="number" placeholder="e.g. 92" value="'+c.waist+'" oninput="S.checkin.waist=this.value"/></div>'+
+      '<div><div class="wizard-label" style="margin-bottom:6px">Arm (cm) <span style="color:var(--muted)">opt.</span></div>'+
+      '<input class="wizard-input" type="number" placeholder="e.g. 38" value="'+c.arm+'" oninput="S.checkin.arm=this.value"/></div>'+
+      '<div><div class="wizard-label" style="margin-bottom:6px">Chest (cm) <span style="color:var(--muted)">opt.</span></div>'+
+      '<input class="wizard-input" type="number" placeholder="e.g. 102" value="'+c.chest+'" oninput="S.checkin.chest=this.value"/></div>'+
+      '<div><div class="wizard-label" style="margin-bottom:6px">Hip (cm) <span style="color:var(--muted)">opt.</span></div>'+
+      '<input class="wizard-input" type="number" placeholder="e.g. 98" value="'+c.hip+'" oninput="S.checkin.hip=this.value"/></div>'+
+      '<div><div class="wizard-label" style="margin-bottom:6px">Thigh (cm) <span style="color:var(--muted)">opt.</span></div>'+
+      '<input class="wizard-input" type="number" placeholder="e.g. 58" value="'+c.thigh+'" oninput="S.checkin.thigh=this.value"/></div>'+
     '</div>'+
     '<div class="wizard-label" style="margin-top:14px;margin-bottom:6px">Performance PRs this week <span style="color:var(--muted)">(optional)</span></div>'+
     '<textarea class="wizard-textarea" style="min-height:70px" placeholder="e.g. Hit 90kg bench for 8 clean reps..." oninput="S.checkin.prs=this.value">'+c.prs+'</textarea>'+
@@ -8000,7 +8161,7 @@ function generateCheckinReview(){
     if(hasPhotos){
       localStorage.setItem('fitos_photos_w'+weekNum,JSON.stringify({front:c.photoFront||null,back:c.photoBack||null,side:c.photoSide||null,date:new Date().toISOString().slice(0,10)}));
     }
-    var snap={week:weekNum,date:new Date().toISOString().slice(0,10),weight:parseFloat(c.bodyWeight),waist:parseFloat(c.waist)||null,prs:c.prs,energy:c.energy,sleep:c.sleepHrs,hasPhotos:hasPhotos};
+    var snap={week:weekNum,date:new Date().toISOString().slice(0,10),weight:parseFloat(c.bodyWeight),waist:parseFloat(c.waist)||null,arm:parseFloat(c.arm)||null,chest:parseFloat(c.chest)||null,hip:parseFloat(c.hip)||null,thigh:parseFloat(c.thigh)||null,prs:c.prs,energy:c.energy,sleep:c.sleepHrs,hasPhotos:hasPhotos};
     S.checkinHistory=S.checkinHistory.filter(function(h){return h.week!==weekNum;});
     S.checkinHistory.push(snap);
     S.checkinHistory.sort(function(a,b){return a.week-b.week;});
@@ -8233,6 +8394,15 @@ function openCheckin(weekOverride){
     return tot>=protTarget*0.9;
   }).length;
   if(protDays>0) S.checkin.proteinDays=protDays;
+
+  // Average sleep hours from daily sleep log (last 7 days)
+  if(S.sleepLog){
+    var sleepVals=last7.map(function(d){return S.sleepLog[d];}).filter(function(v){return v>0;});
+    if(sleepVals.length>0){
+      var avgSleep=sleepVals.reduce(function(a,b){return a+b;},0)/sleepVals.length;
+      S.checkin.sleepHrs=Math.round(avgSleep*2)/2; // round to nearest 0.5
+    }
+  }
 
   S.showCheckin=true;
   render();
@@ -8942,6 +9112,74 @@ function resetApp(){
   location.reload();
 }
 
+// ── NOTIFICATIONS ──────────────────────────────────────────────────────────
+function requestNotifPermission(){
+  if(!('Notification' in window)){alert('Notifications not supported on this device.');return;}
+  Notification.requestPermission().then(function(perm){
+    S.notifEnabled=(perm==='granted');
+    localStorage.setItem('fitos_notif_enabled',S.notifEnabled);
+    if(perm==='granted') scheduleNotifications();
+    render();
+  });
+}
+function toggleNotifDay(day){
+  var days=S.notifGymDays||[];
+  var idx=days.indexOf(day);
+  if(idx>=0) days.splice(idx,1); else days.push(day);
+  S.notifGymDays=days;
+  localStorage.setItem('fitos_notif_gym_days',JSON.stringify(days));
+  render();
+}
+function scheduleNotifications(){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  var now=new Date();
+  var todayAbbr=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()];
+  var gymDays=S.notifGymDays||[];
+  var gymTime=S.notifGymTime||'07:00';
+  var checkinEnabled=S.notifCheckinEnabled;
+  var checkinTime=S.notifCheckinTime||'08:00';
+
+  function msTill(timeStr){
+    var parts=timeStr.split(':');
+    var target=new Date();
+    target.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
+    var ms=target-now;
+    return ms>0?ms:-1;
+  }
+
+  // Gym reminder
+  if(gymDays.indexOf(todayAbbr)>=0){
+    var gymMs=msTill(gymTime);
+    if(gymMs>0){
+      setTimeout(function(){
+        if(Notification.permission==='granted'){
+          new Notification('FitOS 💪 Time to train!',{
+            body:'Your '+todayAbbr+' session is ready. Get in. Get it done.',
+            icon:'./icon-192.png',
+            badge:'./icon-192.png'
+          });
+        }
+      },gymMs);
+    }
+  }
+
+  // Sunday check-in reminder
+  if(checkinEnabled&&todayAbbr==='Sun'){
+    var ciMs=msTill(checkinTime);
+    if(ciMs>0){
+      setTimeout(function(){
+        if(Notification.permission==='granted'){
+          new Notification('FitOS 📋 Sunday Check-in',{
+            body:'Log your week, track progress, and set next week\'s game plan.',
+            icon:'./icon-192.png',
+            badge:'./icon-192.png'
+          });
+        }
+      },ciMs);
+    }
+  }
+}
+
 function backupData(){
   var data={};
   Object.keys(localStorage).filter(k=>k.startsWith('fitos')).forEach(k=>{data[k]=localStorage.getItem(k);});
@@ -9044,6 +9282,44 @@ function renderSettings(){
             '⬆ Restore from Backup</button>'+
           '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.5">Save your profile, workouts, meals and progress. Restore anytime if you reset or switch devices.</div>'+
         '</div>'+
+
+        (function(){
+          var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+          var gymDays=S.notifGymDays||[];
+          var permGranted=typeof Notification!=='undefined'&&Notification.permission==='granted';
+          var permBlocked=typeof Notification!=='undefined'&&Notification.permission==='denied';
+          return '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
+            '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">🔔 Notifications</div>'+
+            (permBlocked?'<div style="font-size:0.78rem;color:var(--red);margin-bottom:10px">Notifications blocked — enable them in your phone settings → Safari → FitOS.</div>':'')+
+            (!permGranted&&!permBlocked?'<button onclick="requestNotifPermission()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:12px">Enable Notifications</button>':'')+
+            '<div style="font-size:0.78rem;color:var(--text);font-weight:600;margin-bottom:6px">Gym Reminders</div>'+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+              days.map(function(d){
+                var on=gymDays.indexOf(d)>=0;
+                return '<button onclick="toggleNotifDay(\''+d+'\')" style="padding:5px 10px;border-radius:8px;border:1.5px solid '+(on?'var(--green)':'var(--border)')+';background:'+(on?'rgba(29,158,117,0.15)':'var(--s3)')+';color:'+(on?'var(--green)':'var(--muted)')+';font-size:0.75rem;font-weight:700;cursor:pointer">'+d+'</button>';
+              }).join('')+
+            '</div>'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+              '<span style="font-size:0.78rem;color:var(--muted);white-space:nowrap">Remind at</span>'+
+              '<input type="time" value="'+S.notifGymTime+'" onchange="S.notifGymTime=this.value;localStorage.setItem(\'fitos_notif_gym_time\',this.value)" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+              '<div>'+
+                '<div style="font-size:0.78rem;color:var(--text);font-weight:600">Sunday Check-in Nudge</div>'+
+                '<div style="font-size:0.7rem;color:var(--muted)">Remind me to do my weekly check-in</div>'+
+              '</div>'+
+              '<label style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0">'+
+                '<input type="checkbox" '+(S.notifCheckinEnabled?'checked':'')+' onchange="S.notifCheckinEnabled=this.checked;localStorage.setItem(\'fitos_notif_checkin\',this.checked)" style="opacity:0;width:0;height:0"/>'+
+                '<span style="position:absolute;inset:0;background:'+(S.notifCheckinEnabled?'var(--green)':'var(--s3)')+';border:1px solid '+(S.notifCheckinEnabled?'var(--green)':'var(--border)')+';border-radius:13px;cursor:pointer;transition:.2s"><span style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:'+(S.notifCheckinEnabled?'22px':'2px')+';transition:.2s"></span></span>'+
+              '</label>'+
+            '</div>'+
+            (S.notifCheckinEnabled?
+              '<div style="display:flex;align-items:center;gap:10px">'+
+                '<span style="font-size:0.78rem;color:var(--muted);white-space:nowrap">Remind at</span>'+
+                '<input type="time" value="'+S.notifCheckinTime+'" onchange="S.notifCheckinTime=this.value;localStorage.setItem(\'fitos_notif_checkin_time\',this.value)" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
+              '</div>':'')+
+          '</div>';
+        })()+
 
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
           '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Danger Zone</div>'+
@@ -9169,6 +9445,16 @@ function toggleShop(key){
 function clearShop(){S.shopTicked.clear();localStorage.setItem('fitos_shop','');render();}
 
 // ─── HABITS ──────────────────────────────────────────────────────────────
+function logSleepHours(h){
+  var yest=new Date(Date.now()-864e5).toDateString();
+  S.sleepLog[yest]=h;
+  localStorage.setItem('fitos_sleep_log',JSON.stringify(S.sleepLog));
+  // Auto-check h-sleep habit if ≥7 hours
+  if(h>=7) S.habitsChecked.add('h-sleep');
+  else S.habitsChecked.delete('h-sleep');
+  localStorage.setItem('fitos_habits',[...S.habitsChecked].join(','));
+  render();
+}
 function toggleHabit(id){
   if(S.habitsChecked.has(id)) S.habitsChecked.delete(id);
   else S.habitsChecked.add(id);
@@ -9309,7 +9595,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v107';
+  window.APP_VERSION='v109';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -9645,6 +9931,8 @@ function renderCoach(){
 
 
 initApp();
+// Schedule notifications on load (only fires if permission already granted)
+setTimeout(function(){scheduleNotifications();},1000);
 </script>
 </body>
 </html>
