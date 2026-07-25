@@ -4570,6 +4570,14 @@ function getSwapAlts(ex){
     var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
     if(overlap){seen[a.id]=true;candidates.push(a);}
   });});
+  // 3. Muscle-match from EXERCISE_LIBRARY — 103-exercise master database
+  if(typeof EXERCISE_LIBRARY_ALL!=='undefined'){
+    EXERCISE_LIBRARY_ALL.forEach(function(a){
+      if(seen[a.id])return;
+      var overlap=(a.muscles||[]).some(function(m){return exMuscles.indexOf(m)>=0;});
+      if(overlap){seen[a.id]=true;candidates.push(a);}
+    });
+  }
   // Filter by user equipment
   var filtered=candidates.filter(equipOk);
   // Fallback: if equipment filter leaves too few options, show all
@@ -9301,7 +9309,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v106';
+  window.APP_VERSION='v107';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
