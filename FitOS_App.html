@@ -2950,6 +2950,58 @@ function setPhoto(field,file){
   }catch(e){saveViaReader();}
 }
 
+function renderAllSet(p){
+  var acct='';
+  if(S.supaUser){
+    acct='<div style="margin-top:12px;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">'
+      +'<div style="font-size:1.5rem">&#x2705;</div>'
+      +'<div><div style="font-size:0.85rem;font-weight:700;color:var(--green)">Account connected</div>'
+      +'<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">'+S.supaUser.email+'</div></div></div>';
+  }else{
+    var eHtml=S.wizAuthError?('<div style="font-size:0.75rem;color:#ff6b6b;margin-bottom:10px;background:rgba(255,107,107,0.08);padding:8px 10px;border-radius:8px">'+S.wizAuthError+'</div>'):'';
+    var btnTxt=S.wizAuthLoading?'Creating account...':'Create Account &amp; Start Free Trial';
+    var btnOp=S.wizAuthLoading?'0.7':'1';
+    acct='<div style="margin-top:12px;background:var(--s2);border:1.5px solid var(--border);border-radius:12px;padding:16px">'
+      +'<div style="font-size:0.88rem;font-weight:800;color:var(--text);margin-bottom:4px">&#x1F510; Save Your Progress</div>'
+      +'<div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Create your free account to back up your data and unlock your <strong style="color:var(--green)">7-day free trial</strong>.</div>'
+      +eHtml
+      +'<input type="email" class="wizard-input" placeholder="Email address" value="'+(S.wizEmail||'')+'" oninput="S.wizEmail=this.value" style="margin-bottom:10px"/>'
+      +'<input type="password" class="wizard-input" placeholder="Password (min 6 characters)" value="'+(S.wizPassword||'')+'" oninput="S.wizPassword=this.value" style="margin-bottom:12px"/>'
+      +'<button onclick="wizSignup()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-size:0.9rem;font-weight:700;cursor:pointer;opacity:'+btnOp+'">'+btnTxt+'</button>'
+      +'</div>';
+  }
+  var snap=(p.name||'—')+', '+(p.age||'—')+'yr '+p.gender+' · '+(p.height||'—')+'cm / '+(p.weight||'—')+'kg'+(p.bodyFatPct?' · '+p.bodyFatPct+'% BF':'');
+  var snap2='Goal: <strong style="color:var(--text)">'+p.goal+'</strong> · '+p.daysPerWeek+' days/wk · '+p.sessionLength+'min · '+p.gymType;
+  var snap3='Level: '+p.experience+(p.benchKg?' · Bench '+p.benchKg+'kg×8':'')+(p.squatKg?' · Squat '+p.squatKg+'kg×8':'');
+  var waiverBg=p.waiverAccepted?'rgba(29,158,117,0.12)':'var(--s3)';
+  var waiverBdr=p.waiverAccepted?'var(--green)':'var(--border)';
+  var boxBg=p.waiverAccepted?'var(--green)':'transparent';
+  var chk=p.waiverAccepted?'&#x2713;':'';
+  return '<div style="text-align:center;padding:20px 0">'
+    +'<div style="font-size:4rem;margin-bottom:16px">&#x1F4AA;</div>'
+    +'<div style="font-size:1.6rem;font-weight:800;margin-bottom:8px">Let\'s go,<br>'+(p.name||'Champion')+'!</div>'
+    +'<div style="font-size:0.9rem;color:var(--muted);line-height:1.7;max-width:300px;margin:0 auto">Your AI PT has everything it needs. Time to build the version of yourself you\'ve always wanted.</div>'
+    +'<div style="margin-top:16px;background:var(--s2);border-radius:12px;padding:14px;font-size:0.82rem;color:var(--muted);text-align:left;line-height:1.9">'
+      +'<strong style="color:var(--text)">Your profile snapshot:</strong><br>'+snap+'<br>'+snap2+'<br>'+snap3
+    +'</div>'
+    +acct
+    +'<div style="margin-top:16px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px">'
+      +'<div style="font-size:0.72rem;color:var(--muted);line-height:1.7;margin-bottom:12px">'
+        +'<strong style="color:var(--text)">&#x1F4CB; Health &amp; Liability Disclaimer</strong><br>'
+        +'FitOS provides general fitness information and AI-generated training programs. It is <strong>not a substitute for medical advice</strong> from a qualified healthcare professional. By using FitOS you acknowledge that:<br><br>'
+        +'&#x2022; You participate in exercise at your own risk<br>'
+        +'&#x2022; FitOS is not liable for any injury, illness, or adverse outcome<br>'
+        +'&#x2022; You should consult a doctor if you have any medical concerns<br>'
+        +'&#x2022; The AI cannot replace a registered exercise professional for clinical needs'
+      +'</div>'
+      +'<div onclick="S.profile.waiverAccepted=!S.profile.waiverAccepted;render()" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 12px;background:'+waiverBg+';border:1px solid '+waiverBdr+';border-radius:10px">'
+        +'<div style="width:22px;height:22px;border-radius:6px;background:'+boxBg+';border:2px solid '+waiverBdr+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.9rem">'+chk+'</div>'
+        +'<div style="font-size:0.82rem;color:var(--text);line-height:1.5">I understand and accept the above. I am at least 16 years old and have answered the PAR-Q honestly.</div>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
+
 function renderIntake(){
   const p=S.profile;
   const step=S.intakeStep;
@@ -3265,53 +3317,7 @@ function renderIntake(){
   }
 
   // ── Step 9: All Set! ──
-  else{
-    // Build account section without nested template literals (Safari parse issue)
-    var acctSection;
-    if(S.supaUser){
-      acctSection=’<div style="margin-top:12px;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.3);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">’+
-        ‘<div style="font-size:1.5rem">✅</div>’+
-        ‘<div><div style="font-size:0.85rem;font-weight:700;color:var(--green)">Account connected</div>’+
-        ‘<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">’+S.supaUser.email+’</div></div></div>’;
-    }else{
-      var errHtml=S.wizAuthError?’<div style="font-size:0.75rem;color:#ff6b6b;margin-bottom:10px;background:rgba(255,107,107,0.08);padding:8px 10px;border-radius:8px">’+S.wizAuthError+’</div>’:’’;
-      acctSection=’<div style="margin-top:12px;background:var(--s2);border:1.5px solid var(--border);border-radius:12px;padding:16px">’+
-        ‘<div style="font-size:0.88rem;font-weight:800;color:var(--text);margin-bottom:4px">🔐 Save Your Progress</div>’+
-        ‘<div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Create your free account to back up your data and unlock your <strong style="color:var(--green)">7-day free trial</strong>.</div>’+
-        errHtml+
-        ‘<input type="email" class="wizard-input" placeholder="Email address" value="’+(S.wizEmail||’’)+’" oninput="S.wizEmail=this.value" style="margin-bottom:10px"/>’+
-        ‘<input type="password" class="wizard-input" placeholder="Password (min 6 characters)" value="’+(S.wizPassword||’’)+’" oninput="S.wizPassword=this.value" style="margin-bottom:12px"/>’+
-        ‘<button onclick="wizSignup()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-size:0.9rem;font-weight:700;cursor:pointer;opacity:’+(S.wizAuthLoading?0.7:1)+’">’+(S.wizAuthLoading?’Creating account...’:’Create Account & Start Free Trial →’)+’</button>’+
-        ‘</div>’;
-    }
-    body=`
-    <div style="text-align:center;padding:20px 0">
-      <div style="font-size:4rem;margin-bottom:16px">💪</div>
-      <div style="font-size:1.6rem;font-weight:800;margin-bottom:8px">Let’s go,<br>${p.name||’Champion’}!</div>
-      <div style="font-size:0.9rem;color:var(--muted);line-height:1.7;max-width:300px;margin:0 auto">Your AI PT has everything it needs. Time to build the version of yourself you’ve always wanted.</div>
-      <div style="margin-top:16px;background:var(--s2);border-radius:12px;padding:14px;font-size:0.82rem;color:var(--muted);text-align:left;line-height:1.9">
-        <strong style="color:var(--text)">Your profile snapshot:</strong><br>
-        ${p.name||’—‘}, ${p.age||’—‘}yr ${p.gender} · ${p.height||’—‘}cm / ${p.weight||’—‘}kg${p.bodyFatPct?’ · ‘+p.bodyFatPct+’% BF’:’’}<br>
-        Goal: <strong style="color:var(--text)">${p.goal}</strong> · ${p.daysPerWeek} days/wk · ${p.sessionLength}min · ${p.gymType}<br>
-        Level: ${p.experience}${p.benchKg?’ · Bench ‘+p.benchKg+’kg×8’:’’}${p.squatKg?’ · Squat ‘+p.squatKg+’kg×8’:’’}
-      </div>
-      ${acctSection}
-      <div style="margin-top:16px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px">
-        <div style="font-size:0.72rem;color:var(--muted);line-height:1.7;margin-bottom:12px">
-          <strong style="color:var(--text)">\u{1F4CB} Health & Liability Disclaimer</strong><br>
-          FitOS provides general fitness information and AI-generated training programs. It is <strong>not a substitute for medical advice</strong> from a qualified healthcare professional. By using FitOS you acknowledge that:<br><br>
-          • You participate in exercise at your own risk<br>
-          • FitOS is not liable for any injury, illness, or adverse outcome<br>
-          • You should consult a doctor if you have any medical concerns<br>
-          • The AI cannot replace a registered exercise professional for clinical needs
-        </div>
-        <div onclick="S.profile.waiverAccepted=!S.profile.waiverAccepted;render()" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 12px;background:${p.waiverAccepted?'rgba(29,158,117,0.12)':'var(--s3)'};border:1px solid ${p.waiverAccepted?'var(--green)':'var(--border)'};border-radius:10px">
-          <div style="width:22px;height:22px;border-radius:6px;background:${p.waiverAccepted?'var(--green)':'transparent'};border:2px solid ${p.waiverAccepted?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.9rem">${p.waiverAccepted?'✓':''}</div>
-          <div style="font-size:0.82rem;color:var(--text);line-height:1.5">I understand and accept the above. I am at least 16 years old and have answered the PAR-Q honestly.</div>
-        </div>
-      </div>
-    </div>`;
-  } // end else (step 9)
+  else body=renderAllSet(p);
 
   return`<div class="wizard-overlay">
     <div class="wizard-logo">Fit<span>OS</span></div>
@@ -9841,7 +9847,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v119';
+  window.APP_VERSION='v120';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
