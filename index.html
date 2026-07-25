@@ -3336,7 +3336,7 @@ function renderIntake(){
       ${step>0?`<button class="btn btn-outline" style="flex:1" onclick="wizBack()">← Back</button>`:''}
       <button class="btn btn-green" style="flex:2" onclick="wizNext()">${step===INTAKE_STEPS.length-1?'Start Training →':'Next →'}</button>
     </div>
-    ${step===0?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:16px">Your data stays on your device only.</p>`:''}
+    ${step===0?`<div style="text-align:center;margin-top:20px"><span style="font-size:0.82rem;color:var(--muted)">Already have an account? </span><span style="font-size:0.82rem;color:var(--green);font-weight:600;cursor:pointer" onclick="S.wizAuthMode='signin';S.intakeStep=8;S.wizAuthError='';render()">Sign in →</span></div><p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">Your data stays on your device only.</p>`:''}
   </div>`;
 }
 
@@ -9887,7 +9887,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v122';
+  window.APP_VERSION='v123';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
