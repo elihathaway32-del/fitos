@@ -9458,11 +9458,14 @@ function checkPaywall(){
 //   const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 // Then run: npm install @supabase/supabase-js (or load from CDN)
 
+var _supaClient=null;
 function getSupabase(){
   if(typeof supabase==='undefined'||typeof SUPABASE_URL==='undefined') return null;
-  try{
-    return supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  }catch(e){return null;}
+  if(!_supaClient){
+    try{_supaClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}
+    catch(e){return null;}
+  }
+  return _supaClient;
 }
 
 async function doSupabaseAuth(){
@@ -9478,9 +9481,9 @@ async function doSupabaseAuth(){
     }
     if(result.error){S.authError=result.error.message;S.authLoading=false;render();return;}
     S.supaUser=result.data.user;
-    S.supaSession=result.data.session?.access_token||null;
+    S.supaSession=result.data.session||null;
     localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
-    if(S.supaSession) localStorage.setItem('fitos_supa_session',S.supaSession);
+    if(S.supaSession) localStorage.setItem('fitos_supa_session',JSON.stringify(S.supaSession));
     S.authLoading=false;S.showAuthModal=false;
     syncToCloud();
   }catch(e){S.authError='Connection error. Try again.';S.authLoading=false;render();}
@@ -9781,7 +9784,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v112';
+  window.APP_VERSION='v113';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
