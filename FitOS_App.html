@@ -2672,6 +2672,10 @@ let S={
   gleamResult: null,
   gleamBF: null,
   referralCode: localStorage.getItem('fitos_referral')||null,
+  // Subscription / trial
+  trialStart: localStorage.getItem('fitos_trial_start')||null,
+  subscribed: localStorage.getItem('fitos_subscribed')==='true',
+  showPaywall: false,
   // Cloud sync (Supabase)
   supaUser: loadJSON('fitos_supa_user',null),
   supaSession: localStorage.getItem('fitos_supa_session')||null,
@@ -2845,6 +2849,13 @@ function render(){
       document.getElementById('tab-bar').innerHTML='';
       return;
     }
+    // Check paywall (after trial period)
+    if(S.showPaywall){
+      document.getElementById('screen').innerHTML=renderPaywall();
+      document.getElementById('tab-bar').innerHTML='';
+      return;
+    }
+    if(typeof checkPaywall==='function') checkPaywall();
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,habits:renderHabits};
     const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
@@ -3834,7 +3845,16 @@ function renderToday(){
     <div class="today-greeting">${isToday?greeting:'📅 '+viewDateLabel(vd)}</div>
     <div class="today-name">${isToday?userName():new Date(vd).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
     <div class="today-sub">${isToday?now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'}):'Tap ▶ to move forward'}</div>
-    <button onclick="S.showSettings=true;render()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--muted);font-size:0.72rem;padding:5px 9px;cursor:pointer" title="Settings">⚙ Settings</button>
+    <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+      <button onclick="S.showSettings=true;render()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--muted);font-size:0.72rem;padding:5px 9px;cursor:pointer" title="Settings">⚙ Settings</button>
+      ${(function(){
+        if(S.subscribed) return '<span style="font-size:0.6rem;color:var(--green);font-weight:700;background:rgba(29,158,117,0.15);border-radius:6px;padding:2px 7px;border:1px solid rgba(29,158,117,0.3)">✓ Active</span>';
+        var d=getTrialDaysLeft();
+        if(d<=0) return '<span style="font-size:0.6rem;color:var(--red);font-weight:700;background:rgba(255,60,60,0.12);border-radius:6px;padding:2px 7px;border:1px solid rgba(255,60,60,0.3);cursor:pointer" onclick="S.showPaywall=true;render()">Trial ended</span>';
+        var col=d<=2?'var(--amber)':'var(--muted)';
+        return '<span style="font-size:0.6rem;color:'+col+';font-weight:700">'+d+' day'+(d===1?'':'s')+' free</span>';
+      })()}
+    </div>
   </div>
   <!-- Date navigator -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--s1);border-bottom:1px solid var(--border)">
@@ -9284,6 +9304,46 @@ function renderSettings(){
         '</div>'+
 
         (function(){
+          var SUPA_URL=typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'';
+          var isConfigured=!!SUPA_URL;
+          var user=S.supaUser;
+          return '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+              '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">☁️ Cloud Sync</div>'+
+              (user?'<span style="font-size:0.7rem;color:var(--green);font-weight:700">● Synced</span>':'<span style="font-size:0.7rem;color:var(--muted)">○ Not connected</span>')+
+            '</div>'+
+            (!isConfigured?
+              '<div style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:10px">Cloud sync not yet active — awaiting Supabase credentials. Your data is safely stored on this device.</div>'+
+              '<div style="font-size:0.72rem;color:var(--muted);background:var(--s3);border-radius:8px;padding:8px 10px;font-family:monospace">// Add to FitOS_App.html:<br>const SUPABASE_URL=\'https://xxx.supabase.co\';<br>const SUPABASE_ANON_KEY=\'eyJ...\';</div>'
+            :!user?
+              '<button onclick="S.showAuthModal=true;S.authMode=\'signin\';render()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:8px">Sign In / Create Account</button>'+
+              '<div style="font-size:0.72rem;color:var(--muted)">Sign in to sync your progress across devices and enable cloud backup.</div>'
+            :
+              '<div style="margin-bottom:10px">'+
+                '<div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:2px">'+user.email+'</div>'+
+                (S.lastCloudSync?'<div style="font-size:0.7rem;color:var(--muted)">Last synced: '+new Date(S.lastCloudSync).toLocaleDateString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</div>':'')+
+              '</div>'+
+              '<button onclick="syncToCloud()" style="width:100%;background:rgba(29,158,117,0.15);border:1px solid var(--green);border-radius:10px;padding:11px;color:var(--green);font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:8px">⬆ Sync Now</button>'+
+              '<button onclick="signOutSupabase()" style="width:100%;background:none;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--muted);font-size:0.85rem;cursor:pointer">Sign Out</button>')+
+          '</div>';
+        })()+
+        (S.showAuthModal?(function(){
+          return '<div style="position:fixed;inset:0;background:#000b;z-index:950;display:flex;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this){S.showAuthModal=false;render()}">'+
+            '<div style="width:100%;max-width:360px;background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:24px">'+
+              '<div style="font-size:1.1rem;font-weight:800;margin-bottom:6px">'+(S.authMode==='signup'?'Create Account':'Sign In')+'</div>'+
+              '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:18px">Sync your FitOS data across devices</div>'+
+              '<input class="wizard-input" type="email" placeholder="Email" value="'+S.authEmail+'" oninput="S.authEmail=this.value" style="margin-bottom:10px"/>'+
+              '<input class="wizard-input" type="password" placeholder="Password" value="'+S.authPassword+'" oninput="S.authPassword=this.value" style="margin-bottom:10px"/>'+
+              (S.authError?'<div style="font-size:0.78rem;color:var(--red);margin-bottom:10px">'+S.authError+'</div>':'')+
+              '<button onclick="doSupabaseAuth()" style="width:100%;background:var(--green);border:none;border-radius:12px;padding:14px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px">'+(S.authLoading?'Working...':S.authMode==='signup'?'Create Account':'Sign In')+'</button>'+
+              '<button onclick="S.authMode=S.authMode===\'signin\'?\'signup\':\'signin\';render()" style="width:100%;background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer;padding:8px">'+
+                (S.authMode==='signin'?'No account? Create one →':'Already have one? Sign in →')+
+              '</button>'+
+              '<button onclick="S.showAuthModal=false;render()" style="width:100%;background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;padding:4px">Cancel</button>'+
+            '</div>'+
+          '</div>';
+        })():'')+
+        (function(){
           var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
           var gymDays=S.notifGymDays||[];
           var permGranted=typeof Notification!=='undefined'&&Notification.permission==='granted';
@@ -9331,6 +9391,125 @@ function renderSettings(){
       '</div>'+
     '</div>'+
   '</div>';
+}
+
+// ── TRIAL + STRIPE BILLING ────────────────────────────────────────────────────
+// To activate Stripe: set STRIPE_CHECKOUT_URL to your Stripe Payment Link URL
+// e.g. const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/YOUR_LINK';
+function getTrialDaysLeft(){
+  if(S.subscribed) return Infinity;
+  if(!S.trialStart) return 7; // haven't started yet
+  var start=new Date(S.trialStart);
+  var now=new Date();
+  var daysUsed=Math.floor((now-start)/(1000*60*60*24));
+  var baseTrialDays=7;
+  // Bonus days from referrals
+  var bonusDays=parseInt(localStorage.getItem('fitos_bonus_days')||'0');
+  return Math.max(0,baseTrialDays+bonusDays-daysUsed);
+}
+function isTrialActive(){
+  return S.subscribed||getTrialDaysLeft()>0;
+}
+function addReferralBonus(days){
+  var cur=parseInt(localStorage.getItem('fitos_bonus_days')||'0');
+  localStorage.setItem('fitos_bonus_days',String(cur+(days||7)));
+}
+function renderPaywall(){
+  var stripeUrl=typeof STRIPE_CHECKOUT_URL!=='undefined'?STRIPE_CHECKOUT_URL:'';
+  return '<div style="position:fixed;inset:0;background:linear-gradient(180deg,#060f0a 0%,#0a0a0a 100%);z-index:950;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center">'+
+    '<div style="font-size:2.5rem;margin-bottom:12px">⏰</div>'+
+    '<div style="font-size:1.5rem;font-weight:900;margin-bottom:8px;line-height:1.2">Your 7-day trial<br>has ended</div>'+
+    '<div style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:28px;line-height:1.6">Don\'t lose your progress. Subscribe to keep your<br>training blocks, meal plan, and all your data.</div>'+
+    '<div style="width:100%;max-width:360px;background:rgba(29,158,117,0.1);border:1.5px solid rgba(29,158,117,0.4);border-radius:20px;padding:22px 20px;margin-bottom:20px;text-align:left">'+
+      '<div style="font-size:0.65rem;letter-spacing:.15em;color:var(--green);font-weight:800;text-transform:uppercase;margin-bottom:12px">FitOS Membership</div>'+
+      '<div style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:4px">$28.99 <span style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.5)">AUD / month</span></div>'+
+      '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-bottom:16px">Cancel anytime · No lock-in contract</div>'+
+      ['AI Personal Trainer — personalised to you','8-week progressive overload program','Full meal plan + barcode food scanner','Weekly check-ins + body progress tracking','Habit tracker + addiction elimination'].map(function(f){
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.82rem;color:rgba(255,255,255,0.85)"><span style="color:var(--green);font-weight:800;flex-shrink:0">✓</span>'+f+'</div>';
+      }).join('')+
+    '</div>'+
+    (stripeUrl?
+      '<a href="'+stripeUrl+'" target="_blank" style="display:block;width:100%;max-width:360px;background:var(--green);border:none;border-radius:14px;padding:18px;color:#fff;font-size:1.05rem;font-weight:800;text-decoration:none;margin-bottom:12px">Subscribe Now →</a>'
+    :
+      '<div style="font-size:0.75rem;color:rgba(255,255,255,0.3);margin-bottom:16px">Payment link not yet configured</div>')+
+    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.25)">Already subscribed? '+
+      '<button onclick="S.subscribed=true;localStorage.setItem(\'fitos_subscribed\',\'true\');S.showPaywall=false;render()" style="background:none;border:none;color:rgba(255,255,255,0.4);text-decoration:underline;font-size:0.72rem;cursor:pointer">Restore access</button>'+
+    '</div>'+
+  '</div>';
+}
+function checkPaywall(){
+  if(S.showGleam) return; // don't interrupt Gleam
+  if(!isTrialActive()&&!S.showPaywall){
+    S.showPaywall=true;
+    render();
+  }
+}
+
+// ── SUPABASE CLOUD SYNC SCAFFOLD ─────────────────────────────────────────────
+// To activate: add to the top of the <script> block:
+//   const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+//   const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+// Then run: npm install @supabase/supabase-js (or load from CDN)
+
+function getSupabase(){
+  if(typeof supabase==='undefined'||typeof SUPABASE_URL==='undefined') return null;
+  try{
+    return supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  }catch(e){return null;}
+}
+
+async function doSupabaseAuth(){
+  var client=getSupabase();
+  if(!client){alert('Cloud sync not yet configured.');return;}
+  S.authLoading=true;S.authError='';render();
+  try{
+    var result;
+    if(S.authMode==='signup'){
+      result=await client.auth.signUp({email:S.authEmail,password:S.authPassword});
+    } else {
+      result=await client.auth.signInWithPassword({email:S.authEmail,password:S.authPassword});
+    }
+    if(result.error){S.authError=result.error.message;S.authLoading=false;render();return;}
+    S.supaUser=result.data.user;
+    S.supaSession=result.data.session?.access_token||null;
+    localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
+    if(S.supaSession) localStorage.setItem('fitos_supa_session',S.supaSession);
+    S.authLoading=false;S.showAuthModal=false;
+    syncToCloud();
+  }catch(e){S.authError='Connection error. Try again.';S.authLoading=false;render();}
+}
+
+async function syncToCloud(){
+  var client=getSupabase();
+  if(!client||!S.supaUser){alert('Sign in to sync.');return;}
+  try{
+    var payload={
+      user_id:S.supaUser.id,
+      profile:S.profile,
+      gym_history:S.gymHistory,
+      checkin_history:S.checkinHistory,
+      food_log:S.foodLog,
+      habit_data:{
+        streak:S.streak,
+        addictionData:S.addictionData
+      },
+      updated_at:new Date().toISOString()
+    };
+    var {error}=await client.from('fitos_sync').upsert(payload,{onConflict:'user_id'});
+    if(error){alert('Sync failed: '+error.message);return;}
+    S.lastCloudSync=new Date().toISOString();
+    localStorage.setItem('fitos_last_sync',S.lastCloudSync);
+    render();
+  }catch(e){alert('Sync error. Check connection.');}
+}
+
+async function signOutSupabase(){
+  var client=getSupabase();
+  if(client) await client.auth.signOut();
+  S.supaUser=null;S.supaSession=null;
+  localStorage.removeItem('fitos_supa_user');
+  localStorage.removeItem('fitos_supa_session');
+  render();
 }
 
 // ── DEV / TEST PANEL ─────────────────────────────────────────────────────────
@@ -9595,7 +9774,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v109';
+  window.APP_VERSION='v110';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
@@ -9700,6 +9879,11 @@ function checkPhotoReminder(){
 function closeGleam(){
   S.showGleam=false;
   try{saveProfile();}catch(e){}
+  // Start trial if not already started
+  if(!S.trialStart){
+    S.trialStart=new Date().toISOString();
+    localStorage.setItem('fitos_trial_start',S.trialStart);
+  }
   // Check if photos were skipped — set reminder flag
   var p=S.profile||{};
   if(!p.photoFront&&!p.photoBack&&!p.photoSide){
