@@ -583,8 +583,15 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
   <nav class="tab-bar" id="tab-bar"></nav>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <!-- ZXing barcode decoder — loaded dynamically on first scan -->
 <script>
+// ==========================================================================
+// SUPABASE CREDENTIALS
+// ==========================================================================
+const SUPABASE_URL = 'https://vpvhqgsdlzhyrawybbvy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_sn7m1tCVDEsZU-S8k57IZw_-rlrthUY';
+
 // ==========================================================================
 // FITOS AUDIO + HAPTIC ENGINE
 // Web Audio API — no files, works offline, respects silent mode
@@ -9774,7 +9781,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v111';
+  window.APP_VERSION='v112';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
