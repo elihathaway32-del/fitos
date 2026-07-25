@@ -2958,16 +2958,23 @@ function renderAllSet(p){
       +'<div><div style="font-size:0.85rem;font-weight:700;color:var(--green)">Account connected</div>'
       +'<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">'+S.supaUser.email+'</div></div></div>';
   }else{
+    var wizMode=S.wizAuthMode||'signup';
     var eHtml=S.wizAuthError?('<div style="font-size:0.75rem;color:#ff6b6b;margin-bottom:10px;background:rgba(255,107,107,0.08);padding:8px 10px;border-radius:8px">'+S.wizAuthError+'</div>'):'';
-    var btnTxt=S.wizAuthLoading?'Creating account...':'Create Account &amp; Start Free Trial';
+    var isSignin=wizMode==='signin';
+    var heading=isSignin?'&#x1F510; Welcome Back':'&#x1F510; Save Your Progress';
+    var subtext=isSignin?'Sign in to restore your data and continue your trial.':'Create your free account to back up your data and unlock your <strong style="color:var(--green)">7-day free trial</strong>.';
+    var btnTxt=S.wizAuthLoading?(isSignin?'Signing in...':'Creating account...'):(isSignin?'Sign In':'Create Account &amp; Start Free Trial');
     var btnOp=S.wizAuthLoading?'0.7':'1';
+    var toggleTxt=isSignin?'New here? Create an account':'Already have an account? Sign in';
+    var toggleMode=isSignin?'signup':'signin';
     acct='<div style="margin-top:12px;background:var(--s2);border:1.5px solid var(--border);border-radius:12px;padding:16px">'
-      +'<div style="font-size:0.88rem;font-weight:800;color:var(--text);margin-bottom:4px">&#x1F510; Save Your Progress</div>'
-      +'<div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Create your free account to back up your data and unlock your <strong style="color:var(--green)">7-day free trial</strong>.</div>'
+      +'<div style="font-size:0.88rem;font-weight:800;color:var(--text);margin-bottom:4px">'+heading+'</div>'
+      +'<div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.5">'+subtext+'</div>'
       +eHtml
       +'<input type="email" class="wizard-input" placeholder="Email address" value="'+(S.wizEmail||'')+'" oninput="S.wizEmail=this.value" style="margin-bottom:10px"/>'
       +'<input type="password" class="wizard-input" placeholder="Password (min 6 characters)" value="'+(S.wizPassword||'')+'" oninput="S.wizPassword=this.value" style="margin-bottom:12px"/>'
       +'<button onclick="wizSignup()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-size:0.9rem;font-weight:700;cursor:pointer;opacity:'+btnOp+'">'+btnTxt+'</button>'
+      +'<div onclick="S.wizAuthMode=\''+toggleMode+'\';S.wizAuthError=\'\';render()" style="text-align:center;margin-top:12px;font-size:0.75rem;color:var(--accent);cursor:pointer">'+toggleTxt+'</div>'
       +'</div>';
   }
   var snap=(p.name||'—')+', '+(p.age||'—')+'yr '+p.gender+' · '+(p.height||'—')+'cm / '+(p.weight||'—')+'kg'+(p.bodyFatPct?' · '+p.bodyFatPct+'% BF':'');
@@ -9729,16 +9736,49 @@ async function wizSignup(){
   if(!client){S.wizAuthError='Connection error — check your internet and try again.';render();return;}
   S.wizAuthLoading=true;S.wizAuthError='';render();
   try{
-    var result=await client.auth.signUp({email:email,password:pass});
+    var isSignin=(S.wizAuthMode||'signup')==='signin';
+    var result=isSignin
+      ?await client.auth.signInWithPassword({email:email,password:pass})
+      :await client.auth.signUp({email:email,password:pass});
     if(result.error){S.wizAuthError=result.error.message;S.wizAuthLoading=false;render();return;}
     S.supaUser=result.data.user;
     S.supaSession=result.data.session?.access_token||null;
     localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
     if(S.supaSession) localStorage.setItem('fitos_supa_session',S.supaSession);
-    // Start trial clock on account creation
-    if(!S.trialStart){
+    // Start trial clock on new account creation only
+    if(!isSignin&&!S.trialStart){
       S.trialStart=new Date().toISOString();
       localStorage.setItem('fitos_trial_start',S.trialStart);
+    }
+    // On sign-in: pull cloud data and restore their session
+    if(isSignin&&S.supaUser&&S.supaSession){
+      try{
+        var restoreResp=await fetch(SUPABASE_URL+'/rest/v1/fitos_sync?user_id=eq.'+S.supaUser.id+'&select=*&limit=1',{
+          headers:{
+            'apikey':SUPABASE_ANON_KEY,
+            'Authorization':'Bearer '+S.supaSession
+          }
+        });
+        if(restoreResp.ok){
+          var rows=await restoreResp.json();
+          if(rows&&rows.length>0){
+            var d=rows[0];
+            if(d.profile) S.profile=Object.assign(S.profile,d.profile);
+            if(d.gym_history) S.gymHistory=d.gym_history;
+            if(d.checkin_history) S.checkinHistory=d.checkin_history;
+            if(d.food_log) S.foodLog=d.food_log;
+            if(d.habit_data){
+              if(d.habit_data.streak!=null) S.streak=d.habit_data.streak;
+              if(d.habit_data.addictionData) S.addictionData=d.habit_data.addictionData;
+            }
+            S.lastCloudSync=new Date().toISOString();
+            localStorage.setItem('fitos_last_sync',S.lastCloudSync);
+          }
+        }
+      }catch(re){/* non-fatal — user still signed in, just no cloud restore */}
+      // Dismiss the intake wizard — they already have a profile
+      S.showIntake=false;
+      localStorage.setItem('fitos_show_intake','false');
     }
     S.wizAuthLoading=false;
     render();
@@ -9847,7 +9887,24 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v120';
+  window.APP_VERSION='v122';
+
+  // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
+  // Fires after deferred Supabase CDN has loaded. Silently restores auth
+  // session so cloud sync works on every open without a login screen.
+  window.addEventListener('load',function(){
+    var client=getSupabase();
+    if(!client) return;
+    client.auth.getSession().then(function(res){
+      if(res.data&&res.data.session&&res.data.session.user){
+        S.supaUser=res.data.session.user;
+        S.supaSession=res.data.session.access_token||null;
+        localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
+        if(S.supaSession) localStorage.setItem('fitos_supa_session',S.supaSession);
+        render();
+      }
+    });
+  });
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
