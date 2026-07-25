@@ -9481,17 +9481,17 @@ async function doSupabaseAuth(){
     }
     if(result.error){S.authError=result.error.message;S.authLoading=false;render();return;}
     S.supaUser=result.data.user;
-    S.supaSession=result.data.session||null;
+    // Store only the access token string — used as Bearer header in all API calls
+    S.supaSession=result.data.session?.access_token||null;
     localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
-    if(S.supaSession) localStorage.setItem('fitos_supa_session',JSON.stringify(S.supaSession));
+    if(S.supaSession) localStorage.setItem('fitos_supa_session',S.supaSession);
     S.authLoading=false;S.showAuthModal=false;
     syncToCloud();
   }catch(e){S.authError='Connection error. Try again.';S.authLoading=false;render();}
 }
 
 async function syncToCloud(){
-  var client=getSupabase();
-  if(!client||!S.supaUser){alert('Sign in to sync.');return;}
+  if(!S.supaUser||!S.supaSession){alert('Sign in to sync.');return;}
   try{
     var payload={
       user_id:S.supaUser.id,
@@ -9499,14 +9499,21 @@ async function syncToCloud(){
       gym_history:S.gymHistory,
       checkin_history:S.checkinHistory,
       food_log:S.foodLog,
-      habit_data:{
-        streak:S.streak,
-        addictionData:S.addictionData
-      },
+      habit_data:{streak:S.streak,addictionData:S.addictionData},
       updated_at:new Date().toISOString()
     };
-    var {error}=await client.from('fitos_sync').upsert(payload,{onConflict:'user_id'});
-    if(error){alert('Sync failed: '+error.message);return;}
+    // Use fetch directly so the auth token is explicitly in the header — no session management issues
+    var resp=await fetch(SUPABASE_URL+'/rest/v1/fitos_sync',{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+S.supaSession,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body:JSON.stringify(payload)
+    });
+    if(!resp.ok){var err=await resp.json();alert('Sync failed: '+(err.message||resp.status));return;}
     S.lastCloudSync=new Date().toISOString();
     localStorage.setItem('fitos_last_sync',S.lastCloudSync);
     render();
@@ -9784,7 +9791,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v115';
+  window.APP_VERSION='v116';
   // Keyboard avoidance — shrinks food panel above iOS/Android keyboard
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
