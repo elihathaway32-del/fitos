@@ -184,7 +184,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .card-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
 
 /* ── INTAKE WIZARD OVERLAY ── */
-.wizard-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;padding:24px 20px 40px}
+.wizard-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 20px 40px}
 .wizard-logo{font-size:2.2rem;font-weight:900;letter-spacing:-.04em;margin-bottom:4px}
 .wizard-logo span{color:var(--green)}
 .wizard-step{margin-bottom:24px}
@@ -2697,6 +2697,7 @@ let S={
   wizPassword: '',
   wizAuthLoading: false,
   wizAuthError: '',
+  showWizSigninModal: false,
   lastCloudSync: localStorage.getItem('fitos_last_sync')||null,
   // Notifications
   notifEnabled: localStorage.getItem('fitos_notif_enabled')==='true',
@@ -3007,6 +3008,24 @@ function renderAllSet(p){
       +'</div>'
     +'</div>'
   +'</div>';
+}
+
+function renderWizSigninModal(){
+  var err=S.wizAuthError?'<div style="background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);border-radius:8px;padding:10px 12px;font-size:0.8rem;color:#ff6b6b;margin-bottom:12px">'+S.wizAuthError+'</div>':'';
+  var btnTxt=S.wizAuthLoading?'Signing in...':'Sign In';
+  var btnOp=S.wizAuthLoading?'0.7':'1';
+  var dis=S.wizAuthLoading?'disabled':'';
+  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this){S.showWizSigninModal=false;S.wizAuthError=\'\';render()}">'
+    +'<div style="background:var(--card);border-radius:18px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.4)">'
+    +'<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px;text-align:center">&#x1F510; Welcome Back</div>'
+    +'<div style="font-size:0.82rem;color:var(--muted);text-align:center;margin-bottom:20px">Sign in to restore your FitOS data</div>'
+    +err
+    +'<input type="email" class="wizard-input" placeholder="Email address" value="'+(S.wizEmail||'')+'" oninput="S.wizEmail=this.value" autocomplete="email" style="margin-bottom:10px"/>'
+    +'<input type="password" class="wizard-input" placeholder="Password" value="'+(S.wizPassword||'')+'" oninput="S.wizPassword=this.value" autocomplete="current-password" style="margin-bottom:16px"/>'
+    +'<button class="btn btn-green" style="width:100%;opacity:'+btnOp+'" onclick="wizSignup()" '+dis+'>'+btnTxt+'</button>'
+    +'<button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="S.showWizSigninModal=false;S.wizAuthError=\'\';render()">Cancel</button>'
+    +'</div>'
+    +'</div>';
 }
 
 function renderIntake(){
@@ -3336,8 +3355,10 @@ function renderIntake(){
       ${step>0?`<button class="btn btn-outline" style="flex:1" onclick="wizBack()">← Back</button>`:''}
       <button class="btn btn-green" style="flex:2" onclick="wizNext()">${step===INTAKE_STEPS.length-1?'Start Training →':'Next →'}</button>
     </div>
-    ${step===0?`<div style="text-align:center;margin-top:20px"><span style="font-size:0.82rem;color:var(--muted)">Already have an account? </span><span style="font-size:0.82rem;color:var(--green);font-weight:600;cursor:pointer" onclick="S.wizAuthMode='signin';S.intakeStep=8;S.wizAuthError='';render()">Sign in →</span></div><p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">Your data stays on your device only.</p>`:''}
-  </div>`;
+    ${step===0?`<div style="text-align:center;margin-top:20px"><span style="font-size:0.82rem;color:var(--muted)">Already have an account? </span><span style="font-size:0.82rem;color:var(--green);font-weight:600;cursor:pointer" onclick="S.wizAuthMode='signin';S.showWizSigninModal=true;S.wizAuthError='';render()">Sign in →</span></div><p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">Your data stays on your device only.</p>`:''}
+  </div>
+  ${S.showWizSigninModal?renderWizSigninModal():''}`;
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -9778,6 +9799,7 @@ async function wizSignup(){
       }catch(re){/* non-fatal — user still signed in, just no cloud restore */}
       // Dismiss the intake wizard — they already have a profile
       S.showIntake=false;
+      S.showWizSigninModal=false;
       localStorage.setItem('fitos_show_intake','false');
     }
     S.wizAuthLoading=false;
@@ -9887,7 +9909,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v123';
+  window.APP_VERSION='v124';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
