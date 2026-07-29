@@ -2572,7 +2572,7 @@ function checkDayReset(){
 let S={
   // App state
   tab:'today',         // today | train | eat | habits
-  showIntake: !localStorage.getItem('fitos_profile'),
+  showIntake: !localStorage.getItem('fitos_profile') && localStorage.getItem('fitos_show_intake')!=='false',
   intakeStep:0,
 
   // Intake / profile
@@ -9833,7 +9833,7 @@ async function wizSignup(){
           var rows=await restoreResp.json();
           if(rows&&rows.length>0){
             var d=rows[0];
-            if(d.profile) S.profile=Object.assign(S.profile,d.profile);
+            if(d.profile){S.profile=Object.assign(S.profile,d.profile);try{localStorage.setItem('fitos_profile',JSON.stringify(S.profile));}catch(e){}}
             if(d.gym_history) S.gymHistory=d.gym_history;
             if(d.checkin_history) S.checkinHistory=d.checkin_history;
             if(d.food_log) S.foodLog=d.food_log;
@@ -9958,7 +9958,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v127';
+  window.APP_VERSION='v128';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -10174,27 +10174,68 @@ function toggleOracleVoice(){
   refreshCoach();
 }
 
+function _updateMicBtn(){
+  // Light update — just swap the mic button state without rebuilding the full overlay
+  var btn=document.getElementById('oracle-mic-btn');
+  if(!btn) return;
+  if(S.oracleListening){
+    btn.innerHTML='🔴';
+    btn.style.background='rgba(255,60,60,0.2)';
+    btn.style.borderColor='rgba(255,60,60,0.6)';
+    btn.style.color='#ff5e57';
+    btn.style.animation='orb-pulse 1s ease-in-out infinite';
+  } else {
+    btn.innerHTML='🎤';
+    btn.style.background='rgba(29,158,117,0.12)';
+    btn.style.borderColor='rgba(29,158,117,0.35)';
+    btn.style.color='#1D9E75';
+    btn.style.animation='';
+  }
+}
 function startVoiceInput(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){alert('Voice input not supported on this browser. Try Chrome or Safari on iOS 17+.');return;}
-  if(_oracleSTT){_oracleSTT.stop();_oracleSTT=null;S.oracleListening=false;refreshCoach();return;}
-  _oracleSTT=new SR();
-  _oracleSTT.continuous=false;
-  _oracleSTT.interimResults=true;
-  _oracleSTT.lang='en-AU';
-  _oracleSTT.onstart=function(){S.oracleListening=true;refreshCoach();};
-  _oracleSTT.onresult=function(e){
-    var transcript=Array.from(e.results).map(function(r){return r[0].transcript;}).join('');
-    var inp=document.getElementById('coach-input-field');
-    if(inp) inp.value=transcript;
-    if(e.results[e.results.length-1].isFinal){
+  // Toggle off if already listening
+  if(_oracleSTT){
+    try{_oracleSTT.abort();}catch(e){}
+    _oracleSTT=null;S.oracleListening=false;_updateMicBtn();return;
+  }
+  try{
+    _oracleSTT=new SR();
+    _oracleSTT.continuous=false;
+    _oracleSTT.interimResults=true;
+    _oracleSTT.lang='en-AU';
+    // audiostart fires once the mic is actually open (after permission granted)
+    _oracleSTT.onaudiostart=function(){S.oracleListening=true;_updateMicBtn();};
+    _oracleSTT.onstart=function(){S.oracleListening=true;_updateMicBtn();};
+    _oracleSTT.onresult=function(e){
+      var transcript=Array.from(e.results).map(function(r){return r[0].transcript;}).join('');
+      var inp=document.getElementById('coach-input-field');
+      if(inp) inp.value=transcript;
+      if(e.results[e.results.length-1].isFinal){
+        _oracleSTT=null;S.oracleListening=false;_updateMicBtn();
+        sendCoachMessage();
+      }
+    };
+    _oracleSTT.onerror=function(ev){
       _oracleSTT=null;S.oracleListening=false;
-      sendCoachMessage();
-    }
-  };
-  _oracleSTT.onerror=function(){_oracleSTT=null;S.oracleListening=false;refreshCoach();};
-  _oracleSTT.onend=function(){_oracleSTT=null;S.oracleListening=false;refreshCoach();};
-  _oracleSTT.start();
+      if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){
+        // Permission denied — show friendly message in input field
+        var inp=document.getElementById('coach-input-field');
+        if(inp){inp.placeholder='Mic blocked — type your message instead';setTimeout(function(){if(inp)inp.placeholder='Ask your Oracle anything...';},4000);}
+      } else if(ev.error==='audio-capture'){
+        var inp=document.getElementById('coach-input-field');
+        if(inp){inp.placeholder='No mic found — type your message';setTimeout(function(){if(inp)inp.placeholder='Ask your Oracle anything...';},4000);}
+      } else if(ev.error==='no-speech'){
+        // Silence — don't show error, just reset quietly
+      }
+      _updateMicBtn();
+    };
+    _oracleSTT.onend=function(){_oracleSTT=null;S.oracleListening=false;_updateMicBtn();};
+    _oracleSTT.start();
+  }catch(err){
+    _oracleSTT=null;S.oracleListening=false;_updateMicBtn();
+  }
 }
 
 function buildOracleGreeting(){
