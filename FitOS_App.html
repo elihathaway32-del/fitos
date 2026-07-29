@@ -2871,8 +2871,12 @@ function render(){
     if(typeof checkPaywall==='function') checkPaywall();
     document.getElementById('tab-bar').innerHTML=renderTabBar();
     const screens={today:renderToday,train:renderTrain,eat:renderEat,habits:renderHabits};
-    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showRestSheet?renderRestSheet():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
+    const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
     document.getElementById('screen').innerHTML=mainHTML;
+    // Rest sheet rendered directly on body to avoid position:fixed bug inside CSS-transformed #screen
+    var _rb=document.getElementById('fitos-rest-root');
+    if(!_rb){_rb=document.createElement('div');_rb.id='fitos-rest-root';document.body.appendChild(_rb);}
+    _rb.innerHTML=S.showRestSheet?renderRestSheet():'';
     // Coach orb is now in the tab bar — no floating FAB needed
     // YouTube demo replaces Three.js animation — no canvas hook needed
   }catch(err){
@@ -8618,8 +8622,8 @@ function renderAddExSheet(){
 
 // ─── TRAIN ───────────────────────────────────────────────────────────────
 function selectDay(d){
-  S.day=d;S.exIdx=0;S.editingSet=null;S.loggedSets={};S.exSwaps={};S.extraSets={};S.addedExercises={};
-  startWorkout();
+  S.day=d;
+  render();
   var el=document.getElementById('screen');
   if(el){el.classList.remove('day-zoom-in');void el.offsetWidth;el.classList.add('day-zoom-in');}
 }
@@ -8906,9 +8910,23 @@ function buildCoachSystemPrompt(){
     prompt+='Target muscles: '+exMuscles+'\n';
     if(exCue) prompt+='Coaching cue: '+exCue+'\n';
     prompt+=(setLines?'Sets logged this exercise: '+setLines:'No sets logged yet for this exercise')+'\n';
+    // Previous session data for current exercise (for weight suggestions)
+    if(ex){
+      var prevSets=[];
+      var history=S.gymHistory||[];
+      for(var hi=history.length-1;hi>=0;hi--){
+        var hEntry=history[hi];
+        if(hEntry.sets&&hEntry.sets[ex.id]&&hEntry.sets[ex.id].length){
+          prevSets=hEntry.sets[ex.id];
+          prompt+='LAST SESSION ('+ex.name+'): '+prevSets.filter(Boolean).map(function(s,i){return'Set '+(i+1)+': '+s.weight+'kg x '+s.reps+' reps';}).join(', ')+'\n';
+          break;
+        }
+      }
+      if(!prevSets.length) prompt+='First time logging '+ex.name+' — no previous session data.\n';
+    }
     prompt+=(sessionSummary?'Session so far: '+sessionSummary:'Session just started — no exercises logged yet')+'\n';
     prompt+='Remaining exercises: '+allEx.slice(S.exIdx+1).map(function(x){return x.name;}).join(', ')+'\n';
-    prompt+='The athlete is ACTIVELY TRAINING RIGHT NOW. Be their in-ear coach. Direct, specific, no fluff.';
+    prompt+='The athlete is ACTIVELY TRAINING RIGHT NOW. Be their in-ear coach. Reference exact weights and reps. Direct, specific, no fluff.';
   }
   return prompt;
 }
@@ -8922,6 +8940,22 @@ function setYTCache(exId,videoId){
   localStorage.setItem('fitos_yt_cache',JSON.stringify(c));
 }
 
+function tryResumeMedia(){
+  // Plays a 1-sample silent audio buffer — signals to iOS/Android that the
+  // app is releasing audio focus so the user's previous media app can resume.
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    var ctx=new AC();
+    var buf=ctx.createBuffer(1,1,22050);
+    var src=ctx.createBufferSource();
+    src.buffer=buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    src.onended=function(){ctx.close();};
+  }catch(e){}
+}
+
 function embedYTVideo(wrap, videoId){
   var exId=wrap.id.replace('yt-wrap-','');
   // Store exId on element so onclick can read it without quote escaping
@@ -8933,10 +8967,16 @@ function embedYTVideo(wrap, videoId){
       'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '+
       'allowfullscreen '+
       'style="border-radius:12px;display:block;background:#000"></iframe>'+
-    '<button onclick="resetYTVideo(this.closest(\'[data-yt-exid]\').dataset.ytExid)" '+
-      'style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.6);font-size:0.65rem;padding:3px 8px;cursor:pointer">'+
-      '⟳ Wrong video?'+
-    '</button>'+
+    '<div style="display:flex;gap:8px;margin-top:8px">'+
+      '<button onclick="resetYTVideo(this.closest(\'[data-yt-exid]\').dataset.ytExid)" '+
+        'style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.72rem;padding:6px 10px;cursor:pointer">'+
+        '⟳ Wrong video?'+
+      '</button>'+
+      '<button onclick="tryResumeMedia()" '+
+        'style="flex:1;background:rgba(29,158,117,0.15);border:1px solid rgba(29,158,117,0.35);border-radius:8px;color:#1D9E75;font-size:0.72rem;font-weight:600;padding:6px 10px;cursor:pointer">'+
+        '🎵 Resume music'+
+      '</button>'+
+    '</div>'+
   '</div>';
 }
 
@@ -9908,7 +9948,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v125';
+  window.APP_VERSION='v126';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
