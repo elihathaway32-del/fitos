@@ -2621,7 +2621,7 @@ let S={
   coachTyping: false,
   coachInput: '',
   oracleVoiceOn: localStorage.getItem('fitos_oracle_voice')!=='off',
-  oracleProfile: localStorage.getItem('fitos_oracle_profile')||'energetic',
+  oracleProfile: localStorage.getItem('fitos_oracle_profile')||'au_female',
   oracleVoiceLang: localStorage.getItem('fitos_oracle_lang')||'en-AU',
   oracleVoiceName: localStorage.getItem('fitos_oracle_voice_name')||'',
   oracleListening: false,
@@ -2853,6 +2853,8 @@ function render(){
     var screenEl=document.getElementById('screen');
     // Save scroll position before any rebuild
     var savedScroll=screenEl?screenEl.scrollTop:0;
+    var settingsScrollEl=document.getElementById('settings-scroll');
+    var savedSettingsScroll=settingsScrollEl?settingsScrollEl.scrollTop:0;
     // Determine if this is a same-context render (preserve scroll) or a new screen (reset)
     var sameCtx=(
       _renderCtx.tab===S.tab&&
@@ -2904,6 +2906,8 @@ function render(){
     document.getElementById('screen').innerHTML=mainHTML;
     // Restore scroll if same tab/screen context; otherwise stays at 0 (natural reset)
     if(sameCtx&&screenEl) screenEl.scrollTop=savedScroll;
+    // Restore settings panel inner scroll position (toggling a setting fires render() and would reset scroll)
+    if(savedSettingsScroll){var sse=document.getElementById('settings-scroll');if(sse)sse.scrollTop=savedSettingsScroll;}
     _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:false};
     // Rest sheet rendered directly on body to avoid position:fixed bug inside CSS-transformed #screen
     var _rb=document.getElementById('fitos-rest-root');
@@ -3374,12 +3378,31 @@ function renderIntake(){
         '</div>'+
       '</button>';
     }).join('');
+    var curVoice=S.oracleProfile||'au_female';
+    var voiceCards=Object.keys(ORACLE_PROFILES).map(function(k){
+      var vp=ORACLE_PROFILES[k];
+      var active=curVoice===k;
+      return '<button onclick="S.oracleProfile=\''+k+'\';S.oracleVoiceLang=\''+vp.lang+'\';localStorage.setItem(\'fitos_oracle_profile\',\''+k+'\');localStorage.setItem(\'fitos_oracle_lang\',\''+vp.lang+'\');render()" '
+        +'style="background:'+(active?'rgba(140,80,255,0.18)':'rgba(255,255,255,0.04)')+';border:1.5px solid '+(active?'rgba(140,80,255,0.7)':'rgba(255,255,255,0.1)')+';border-radius:12px;padding:11px 10px;cursor:pointer;text-align:left">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'+
+          '<span style="font-size:1.2rem">'+vp.emoji+'</span>'+
+          '<div>'+
+            '<div style="font-size:0.78rem;font-weight:700;color:'+(active?'#c8a8ff':'var(--text)')+'">'+vp.label+'</div>'+
+            '<div style="font-size:0.6rem;color:'+(active?'rgba(200,168,255,0.6)':'var(--muted)')+'">'+vp.accent+'</div>'+
+          '</div>'+
+          (active?'<div style="margin-left:auto;color:#c8a8ff;font-size:0.75rem;font-weight:700">✓</div>':'')+
+        '</div>'+
+        '<div style="font-size:0.68rem;color:'+(active?'rgba(200,168,255,0.7)':'var(--muted)')+';line-height:1.3">'+vp.tagline+'</div>'+
+      '</button>';
+    }).join('');
     body=`
     <div class="wizard-label" style="margin-bottom:10px">App Theme</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">${themeCards}</div>
     <div class="wizard-label" style="margin-bottom:10px">Coaching Style</div>
-    <div style="display:flex;flex-direction:column;gap:8px">${coachCards}</div>
-    <div style="margin-top:14px;font-size:0.75rem;color:var(--muted);line-height:1.5;text-align:center">You can change these anytime in Settings.</div>`;
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">${coachCards}</div>
+    <div class="wizard-label" style="margin-bottom:10px">🔮 Oracle Voice Persona</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${voiceCards}</div>
+    <div style="margin-top:14px;font-size:0.75rem;color:var(--muted);line-height:1.5;text-align:center">You can change all of these anytime in Settings.</div>`;
   }
 
   // ── Step 9: All Set! ──
@@ -9387,6 +9410,62 @@ function restoreData(){
   document.body.removeChild(input);
 }
 
+function renderOracleVoiceSettings(){
+  var curProf=S.oracleProfile||'au_female';
+  var voiceOn=S.oracleVoiceOn;
+  var all=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  // For each profile, find if its preferred voice is available on this device
+  function findVoiceForProfile(k){
+    var p=ORACLE_PROFILES[k];
+    if(!p||!p.voiceSearch) return null;
+    for(var i=0;i<p.voiceSearch.length;i++){
+      var v=all.find(function(v){return p.voiceSearch[i].test(v.name);});
+      if(v) return v.name;
+    }
+    return null;
+  }
+  var profilesHtml=Object.keys(ORACLE_PROFILES).map(function(k){
+    var p=ORACLE_PROFILES[k];
+    var active=curProf===k;
+    var foundVoice=findVoiceForProfile(k);
+    var voiceLabel=foundVoice?foundVoice.split(' ').slice(0,2).join(' '):'fallback voice';
+    var accentColor=active?'rgba(140,80,255,0.3)':'var(--s3)';
+    var borderColor=active?'rgba(140,80,255,0.7)':'var(--border)';
+    var textColor=active?'#c8a8ff':'var(--text)';
+    var mutedColor=active?'rgba(200,168,255,0.6)':'var(--muted)';
+    return '<div onclick="S.oracleProfile=\''+k+'\';S.oracleVoiceLang=\''+p.lang+'\';localStorage.setItem(\'fitos_oracle_profile\',\''+k+'\');localStorage.setItem(\'fitos_oracle_lang\',\''+p.lang+'\');render()" '
+      +'style="background:'+accentColor+';border:1.5px solid '+borderColor+';border-radius:12px;padding:12px 10px;cursor:pointer;text-align:left">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+        +'<span style="font-size:1.2rem">'+p.emoji+'</span>'
+        +'<div>'
+          +'<div style="font-size:0.82rem;font-weight:700;color:'+textColor+'">'+p.label+'</div>'
+          +'<div style="font-size:0.62rem;color:'+mutedColor+'">'+p.accent+'</div>'
+        +'</div>'
+        +(active?'<span style="margin-left:auto;font-size:0.65rem;color:#c8a8ff;font-weight:700">✓ ACTIVE</span>':'')
+      +'</div>'
+      +'<div style="font-size:0.72rem;color:'+mutedColor+';line-height:1.4;margin-bottom:5px">'+p.desc+'</div>'
+      +(foundVoice
+        ?'<div style="font-size:0.62rem;color:'+(active?'rgba(140,200,255,0.7)':'rgba(100,180,100,0.7)')+';font-weight:600">✓ Voice found: '+voiceLabel+'</div>'
+        :'<div style="font-size:0.62rem;color:rgba(255,160,60,0.7)">⚠ Voice not installed — download in iOS Settings</div>')
+    +'</div>';
+  }).join('');
+  return '<div style="background:var(--s2);border-radius:14px;padding:16px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      +'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">🔮 Oracle Voice Style</div>'
+      +'<div onclick="S.oracleVoiceOn=!S.oracleVoiceOn;localStorage.setItem(\'fitos_oracle_voice\',S.oracleVoiceOn?\'on\':\'off\');if(!S.oracleVoiceOn)window.speechSynthesis.cancel();render()" '
+        +'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'
+        +'<div style="position:absolute;inset:0;background:'+(voiceOn?'var(--green)':'var(--s3)')+';border:1px solid '+(voiceOn?'var(--green)':'var(--border)')+';border-radius:13px"></div>'
+        +'<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(voiceOn?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'
+      +'</div>'
+    +'</div>'
+    +(voiceOn
+      ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+profilesHtml+'</div>'
+        +'<button onclick="_primeAudio();testOracleVoice()" '
+          +'style="width:100%;background:rgba(140,80,255,0.12);border:1px solid rgba(140,80,255,0.35);border-radius:10px;padding:10px;color:#c8a8ff;font-size:0.85rem;font-weight:600;cursor:pointer">▶ Test Active Voice</button>'
+        +'<div style="font-size:0.68rem;color:var(--muted);margin-top:8px;line-height:1.4">Voices use your device speech engine. To install more, go to iOS Settings → Accessibility → Spoken Content → Voices.</div>'
+      :'<div style="font-size:0.78rem;color:var(--muted)">Enable voice to pick your Oracle style.</div>')
+    +'</div>';
+}
 function renderThemePicker(){
   var themes=[
     {key:'dark-electric',label:'Dark Electric',bg:'#0d0d0f',accent:'#00E87A'},
@@ -9419,7 +9498,7 @@ function renderSettings(){
         '<span style="font-weight:700;font-size:1rem">⚙ Settings <span onclick="S._verTaps=(S._verTaps||0)+1;if(S._verTaps>=3){S._verTaps=0;S.showSettings=false;S.showDevPanel=true;render();}" style="font-size:0.6rem;color:var(--muted);font-weight:400;cursor:pointer">'+(window.APP_VERSION||'')+'</span></span>'+
         '<button onclick="S.showSettings=false;render()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px">×</button>'+
       '</div>'+
-      '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
+      '<div id="settings-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
 
         (function(){
           var p=S.profile||{};
@@ -9478,61 +9557,7 @@ function renderSettings(){
         '</div>'+
         renderThemePicker()+'\n'+
 
-        (function(){
-          var langs=[
-            {code:'en-AU',label:'🇦🇺 English (Australian)'},
-            {code:'en-US',label:'🇺🇸 English (American)'},
-            {code:'en-GB',label:'🇬🇧 English (British)'},
-            {code:'en-IN',label:'🇮🇳 English (Indian)'},
-            {code:'es-ES',label:'🇪🇸 Spanish'},
-            {code:'fr-FR',label:'🇫🇷 French'},
-            {code:'de-DE',label:'🇩🇪 German'}
-          ];
-          var curLang=S.oracleVoiceLang||'en-AU';
-          var curProf=S.oracleProfile||'energetic';
-          var voiceOn=S.oracleVoiceOn;
-          // Get available voices for current lang (rendered at call time)
-          var availVoices=(window.speechSynthesis?window.speechSynthesis.getVoices():[]).filter(function(v){return v.lang.startsWith(curLang.split('-')[0]);});
-          var curVoiceName=S.oracleVoiceName||'';
-          var profilesHtml=Object.keys(ORACLE_PROFILES).map(function(k){
-            var p=ORACLE_PROFILES[k];
-            var active=curProf===k;
-            return '<button onclick="S.oracleProfile=\''+k+'\';localStorage.setItem(\'fitos_oracle_profile\',\''+k+'\');render()" '
-              +'style="background:'+(active?'rgba(140,80,255,0.25)':'var(--s3)')+';border:'+(active?'1.5px solid rgba(140,80,255,0.6)':'1px solid var(--border)')+';border-radius:10px;padding:10px 8px;color:'+(active?'#c8a8ff':'var(--text)')+';cursor:pointer;text-align:center">'
-              +'<div style="font-size:1rem">'+p.label.split(' ')[0]+'</div>'
-              +'<div style="font-size:0.72rem;font-weight:700;margin-top:2px">'+p.label.split(' ').slice(1).join(' ')+'</div>'
-              +'<div style="font-size:0.62rem;color:'+(active?'rgba(200,168,255,0.7)':'var(--muted)')+'">'+p.desc+'</div>'
-              +'</button>';
-          }).join('');
-          var voicePickerHtml=availVoices.length>1
-            ?'<div style="margin-top:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:5px">Voice</div>'
-              +'<select class="wizard-input" onchange="S.oracleVoiceName=this.value;localStorage.setItem(\'fitos_oracle_voice_name\',this.value)" style="margin-bottom:0">'
-              +'<option value="">Auto-select best voice</option>'
-              +availVoices.map(function(v){return'<option value="'+v.name+'"'+(curVoiceName===v.name?' selected':'')+'>'+v.name+(v.localService?' (offline)':'')+'</option>';}).join('')
-              +'</select></div>'
-            :'';
-          return '<div style="background:var(--s2);border-radius:14px;padding:16px">'
-            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-              +'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">🔮 Oracle Voice</div>'
-              +'<div onclick="S.oracleVoiceOn=!S.oracleVoiceOn;localStorage.setItem(\'fitos_oracle_voice\',S.oracleVoiceOn?\'on\':\'off\');if(!S.oracleVoiceOn)window.speechSynthesis.cancel();render()" '
-                +'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'
-                +'<div style="position:absolute;inset:0;background:'+(voiceOn?'var(--green)':'var(--s3)')+';border:1px solid '+(voiceOn?'var(--green)':'var(--border)')+';border-radius:13px;transition:.2s"></div>'
-                +'<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(voiceOn?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'
-              +'</div>'
-            +'</div>'
-            +(voiceOn
-              ?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:5px">Language & Accent</div>'
-                +'<select class="wizard-input" onchange="S.oracleVoiceLang=this.value;S.oracleVoiceName=\'\';localStorage.setItem(\'fitos_oracle_lang\',this.value);localStorage.removeItem(\'fitos_oracle_voice_name\');render()" style="margin-bottom:0">'
-                +langs.map(function(l){return'<option value="'+l.code+'"'+(curLang===l.code?' selected':'')+'>'+l.label+'</option>';}).join('')
-                +'</select></div>'
-                +'<div style="margin-bottom:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Voice Profile</div>'
-                +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+profilesHtml+'</div></div>'
-                +voicePickerHtml
-                +'<button onclick="testOracleVoice()" '
-                  +'style="width:100%;margin-top:12px;background:rgba(140,80,255,0.12);border:1px solid rgba(140,80,255,0.35);border-radius:10px;padding:10px;color:#c8a8ff;font-size:0.85rem;font-weight:600;cursor:pointer">▶ Test Voice</button>'
-              :'<div style="font-size:0.78rem;color:var(--muted)">Enable voice to configure Oracle speech settings.</div>')
-            +'</div>';
-        })()+
+        renderOracleVoiceSettings()+
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
           '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Data Backup</div>'+
           '<button onclick="backupData()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px">'+
@@ -10100,7 +10125,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v132';
+  window.APP_VERSION='v133';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -10339,11 +10364,45 @@ function getCoachName(){return 'Fit Oracle';}
 function getCoachEmoji(){return '🔮';}
 
 // ── FIT ORACLE VOICE ─────────────────────────────────────────────────────────
+// Each persona uses DIFFERENT NAMED VOICES from the device — not just speed changes.
+// voiceSearch: regex priority list. First match wins. Falls back through gender → any English.
 var ORACLE_PROFILES={
-  energetic:{label:'🔥 Energetic',rate:1.15,pitch:1.08,desc:'Fast & pumped up'},
-  calm:     {label:'🧘 Calm',     rate:0.88,pitch:0.95,desc:'Relaxed & steady'},
-  natural:  {label:'💬 Natural',  rate:1.0, pitch:1.0, desc:'Neutral & clear'},
-  sergeant: {label:'💀 Sergeant', rate:1.2, pitch:0.85,desc:'No excuses, let\'s go'}
+  au_female:{
+    label:'Aussie Girl',emoji:'🔥',
+    tagline:'Casual & warm',
+    desc:'Your Aussie hype mate. Energetic, friendly, gets you pumped.',
+    accent:'🇦🇺 Australian Female',
+    rate:1.08,pitch:1.1,
+    voiceSearch:[/Karen/i,/Google Australian English Female/i,/Zoe/i,/Fiona/i,/Tessa/i],
+    lang:'en-AU',gender:'female'
+  },
+  au_male:{
+    label:'Aussie Bloke',emoji:'💪',
+    tagline:'Direct & no-BS',
+    desc:'Crass, funny, zero fluff. Tells it straight. Gets results.',
+    accent:'🇦🇺 Australian Male',
+    rate:1.0,pitch:0.82,
+    voiceSearch:[/Gordon/i,/Lee/i,/Google Australian English Male/i,/Daniel/i,/Rishi/i],
+    lang:'en-AU',gender:'male'
+  },
+  ai_female:{
+    label:'AI Coach',emoji:'🤖',
+    tagline:'Precise & clear',
+    desc:'Clean, neutral, data-driven. The AI voice you expected.',
+    accent:'🇺🇸 American Female',
+    rate:1.0,pitch:1.02,
+    voiceSearch:[/Samantha/i,/Victoria/i,/Ava/i,/Google US English Female/i,/Joanna/i],
+    lang:'en-US',gender:'female'
+  },
+  us_male:{
+    label:'American Bro',emoji:'🇺🇸',
+    tagline:'Intense & hyped',
+    desc:'Old school gym energy. Confident, intense, pushes you hard.',
+    accent:'🇺🇸 American Male',
+    rate:1.08,pitch:0.9,
+    voiceSearch:[/Alex/i,/Aaron/i,/Google US English Male/i,/Tom/i,/James/i,/David/i],
+    lang:'en-US',gender:'male'
+  }
 };
 function speakOracle(text){
   if(!S.oracleVoiceOn||!window.speechSynthesis) return;
@@ -10361,15 +10420,25 @@ function speakOracle(text){
     utt.volume=1.0;
     // Pick a voice: user-selected > lang match > any English
     var voices=window.speechSynthesis.getVoices();
-    var savedVoiceName=S.oracleVoiceName||'';
-    var preferred=
-      (savedVoiceName&&voices.find(function(v){return v.name===savedVoiceName;}))||
-      voices.find(function(v){return v.lang===lang;})||
-      voices.find(function(v){return v.lang.startsWith(lang.split('-')[0]);})||
-      voices.find(function(v){return/Samantha|Karen|Daniel|Moira|Rishi/i.test(v.name);})||
-      voices.find(function(v){return v.lang.startsWith('en');});
+    var preferred=null;
+    // Walk through persona's voice priority list
+    if(profile.voiceSearch){
+      for(var _pi=0;_pi<profile.voiceSearch.length;_pi++){
+        preferred=voices.find(function(v){return profile.voiceSearch[_pi].test(v.name);});
+        if(preferred) break;
+      }
+    }
+    // Gender fallback: try to match gender hint in voice name
+    if(!preferred&&profile.gender){
+      var femaleRe=/Karen|Samantha|Victoria|Moira|Zoe|Ava|Fiona|Tessa|Joanna|Google.*Female|Siri.*Female/i;
+      var maleRe=/Daniel|Gordon|Lee|Alex|Aaron|Tom|Oliver|Rishi|Google.*Male|James|David/i;
+      var gRe=profile.gender==='female'?femaleRe:maleRe;
+      preferred=voices.find(function(v){return gRe.test(v.name)&&v.lang.startsWith('en');});
+    }
+    // Final fallback: any English voice
+    if(!preferred) preferred=voices.find(function(v){return v.lang===lang;})||voices.find(function(v){return v.lang.startsWith('en');});
     if(preferred) utt.voice=preferred;
-    utt.lang=lang;
+    utt.lang=profile.lang||lang;
     // iOS watchdog: resume synthesis if it gets paused mid-utterance
     var watchdog=setInterval(function(){
       if(!window.speechSynthesis.speaking){clearInterval(watchdog);return;}

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eli — Weekly Grocery List</title>
+<style>
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56;
+    --blue: #185FA5; --blue-light: #E6F1FB;
+    --amber: #BA7517; --amber-light: #FAEEDA;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --purple: #534AB7; --purple-light: #EEEDFE;
+    --gray: #5F5E5A; --gray-light: #F1EFE8;
+    --text: #1a1a1a; --text-muted: #666; --border: #e0ddd6;
+    --bg: #fafaf8; --white: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+  .header { background: var(--text); color: white; padding: 2rem; text-align: center; }
+  .header h1 { font-size: 1.6rem; font-weight: 600; }
+  .header p { color: #aaa; font-size: 0.9rem; margin-top: 0.4rem; }
+  .badge { display: inline-block; background: var(--green); color: white; font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; margin-top: 0.6rem; font-weight: 500; }
+  .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2rem 0 1rem; }
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 1.5rem; }
+  .shop-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .shop-card-header { padding: 0.85rem 1.1rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .shop-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .shop-card-header h3 { font-size: 0.9rem; font-weight: 600; }
+  .shop-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 1.1rem; border-bottom: 1px solid var(--border); }
+  .shop-item:last-child { border-bottom: none; }
+  .check { width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 2px; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; }
+  .check.checked { background: var(--green); border-color: var(--green); }
+  .check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 600; }
+  .item-text { flex: 1; }
+  .item-name { font-size: 0.88rem; font-weight: 500; }
+  .item-qty { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+  .item-why { font-size: 0.75rem; color: var(--green-dark); margin-top: 2px; font-style: italic; }
+  .item-name.done { text-decoration: line-through; color: var(--text-muted); }
+  .cost-est { background: var(--amber-light); border: 1px solid #FAC775; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .cost-label { font-size: 0.85rem; color: var(--amber); font-weight: 500; }
+  .cost-val { font-size: 1.2rem; font-weight: 600; color: var(--amber); }
+  .tip-box { border-left: 3px solid var(--amber); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; background: var(--amber-light); }
+  .tip-box strong { color: var(--amber); }
+  .info-box { border-left: 3px solid var(--blue); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; background: var(--blue-light); }
+  .info-box strong { color: var(--blue); }
+  .progress-bar { background: var(--border); border-radius: 6px; height: 8px; margin: 0.5rem 0 1.5rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 6px; transition: width .3s; }
+  .progress-text { font-size: 0.8rem; color: var(--text-muted); text-align: right; }
+  .footer { text-align: center; padding: 2rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Weekly Grocery List</h1>
+  <p>Body Recomposition &bull; ~2,450 cal/day &bull; 200g protein &bull; 7 days</p>
+  <div class="badge">Tap items to check them off</div>
+</div>
+
+<div class="container">
+
+  <div id="progress-section">
+    <div class="progress-text" id="progress-text">0 of 0 items checked</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="cost-est">
+    <div>
+      <div class="cost-label">Estimated weekly shop</div>
+      <div style="font-size:0.78rem;color:#885010;margin-top:2px">Coles / Woolworths average. Meat prices vary.</div>
+    </div>
+    <div class="cost-val">~$130–160</div>
+  </div>
+
+  <p class="section-title">Proteins</p>
+  <div class="shop-grid">
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#E6F1FB">🥩</div>
+        <h3>Meat &amp; Fish</h3>
+      </div>
+      <div class="shop-item" id="i1">
+        <div class="check" onclick="toggle('i1')"></div>
+        <div class="item-text">
+          <div class="item-name">Chicken breast (skinless)</div>
+          <div class="item-qty">1.4–1.6kg &bull; ~7 serves of 200g</div>
+          <div class="item-why">Primary lean protein source — 46g P per 200g serve</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i2">
+        <div class="check" onclick="toggle('i2')"></div>
+        <div class="item-text">
+          <div class="item-name">Atlantic salmon fillets</div>
+          <div class="item-qty">540g (3 x 180g serves)</div>
+          <div class="item-why">Omega-3 EPA/DHA — anti-inflammatory for back recovery</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i3">
+        <div class="check" onclick="toggle('i3')"></div>
+        <div class="item-text">
+          <div class="item-name">Lean beef mince (5% fat)</div>
+          <div class="item-qty">500g &bull; 2 serves</div>
+          <div class="item-why">Zinc, iron, B12 + complete amino acids. Bolognese or burger bowl.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i4">
+        <div class="check" onclick="toggle('i4')"></div>
+        <div class="item-text">
+          <div class="item-name">Canned tuna in springwater</div>
+          <div class="item-qty">4 x 185g tins</div>
+          <div class="item-why">Cheap, fast, 30g protein per tin. Lunch backup or snack</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i5">
+        <div class="check" onclick="toggle('i5')"></div>
+        <div class="item-text">
+          <div class="item-name">Sardines in olive oil (can)</div>
+          <div class="item-qty">2 x 95g tins</div>
+          <div class="item-why">Highest omega-3 per gram of any food. Calcium from soft bones.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#E1F5EE">🥚</div>
+        <h3>Eggs &amp; Dairy</h3>
+      </div>
+      <div class="shop-item" id="i6">
+        <div class="check" onclick="toggle('i6')"></div>
+        <div class="item-text">
+          <div class="item-name">Free-range eggs (dozen)</div>
+          <div class="item-qty">2 x 12-packs</div>
+          <div class="item-why">Complete amino acid profile. Choline for brain function. Cheap protein.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i7">
+        <div class="check" onclick="toggle('i7')"></div>
+        <div class="item-text">
+          <div class="item-name">Egg whites (carton)</div>
+          <div class="item-qty">1 litre carton</div>
+          <div class="item-why">Zero-fat pure protein addition to omelettes. Convenient.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i8">
+        <div class="check" onclick="toggle('i8')"></div>
+        <div class="item-text">
+          <div class="item-name">Greek yoghurt (full fat)</div>
+          <div class="item-qty">1kg tub (Chobani or Farmers Union)</div>
+          <div class="item-why">Pre-workout snack, gut health (live cultures), casein + whey combo protein</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i9">
+        <div class="check" onclick="toggle('i9')"></div>
+        <div class="item-text">
+          <div class="item-name">Cottage cheese (low fat)</div>
+          <div class="item-qty">500g tub</div>
+          <div class="item-why">Casein protein — slow release, ideal afternoon snack or before bed</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i10">
+        <div class="check" onclick="toggle('i10')"></div>
+        <div class="item-text">
+          <div class="item-name">Reduced fat milk</div>
+          <div class="item-qty">2L</div>
+          <div class="item-why">Protein shakes, oats base. Calcium + vitamin D fortified.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Carbohydrates</p>
+  <div class="shop-grid">
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#FAEEDA">🌾</div>
+        <h3>Grains &amp; Starches</h3>
+      </div>
+      <div class="shop-item" id="i11">
+        <div class="check" onclick="toggle('i11')"></div>
+        <div class="item-text">
+          <div class="item-name">White rice (jasmine or basmati)</div>
+          <div class="item-qty">2kg bag</div>
+          <div class="item-why">Post-workout staple. High GI, fast glycogen replenishment. Easy bulk cook.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i12">
+        <div class="check" onclick="toggle('i12')"></div>
+        <div class="item-text">
+          <div class="item-name">Rolled oats (traditional cut)</div>
+          <div class="item-qty">1kg bag</div>
+          <div class="item-why">Low GI breakfast. Beta-glucan fibre. Slow energy release.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i13">
+        <div class="check" onclick="toggle('i13')"></div>
+        <div class="item-text">
+          <div class="item-name">Sweet potato</div>
+          <div class="item-qty">1.5kg</div>
+          <div class="item-why">Beta-carotene, potassium, vitamin C. Evening carb source. Anti-inflammatory.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i14">
+        <div class="check" onclick="toggle('i14')"></div>
+        <div class="item-text">
+          <div class="item-name">Plain rice cakes</div>
+          <div class="item-qty">1 packet (130g)</div>
+          <div class="item-why">Pre-workout fast carb. Low fat, easy to stomach pre-training.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i15">
+        <div class="check" onclick="toggle('i15')"></div>
+        <div class="item-text">
+          <div class="item-name">Wholegrain bread (or sourdough)</div>
+          <div class="item-qty">1 loaf</div>
+          <div class="item-why">Fibre, B vitamins. Use for quick protein meals on the go.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#FAEEDA">🍌</div>
+        <h3>Fruit</h3>
+      </div>
+      <div class="shop-item" id="i16">
+        <div class="check" onclick="toggle('i16')"></div>
+        <div class="item-text">
+          <div class="item-name">Bananas</div>
+          <div class="item-qty">7–10 bananas (1 per day)</div>
+          <div class="item-why">Pre/post-workout potassium + fast carbs. Magnesium. Portable.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i17">
+        <div class="check" onclick="toggle('i17')"></div>
+        <div class="item-text">
+          <div class="item-name">Blueberries (fresh or frozen)</div>
+          <div class="item-qty">500g frozen bag</div>
+          <div class="item-why">Highest antioxidant density of any fruit. Reduce oxidative stress from training.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i18">
+        <div class="check" onclick="toggle('i18')"></div>
+        <div class="item-text">
+          <div class="item-name">Apples or pears</div>
+          <div class="item-qty">6–8 pieces</div>
+          <div class="item-why">Fibre, natural sweetness, afternoon snack filler. Low calorie density.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i19">
+        <div class="check" onclick="toggle('i19')"></div>
+        <div class="item-text">
+          <div class="item-name">Kiwi fruit</div>
+          <div class="item-qty">4–6 kiwis</div>
+          <div class="item-why">Highest vitamin C of common fruits — collagen synthesis for back recovery.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Vegetables</p>
+  <div class="shop-grid">
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#E1F5EE">🥦</div>
+        <h3>Fibrous veg (aim for 500g+ per day)</h3>
+      </div>
+      <div class="shop-item" id="i20">
+        <div class="check" onclick="toggle('i20')"></div>
+        <div class="item-text">
+          <div class="item-name">Broccoli</div>
+          <div class="item-qty">1 large head or 500g frozen florets</div>
+          <div class="item-why">Sulforaphane for inflammation. Vitamin C, K, folate. Easy steam or roast.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i21">
+        <div class="check" onclick="toggle('i21')"></div>
+        <div class="item-text">
+          <div class="item-name">Baby spinach</div>
+          <div class="item-qty">2 x 120g bags</div>
+          <div class="item-why">Iron, magnesium, vitamin K. Add to everything — barely affects taste, massive micronutrient hit.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i22">
+        <div class="check" onclick="toggle('i22')"></div>
+        <div class="item-text">
+          <div class="item-name">Capsicum (red and yellow)</div>
+          <div class="item-qty">4–6 capsicums</div>
+          <div class="item-why">Highest vitamin C of all vegetables. 200% RDI per capsicum. Collagen synthesis.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i23">
+        <div class="check" onclick="toggle('i23')"></div>
+        <div class="item-text">
+          <div class="item-name">Zucchini / cucumber</div>
+          <div class="item-qty">3–4 pieces</div>
+          <div class="item-why">Low calorie, high volume. Fills plate without blowing calories.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i24">
+        <div class="check" onclick="toggle('i24')"></div>
+        <div class="item-text">
+          <div class="item-name">Garlic (fresh)</div>
+          <div class="item-qty">1 bulb</div>
+          <div class="item-why">Allicin — anti-bacterial, anti-inflammatory, mild testosterone support in studies.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i25">
+        <div class="check" onclick="toggle('i25')"></div>
+        <div class="item-text">
+          <div class="item-name">Mixed salad leaves</div>
+          <div class="item-qty">200g bag</div>
+          <div class="item-why">Fast dinner side. Vitamins A, C, K. Zero prep.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Healthy fats</p>
+  <div class="shop-grid">
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#EEEDFE">🥑</div>
+        <h3>Fats &amp; Oils</h3>
+      </div>
+      <div class="shop-item" id="i26">
+        <div class="check" onclick="toggle('i26')"></div>
+        <div class="item-text">
+          <div class="item-name">Avocados</div>
+          <div class="item-qty">4–6 avocados</div>
+          <div class="item-why">Oleic acid (same as olive oil), potassium (more than banana), folate.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i27">
+        <div class="check" onclick="toggle('i27')"></div>
+        <div class="item-text">
+          <div class="item-name">Extra virgin olive oil</div>
+          <div class="item-qty">500ml bottle</div>
+          <div class="item-why">Polyphenols, monounsaturated fat, anti-inflammatory. Best cooking oil for body recomp.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i28">
+        <div class="check" onclick="toggle('i28')"></div>
+        <div class="item-text">
+          <div class="item-name">Mixed nuts (raw, unsalted)</div>
+          <div class="item-qty">300g bag (almonds, walnuts, cashews)</div>
+          <div class="item-why">Walnuts highest ALA omega-3. Almonds magnesium + vitamin E. 30g = 1 serve.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i29">
+        <div class="check" onclick="toggle('i29')"></div>
+        <div class="item-text">
+          <div class="item-name">Pumpkin seeds (pepitas)</div>
+          <div class="item-qty">200g bag</div>
+          <div class="item-why">Highest magnesium food source. Also zinc, iron. Sprinkle on oats or yoghurt.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i30">
+        <div class="check" onclick="toggle('i30')"></div>
+        <div class="item-text">
+          <div class="item-name">Chia seeds</div>
+          <div class="item-qty">300g bag</div>
+          <div class="item-why">ALA omega-3, soluble fibre for gut health. Add to oats or yoghurt bowls.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Pantry staples</p>
+  <div class="shop-grid">
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#F1EFE8">🧂</div>
+        <h3>Pantry</h3>
+      </div>
+      <div class="shop-item" id="i31">
+        <div class="check" onclick="toggle('i31')"></div>
+        <div class="item-text">
+          <div class="item-name">Honey (raw)</div>
+          <div class="item-qty">500g jar</div>
+          <div class="item-why">Pre-workout fast carb. Antimicrobial properties. Beats processed sugar.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i32">
+        <div class="check" onclick="toggle('i32')"></div>
+        <div class="item-text">
+          <div class="item-name">Canned chickpeas or lentils</div>
+          <div class="item-qty">2 x 400g tins</div>
+          <div class="item-why">Plant protein, fibre, iron, zinc. Easy add to salads or stir-fries.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i33">
+        <div class="check" onclick="toggle('i33')"></div>
+        <div class="item-text">
+          <div class="item-name">Turmeric powder</div>
+          <div class="item-qty">Small jar</div>
+          <div class="item-why">Curcumin is a potent COX-2 inhibitor — same anti-inflammatory pathway as ibuprofen. Add to rice, eggs, smoothies + black pepper to activate.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i34">
+        <div class="check" onclick="toggle('i34')"></div>
+        <div class="item-text">
+          <div class="item-name">Soy sauce (low sodium) or tamari</div>
+          <div class="item-qty">250ml bottle</div>
+          <div class="item-why">Flavour without calories. Makes bland chicken and rice actually edible.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i35">
+        <div class="check" onclick="toggle('i35')"></div>
+        <div class="item-text">
+          <div class="item-name">Dark chocolate (85%+)</div>
+          <div class="item-qty">100g bar</div>
+          <div class="item-why">Magnesium, flavanoids (cardiovascular), legitimate treat without wrecking macros. 2–3 squares = 50 cal.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-card-header">
+        <div class="shop-icon" style="background:#E6F1FB">💊</div>
+        <h3>Supplements (restock as needed)</h3>
+      </div>
+      <div class="shop-item" id="i36">
+        <div class="check" onclick="toggle('i36')"></div>
+        <div class="item-text">
+          <div class="item-name">Whey protein isolate</div>
+          <div class="item-qty">1kg tub &bull; ~28 serves</div>
+          <div class="item-why">Essential for hitting 200g protein daily without excess calories from food</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i37">
+        <div class="check" onclick="toggle('i37')"></div>
+        <div class="item-text">
+          <div class="item-name">Creatine monohydrate (unflavoured)</div>
+          <div class="item-qty">500g tub &bull; 100 serves</div>
+          <div class="item-why">Non-negotiable performance supplement. 5g daily.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i38">
+        <div class="check" onclick="toggle('i38')"></div>
+        <div class="item-text">
+          <div class="item-name">Fish oil capsules (high EPA/DHA)</div>
+          <div class="item-qty">90-count bottle</div>
+          <div class="item-why">Anti-inflammatory during back recovery. Check label: 600mg+ EPA/DHA per serve.</div>
+        </div>
+      </div>
+      <div class="shop-item" id="i39">
+        <div class="check" onclick="toggle('i39')"></div>
+        <div class="item-text">
+          <div class="item-name">Magnesium glycinate</div>
+          <div class="item-qty">60–90 tablet bottle</div>
+          <div class="item-why">Sleep quality, recovery, muscle function. 400mg before bed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong>Meal prep tip — Sunday and Wednesday:</strong> Cook 1kg of rice, 800g chicken breast, and roast a tray of sweet potato and veg in one go. Portion into containers. Having 4–5 meals ready to go eliminates decision fatigue and stops you reaching for garbage food when you're tired after work. This single habit accounts for about 80% of nutritional success.
+  </div>
+
+  <div class="info-box">
+    <strong>Budget hack:</strong> Buy chicken thighs instead of breast sometimes — 30% cheaper, slightly higher fat but still high protein, more flavourful. Frozen fish is nutritionally identical to fresh. Frozen veg (broccoli, spinach) retains micronutrients as well or better than "fresh" that's been sitting in a truck for 4 days.
+  </div>
+
+</div>
+
+<div class="footer">
+  Grocery List — Block 1 &bull; Eli Hathaway &bull; 2026<br>
+  Pair with Nutrition Guide and Block 1 Training Program
+</div>
+
+<script>
+function toggle(id) {
+  const item = document.getElementById(id);
+  const check = item.querySelector('.check');
+  const name = item.querySelector('.item-name');
+  check.classList.toggle('checked');
+  name.classList.toggle('done');
+  updateProgress();
+}
+function updateProgress() {
+  const total = document.querySelectorAll('.check').length;
+  const checked = document.querySelectorAll('.check.checked').length;
+  const pct = total > 0 ? Math.round(checked / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = checked + ' of ' + total + ' items checked — ' + pct + '%';
+}
+updateProgress();
+</script>
+
+</body>
+</html>

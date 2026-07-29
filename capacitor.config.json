@@ -1,0 +1,29 @@
+{
+  "appId": "com.fitos.app",
+  "appName": "FitOS",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "scheme": "FitOS",
+    "backgroundColor": "#0d0d0d"
+  },
+  "android": {
+    "backgroundColor": "#0d0d0d"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0d0d0d",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "Haptics": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FitOS Animation Preview</title>
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0d0d;--s1:#1a1a1a;--s2:#242424;--s3:#2e2e2e;
+  --border:#333;--text:#f0efed;--muted:#888;
+  --green:#1D9E75;--blue:#4a90d9;--amber:#f0a030;--red:#e05050;--purple:#9b59b6;
+  --tab-h:64px;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;overscroll-behavior:none}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--tab-h) + 8px)}
+
+/* ── TAB BAR ── */
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:8px 4px}
+.tab-item.active{color:var(--green)}
+.tab-item svg{width:22px;height:22px}
+.tab-label{font-size:0.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── TOP BAR ── */
+.top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-title{font-size:1.1rem;font-weight:700}
+.top-sub{font-size:0.72rem;color:var(--muted);margin-top:1px}
+
+/* ── PROGRESS BAR ── */
+.prog-wrap{height:3px;background:var(--s3);position:sticky;top:49px;z-index:99}
+.prog-fill{height:100%;background:var(--green);transition:width .4s ease}
+
+/* ── BUTTONS ── */
+.btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;transition:transform .1s}
+.btn:active{transform:scale(0.97)}
+.btn-green{background:var(--green);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:8px 14px;font-size:0.82rem;border-radius:8px;display:inline-block;width:auto}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+
+/* ── INTAKE WIZARD OVERLAY ── */
+.wizard-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;padding:24px 20px 40px}
+.wizard-logo{font-size:2.2rem;font-weight:900;letter-spacing:-.04em;margin-bottom:4px}
+.wizard-logo span{color:var(--green)}
+.wizard-step{margin-bottom:24px}
+.wizard-label{font-size:0.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.wizard-input{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-size:1rem;width:100%;-webkit-appearance:none}
+.wizard-input:focus{outline:none;border-color:var(--green)}
+.wizard-select{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-size:1rem;width:100%;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:0.85rem;cursor:pointer;transition:all .15s}
+.chip.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.wizard-progress{display:flex;gap:6px;margin-bottom:28px}
+.wiz-dot{height:3px;flex:1;border-radius:2px;background:var(--s3);transition:background .3s}
+.wiz-dot.done{background:var(--green)}
+
+/* ── TODAY TAB ── */
+.today-hero{background:linear-gradient(135deg,#1a2a1a 0%,#0d1a12 100%);border-bottom:1px solid var(--border);padding:20px 16px}
+.today-greeting{font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.today-name{font-size:1.8rem;font-weight:800;line-height:1.1;margin:4px 0 2px}
+.today-sub{font-size:0.85rem;color:var(--muted)}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px}
+.stat-val{font-size:1.6rem;font-weight:700;line-height:1}
+.stat-lbl{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.stat-bar{height:4px;background:var(--s3);border-radius:2px;margin-top:8px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.today-section{padding:0 16px 12px}
+
+/* ── STREAK ── */
+.streak-card{background:linear-gradient(135deg,#1a1200 0%,#1a1a1a 100%);border:1px solid var(--amber)30;border-radius:14px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
+.streak-num{font-size:2.8rem;font-weight:900;color:var(--amber);line-height:1}
+.streak-info{flex:1}
+.streak-title{font-weight:700;font-size:1rem}
+.streak-sub{font-size:0.78rem;color:var(--muted);margin-top:2px}
+
+/* ── STEP COUNTER ── */
+.step-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.step-arc{width:100px;height:60px;overflow:hidden;margin:0 auto 8px}
+.step-progress-wrap{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin:8px 0}
+.step-progress-fill{height:100%;border-radius:4px;background:var(--blue);transition:width .6s ease}
+.step-manual-row{display:flex;gap:8px;margin-top:10px}
+.step-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-weight:600;cursor:pointer}
+
+/* ── HABITS ── */
+.habit-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.habit-item.done{background:#1D9E7510;border-color:#1D9E7530}
+.habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
+.habit-item.done .habit-check{background:var(--green);border-color:var(--green)}
+.habit-info{flex:1}
+.habit-name{font-size:0.92rem;font-weight:600}
+.habit-detail{font-size:0.75rem;color:var(--muted);margin-top:2px}
+.water-track{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.water-drop{width:36px;height:36px;border-radius:50%;border:2px solid var(--blue)50;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:all .2s}
+.water-drop.filled{background:var(--blue)30;border-color:var(--blue)}
+
+/* ── CONSEQUENCE CARD ── */
+.consequence-card{background:linear-gradient(135deg,#1a0d0d 0%,#1a1a1a 100%);border:1px solid var(--red)40;border-radius:14px;padding:16px;margin-bottom:12px}
+.consequence-msg{font-size:0.95rem;line-height:1.7;color:#ddd}
+.consequence-msg strong{color:var(--amber)}
+
+/* ── TRAIN TAB (GYM TRACKER) ── */
+.day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
+.day-btn:active{transform:scale(0.97)}
+.day-btn.selected{border-color:var(--green);background:#1D9E7520}
+.day-letter{font-size:1.6rem;font-weight:700;line-height:1}
+.day-name{font-size:0.82rem;margin-top:4px;color:var(--muted)}
+.day-tag{font-size:0.68rem;margin-top:6px}
+.week-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.week-pill{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:0.82rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+.week-pill.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.hist-item:last-child{border:none}
+.ex-header{padding:16px;border-bottom:1px solid var(--border)}
+.ex-type-badge{display:inline-block;font-size:0.7rem;padding:3px 9px;border-radius:20px;font-weight:600;margin-bottom:8px}
+.badge-compound{background:#1a1a1a;color:#ccc;border:1px solid #444}
+.badge-iso{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.badge-rehab{background:#1D9E7520;color:var(--green);border:1px solid #1D9E7550}
+.ex-name{font-size:1.3rem;font-weight:700;line-height:1.2;margin-bottom:6px}
+.ex-target{font-size:0.88rem;color:var(--muted)}
+.ex-target strong{color:var(--text)}
+.rir-badge{display:inline-block;background:#1D9E7520;color:var(--green);font-size:0.75rem;padding:3px 9px;border-radius:20px;margin-left:8px;font-weight:600}
+.demo-area{background:var(--s2);border-bottom:1px solid var(--border)}
+.demo-svg-wrap{display:flex;align-items:center;justify-content:center;height:200px;background:linear-gradient(135deg,#111 0%,#1a1a1a 100%)}
+.demo-svg-wrap svg{filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+.muscle-tags-bar{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;background:var(--s2)}
+.muscle-tag{font-size:0.68rem;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)}
+.watch-demo-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;background:#cc0000;color:#fff;font-weight:700;font-size:0.92rem;text-decoration:none;transition:opacity .15s}
+.watch-demo-btn:active{opacity:.8}
+.watch-demo-icon{background:#fff;border-radius:4px;width:28px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cue-box{margin:12px 16px;background:var(--s2);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.82rem;color:#ccc;line-height:1.6}
+.set-logger{padding:16px}
+.set-row-header{display:grid;grid-template-columns:34px 1fr 1fr 70px 36px;gap:6px;margin-bottom:8px;font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.set-row{display:grid;grid-template-columns:34px 1fr 1fr 70px 36px;gap:6px;align-items:center;margin-bottom:8px}
+.set-num{width:30px;height:30px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;color:var(--muted)}
+.set-num.done{background:var(--green);color:#fff}
+.set-input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 6px;color:var(--text);font-size:1rem;font-weight:600;text-align:center;width:100%;-webkit-appearance:none}
+.set-input:focus{outline:none;border-color:var(--green)}
+.set-input.editing{border-color:var(--amber);background:#f0a03015}
+.log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.78rem;font-weight:600;padding:7px 4px;cursor:pointer;width:100%;transition:all .15s}
+.log-btn:active{transform:scale(0.95)}
+.log-btn.done-btn{background:var(--s3);color:var(--muted)}
+.edit-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.75rem;padding:0;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.logged-set{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1D9E7515;border:1px solid #1D9E7530;border-radius:8px;margin-bottom:6px;font-size:0.85rem}
+.logged-set .sv{font-weight:600;color:var(--green)}
+.prev-box{margin:0 16px 12px;background:var(--s2);border-radius:10px;padding:10px 12px}
+.prev-title{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.prev-set{font-size:0.82rem;color:#aaa}
+.injury-alert{margin:10px 16px;background:#e0505015;border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:8px 12px;font-size:0.78rem;color:#f08080}
+.upcoming-ex{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:.5}
+.upcoming-ex:last-child{border:none}
+.ex-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.bottom-actions{position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px}
+.rest-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - var(--tab-h));padding:24px;text-align:center}
+.rest-circle{width:190px;height:190px;border-radius:50%;border:3px solid var(--s3);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:20px auto;position:relative}
+.rest-circle svg{position:absolute;top:-2px;left:-2px;width:198px;height:198px;transform:rotate(-90deg)}
+.rest-time{font-size:3.2rem;font-weight:700;line-height:1}
+.rest-label{font-size:0.8rem;color:var(--muted);margin-top:4px}
+.next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
+.dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
+.phase-screen{padding:16px}
+.check-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.check-item.checked{background:#1D9E7512;border-color:#1D9E7540}
+.check-item:active{transform:scale(0.98)}
+.check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all .2s}
+.check-item.checked .check-circle{background:var(--green);border-color:var(--green)}
+.check-info{flex:1}
+.check-name{font-size:0.9rem;font-weight:600;margin-bottom:2px}
+.check-item.checked .check-name{color:var(--muted);text-decoration:line-through}
+.check-detail{font-size:0.75rem;color:var(--muted);line-height:1.4}
+.injury-rehab-note{background:#e0505015;border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.78rem;color:#f08080;margin-bottom:14px;line-height:1.6}
+.phase-section{margin-bottom:20px}
+.phase-section-title{font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+
+/* ── EAT TAB ── */
+.macro-bar-wrap{margin-bottom:10px}
+.macro-label{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px}
+.macro-bar{height:8px;background:var(--s3);border-radius:4px;overflow:hidden}
+.macro-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.meal-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.meal-header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.meal-title{font-weight:600;font-size:0.95rem}
+.meal-cals{font-size:0.78rem;color:var(--muted)}
+.meal-body{padding:0 16px 12px;border-top:1px solid var(--border)}
+.food-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}
+.food-row:last-child{border:none}
+.food-macros{font-size:0.72rem;color:var(--muted)}
+
+/* ── SHOP TAB ── */
+.shop-category{margin-bottom:18px}
+.shop-cat-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0 16px 8px}
+.shop-item{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.shop-item:last-child{border:none}
+.shop-item:active{background:var(--s2)}
+.shop-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;transition:all .2s}
+.shop-item.ticked .shop-check{background:var(--green);border-color:var(--green);color:#fff}
+.shop-item.ticked .shop-name{text-decoration:line-through;color:var(--muted)}
+.shop-name{flex:1;font-size:0.9rem}
+.shop-detail{font-size:0.72rem;color:var(--muted)}
+.woolies-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 32px);margin:0 16px 16px;padding:14px;background:#00833e;border-radius:12px;color:#fff;font-weight:700;font-size:0.95rem;text-decoration:none;border:none;cursor:pointer}
+.woolies-btn:active{opacity:.85}
+
+/* ── SETTINGS OVERLAY ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.overlay-card{background:var(--s1);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px;border-top:1px solid var(--border);max-height:80vh;overflow-y:auto}
+
+/* ── ANIMATIONS ── */
+@keyframes bench-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(-22px)}55%{transform:translateY(-22px)}}
+@keyframes squat-rep{0%,100%{transform:scaleY(1) translateY(0)}45%{transform:scaleY(.72) translateY(16px)}55%{transform:scaleY(.72) translateY(16px)}}
+@keyframes pullup-rep{0%,100%{transform:translateY(12px)}45%{transform:translateY(-6px)}55%{transform:translateY(-6px)}}
+@keyframes press-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(-18px)}55%{transform:translateY(-18px)}}
+@keyframes curl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-80deg)}55%{transform:rotate(-80deg)}}
+@keyframes lateral-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-50deg)}55%{transform:rotate(-50deg)}}
+@keyframes lateral-rep-r{0%,100%{transform:rotate(0deg)}45%{transform:rotate(50deg)}55%{transform:rotate(50deg)}}
+@keyframes hinge-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-28deg)}55%{transform:rotate(-28deg)}}
+@keyframes legcurl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(70deg)}55%{transform:rotate(70deg)}}
+@keyframes pushdown-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(55deg)}55%{transform:rotate(55deg)}}
+@keyframes row-rep{0%,100%{transform:translateX(0)}45%{transform:translateX(-16px)}55%{transform:translateX(-16px)}}
+@keyframes deadbug-arm{0%,100%{transform:rotate(0deg)}45%{transform:rotate(70deg)}55%{transform:rotate(70deg)}}
+@keyframes deadbug-leg{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-70deg)}55%{transform:rotate(-70deg)}}
+.anim-bench-bar{animation:bench-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 90%}
+.anim-squat-body{animation:squat-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 55%}
+.anim-pull-body{animation:pullup-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 15%}
+.anim-press-bar{animation:press-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 90%}
+.anim-curl-arm{animation:curl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 8%}
+.anim-lat-l{animation:lateral-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 8%}
+.anim-lat-r{animation:lateral-rep-r 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 8%}
+.anim-hinge{animation:hinge-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 55%}
+.anim-legcurl{animation:legcurl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-pushdown{animation:pushdown-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-row{animation:row-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 50%}
+.anim-db-arm{animation:deadbug-arm 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.anim-db-leg{animation:deadbug-leg 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+@keyframes hip-thrust-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(-22px)}55%{transform:translateY(-22px)}}
+@keyframes spress-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(-22px)}55%{transform:translateY(-22px)}}
+@keyframes split-sq-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(22px)}55%{transform:translateY(22px)}}
+@keyframes oe-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(65deg)}55%{transform:rotate(65deg)}}
+@keyframes hammer-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-76deg)}55%{transform:rotate(-76deg)}}
+@keyframes fpull-rep{0%,100%{transform:translateX(0)}45%{transform:translateX(-18px)}55%{transform:translateX(-18px)}}
+@keyframes pthr-rep{0%,100%{transform:rotate(-32deg)}45%{transform:rotate(8deg)}55%{transform:rotate(8deg)}}
+@keyframes srdl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-48deg)}55%{transform:rotate(-48deg)}}
+@keyframes crow-rep{0%,100%{transform:translateX(0)}45%{transform:translateX(-16px)}55%{transform:translateX(-16px)}}
+@keyframes lcurl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-82deg)}55%{transform:rotate(-82deg)}}
+@keyframes lpress-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-40deg)}55%{transform:rotate(-40deg)}}
+@keyframes lunge-rep{0%,100%{transform:translateY(0)}45%{transform:translateY(22px)}55%{transform:translateY(22px)}}
+@keyframes carry-walk{0%{transform:translateX(0) rotate(-1deg)}50%{transform:translateX(5px) rotate(1deg)}100%{transform:translateX(0) rotate(-1deg)}}
+@keyframes run-bob{0%,100%{transform:translateY(0)}25%{transform:translateY(-10px)}75%{transform:translateY(-5px)}}
+@keyframes mob-stretch{0%,100%{transform:rotate(0deg)}50%{transform:rotate(15deg)}}
+@keyframes yoga-sway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-9deg)}}
+@keyframes pilates-push{0%,100%{transform:translateX(0)}45%{transform:translateX(-24px)}55%{transform:translateX(-24px)}}
+@keyframes bdog-arm{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-55deg)}55%{transform:rotate(-55deg)}}
+@keyframes bdog-leg{0%,100%{transform:rotate(0deg)}45%{transform:rotate(48deg)}55%{transform:rotate(48deg)}}
+.anim-hip-thrust{animation:hip-thrust-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+.anim-spress{animation:spress-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 90%}
+.anim-split-body{animation:split-sq-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.anim-oe{animation:oe-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-hcurl{animation:hammer-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-fpull{animation:fpull-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 50%}
+.anim-pthr{animation:pthr-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 55%}
+.anim-srdl{animation:srdl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:40% 55%}
+.anim-crow{animation:crow-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 50%}
+.anim-lcurl{animation:lcurl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-lpress{animation:lpress-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 100%}
+.anim-lunge-body{animation:lunge-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.anim-carry{animation:carry-walk 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.anim-run{animation:run-bob 0.75s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.anim-mob{animation:mob-stretch 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.anim-yoga{animation:yoga-sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 40%}
+.anim-pilates{animation:pilates-push 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 50%}
+.anim-bdog-arm{animation:bdog-arm 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.anim-bdog-leg{animation:bdog-leg 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+
+
+/* ── WIZARD EXTRAS ── */
+.wizard-textarea{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-size:0.95rem;width:100%;min-height:100px;resize:none;font-family:inherit;line-height:1.6}
+.wizard-textarea:focus{outline:none;border-color:var(--green)}
+.range-wrap{display:flex;align-items:center;gap:10px;margin-top:6px}
+.range-input{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--s3);outline:none}
+.range-input::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--green);cursor:pointer}
+.photo-upload-row{display:flex;gap:8px;margin-top:8px}
+.photo-slot{flex:1;aspect-ratio:3/4;border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;background:var(--s2);font-size:0.72rem;color:var(--muted);gap:4px;text-align:center;padding:6px}
+.photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-slot-label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;pointer-events:none}
+
+/* ── WEEKLY CHECK-IN ── */
+.checkin-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;padding:0 0 40px}
+.checkin-header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.checkin-section{padding:20px 16px 0}
+.checkin-section-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.checkin-section-title::after{content:'';flex:1;height:1px;background:var(--s3)}
+.rating-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.rating-btn{flex:1;min-width:30px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.rating-btn.sel{background:var(--green);border-color:var(--green);color:#fff}
+.rating-btn.sel-amber{background:var(--amber);border-color:var(--amber);color:#000}
+.rating-btn.sel-red{background:var(--red);border-color:var(--red);color:#fff}
+.adherence-row{display:flex;gap:8px;margin-top:6px}
+.adherence-btn{flex:1;padding:10px 6px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;text-align:center;transition:all .15s}
+.adherence-btn.sel{background:var(--green);border-color:var(--green);color:#fff}
+.checkin-dispatch{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.75rem;color:#7fff9a;line-height:1.8;white-space:pre-wrap;word-break:break-word;margin:0 16px 12px;max-height:260px;overflow-y:auto}
+@keyframes gleam-red{0%,100%{box-shadow:0 0 0 0 rgba(224,80,80,0)}50%{box-shadow:0 0 60px 20px rgba(224,80,80,.35)}}
+@keyframes gleam-green{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,0)}50%{box-shadow:0 0 60px 20px rgba(29,158,117,.35)}}
+@keyframes scan-line{0%{top:0}100%{top:100%}}
+.gleam-red{animation:gleam-red 1.8s ease-in-out infinite}
+.gleam-green{animation:gleam-green 1.8s ease-in-out infinite}
+
+body{background:#1a1a2e;font-family:system-ui,sans-serif;padding:20px;margin:0;}
+h1{color:#00d4ff;text-align:center;margin-bottom:24px;font-size:22px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;max-width:1200px;margin:0 auto;}
+.card{background:#22223b;border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;}
+.anim-box{background:#1a1a2e;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;min-height:140px;}
+.anim-box svg{display:block;}
+.label{color:#ccc;font-size:13px;margin-top:10px;text-align:center;}
+</style>
+</head>
+<body>
+<h1>FitOS Exercise Animations — Stroke Build</h1>
+<div class="grid">
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 130" width="160" height="130" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<rect x="20" y="70" width="100" height="12" rx="5" fill="#444"/>
+<rect x="26" y="82" width="8" height="38" rx="3" fill="#444"/>
+<rect x="106" y="82" width="8" height="38" rx="3" fill="#444"/>
+<circle cx="126" cy="68" r="13" fill="#f5c4a2"/>
+<ellipse cx="126" cy="56" rx="10" ry="6" fill="#5a3c28"/>
+<line x1="126" y1="81" x2="95" y2="84" stroke="#7a4f3a" stroke-width="18" stroke-linecap="round"/>
+<line x1="95" y1="82" x2="75" y2="82" stroke="#7a4f3a" stroke-width="16" stroke-linecap="round"/>
+<line x1="75" y1="82" x2="60" y2="96" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="60" y1="96" x2="58" y2="120" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="46" y1="120" x2="70" y2="120" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<g class="anim-bench-bar">
+<line x1="90" y1="80" x2="84" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="110" y1="78" x2="116" y2="44" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="10" y1="40" x2="150" y2="40" stroke="#888" stroke-width="7" stroke-linecap="round"/>
+<ellipse cx="10" cy="40" rx="8" ry="14" fill="#555"/>
+<ellipse cx="150" cy="40" rx="8" ry="14" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Bench Press</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 160" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="150" x2="150" y2="150" stroke="#333" stroke-width="6"/>
+<g class="anim-squat-body">
+<line x1="12" y1="48" x2="148" y2="48" stroke="#888" stroke-width="7"/>
+<ellipse cx="12" cy="48" rx="9" ry="16" fill="#555"/>
+<ellipse cx="148" cy="48" rx="9" ry="16" fill="#555"/>
+<circle cx="80" cy="26" r="13" fill="#f5c4a2"/>
+<ellipse cx="80" cy="14" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="80" y1="38" x2="80" y2="80" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="52" y1="52" x2="30" y2="48" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="108" y1="52" x2="130" y2="48" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="62" y1="80" x2="44" y2="116" stroke="#2a4e6d" stroke-width="15" stroke-linecap="round"/>
+<line x1="44" y1="116" x2="42" y2="148" stroke="#f5c4a2" stroke-width="13" stroke-linecap="round"/>
+<line x1="98" y1="80" x2="116" y2="116" stroke="#2a4e6d" stroke-width="15" stroke-linecap="round"/>
+<line x1="116" y1="116" x2="118" y2="148" stroke="#f5c4a2" stroke-width="13" stroke-linecap="round"/>
+<line x1="28" y1="148" x2="56" y2="148" stroke="#1a2a3a" stroke-width="10" stroke-linecap="round"/>
+<line x1="104" y1="148" x2="132" y2="148" stroke="#1a2a3a" stroke-width="10" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Squat</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 160" width="140" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="4" width="120" height="12" rx="5" fill="#444"/>
+<line x1="50" y1="16" x2="56" y2="28" stroke="#888" stroke-width="6"/>
+<line x1="90" y1="16" x2="84" y2="28" stroke="#888" stroke-width="6"/>
+<g class="anim-pull-body">
+<line x1="56" y1="28" x2="50" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="84" y1="28" x2="90" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<circle cx="70" cy="40" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="28" rx="11" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="52" x2="70" y2="94" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="55" y1="96" x2="36" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="36" y1="118" x2="34" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="85" y1="96" x2="104" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="104" y1="118" x2="106" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Pull-Ups</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 160" width="140" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="154" x2="120" y2="154" stroke="#333" stroke-width="6"/>
+<circle cx="70" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="31" x2="70" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="54" y1="80" x2="36" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="80" x2="104" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="82" x2="46" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="120" x2="44" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="86" y1="82" x2="94" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="94" y1="120" x2="96" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="30" y1="152" x2="58" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="82" y1="152" x2="110" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="36" y1="80" x2="30" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-curl-arm">
+<line x1="30" y1="46" x2="16" y2="26" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="6" y1="26" x2="32" y2="26" stroke="#888" stroke-width="7"/>
+<ellipse cx="4" cy="26" rx="6" ry="10" fill="#555"/>
+<ellipse cx="34" cy="26" rx="6" ry="10" fill="#555"/>
+</g>
+<line x1="104" y1="80" x2="110" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-curl-arm" style="animation-delay:1.2s">
+<line x1="110" y1="46" x2="124" y2="26" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Bicep Curl</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="150" x2="140" y2="150" stroke="#333" stroke-width="6"/>
+<circle cx="80" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="80" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="80" y1="31" x2="80" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="62" y1="80" x2="44" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="98" y1="80" x2="116" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="62" y1="82" x2="54" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="54" y1="118" x2="52" y2="148" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="98" y1="82" x2="106" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="106" y1="118" x2="108" y2="148" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="38" y1="148" x2="66" y2="148" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="94" y1="148" x2="122" y2="148" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<g class="anim-lat-l">
+<line x1="62" y1="42" x2="28" y2="58" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="28" y1="58" x2="20" y2="74" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<ellipse cx="16" cy="74" rx="7" ry="5" fill="#555"/>
+</g>
+<g class="anim-lat-r">
+<line x1="98" y1="42" x2="132" y2="58" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="132" y1="58" x2="140" y2="74" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<ellipse cx="144" cy="74" rx="7" ry="5" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Lateral Raise</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 150" width="160" height="150" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="144" x2="150" y2="144" stroke="#333" stroke-width="6"/>
+<rect x="94" y="102" width="50" height="16" rx="5" fill="#444"/>
+<rect x="100" y="118" width="10" height="22" rx="3" fill="#444"/>
+<rect x="128" y="118" width="10" height="22" rx="3" fill="#444"/>
+<circle cx="38" cy="62" r="13" fill="#f5c4a2"/>
+<ellipse cx="38" cy="50" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="38" y1="75" x2="80" y2="92" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="62" y1="76" x2="58" y2="60" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="58" y1="60" x2="52" y2="44" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="80" y1="94" x2="90" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="90" y1="118" x2="92" y2="142" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="100" y1="114" x2="110" y2="142" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="78" y1="142" x2="104" y2="142" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<g class="anim-row">
+<line x1="62" y1="90" x2="22" y2="86" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="22" y1="86" x2="8" y2="80" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="4" y1="72" x2="4" y2="106" stroke="#888" stroke-width="7"/>
+<ellipse cx="4" cy="72" rx="6" ry="10" fill="#555"/>
+<ellipse cx="4" cy="106" rx="6" ry="10" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Cable Row</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 160" width="140" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<rect x="30" y="136" width="80" height="14" rx="4" fill="#444"/>
+<line x1="8" y1="150" x2="132" y2="150" stroke="#333" stroke-width="7"/>
+<line x1="14" y1="40" x2="126" y2="40" stroke="#888" stroke-width="7"/>
+<ellipse cx="10" cy="40" rx="9" ry="15" fill="#555"/>
+<ellipse cx="130" cy="40" rx="9" ry="15" fill="#555"/>
+<circle cx="70" cy="20" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="8" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="33" x2="70" y2="76" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="42" y1="50" x2="28" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="98" y1="50" x2="112" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="54" y1="78" x2="36" y2="78" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="78" x2="104" y2="78" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="80" x2="46" y2="110" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="86" y1="80" x2="94" y2="110" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="110" x2="44" y2="136" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="94" y1="110" x2="96" y2="136" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="32" y1="136" x2="56" y2="136" stroke="#1a2a3a" stroke-width="10" style="animation:squat-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:44px 136px"/>
+<line x1="84" y1="136" x2="108" y2="136" stroke="#1a2a3a" stroke-width="10" style="animation:squat-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:96px 136px;animation-delay:.15s"/>
+</g></svg></div>
+    <div class="label">Calf Raise</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 145" width="160" height="145" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="138" x2="150" y2="138" stroke="#333" stroke-width="6"/>
+<rect x="16" y="36" width="110" height="16" rx="6" fill="#444"/>
+<rect x="22" y="52" width="10" height="38" rx="3" fill="#444"/>
+<rect x="114" y="52" width="10" height="38" rx="3" fill="#444"/>
+<circle cx="118" cy="30" r="13" fill="#f5c4a2"/>
+<ellipse cx="118" cy="18" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="106" y1="44" x2="96" y2="52" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-hip-thrust">
+<line x1="30" y1="74" x2="90" y2="68" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="50" y1="82" x2="36" y2="68" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="36" y1="68" x2="26" y2="50" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="26" y1="50" x2="14" y2="84" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="6" y1="136" x2="30" y2="136" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="80" y1="82" x2="96" y2="68" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="96" y1="68" x2="106" y2="50" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="106" y1="50" x2="118" y2="84" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="106" y1="136" x2="130" y2="136" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="6" y1="68" x2="150" y2="68" stroke="#888" stroke-width="7"/>
+<ellipse cx="4" cy="68" rx="7" ry="12" fill="#555"/>
+<ellipse cx="152" cy="68" rx="7" ry="12" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Hip Thrust</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 160" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="154" x2="140" y2="154" stroke="#333" stroke-width="6"/>
+<circle cx="80" cy="58" r="13" fill="#f5c4a2"/>
+<ellipse cx="80" cy="46" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="80" y1="71" x2="80" y2="116" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="62" y1="118" x2="44" y2="118" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="98" y1="118" x2="116" y2="118" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="62" y1="120" x2="56" y2="152" stroke="#f5c4a2" stroke-width="13" stroke-linecap="round"/>
+<line x1="98" y1="120" x2="104" y2="152" stroke="#f5c4a2" stroke-width="13" stroke-linecap="round"/>
+<line x1="42" y1="152" x2="70" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="90" y1="152" x2="118" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="63" y1="78" x2="48" y2="92" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="97" y1="78" x2="112" y2="92" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-spress">
+<line x1="48" y1="92" x2="34" y2="56" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="112" y1="92" x2="126" y2="56" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="14" y1="50" x2="146" y2="50" stroke="#888" stroke-width="7"/>
+<ellipse cx="10" cy="50" rx="8" ry="14" fill="#555"/>
+<ellipse cx="150" cy="50" rx="8" ry="14" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Shoulder Press</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 160" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="154" x2="150" y2="154" stroke="#333" stroke-width="6"/>
+<rect x="100" y="120" width="52" height="14" rx="4" fill="#444"/>
+<rect x="108" y="134" width="8" height="18" rx="3" fill="#444"/>
+<rect x="138" y="134" width="8" height="18" rx="3" fill="#444"/>
+<circle cx="70" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="31" x2="70" y2="76" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="44" y1="50" x2="28" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="96" y1="50" x2="112" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="10" y1="34" x2="130" y2="34" stroke="#888" stroke-width="7"/>
+<ellipse cx="6" cy="34" rx="8" ry="13" fill="#555"/>
+<ellipse cx="134" cy="34" rx="8" ry="13" fill="#555"/>
+<line x1="56" y1="78" x2="44" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<g class="anim-split-body">
+<line x1="44" y1="120" x2="40" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="26" y1="152" x2="54" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+<line x1="84" y1="78" x2="112" y2="106" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="112" y1="106" x2="120" y2="120" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="108" y1="152" x2="136" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g></svg></div>
+    <div class="label">Split Squat</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 128" width="160" height="128" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="6" y1="118" x2="154" y2="118" stroke="#444" stroke-width="8"/>
+<circle cx="22" cy="88" r="13" fill="#f5c4a2"/>
+<ellipse cx="22" cy="76" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="35" y1="88" x2="95" y2="84" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="95" y1="86" x2="108" y2="76" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="108" y1="76" x2="120" y2="72" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<g class="anim-db-arm">
+<line x1="52" y1="82" x2="50" y2="54" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="50" y1="54" x2="44" y2="30" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+</g>
+<g class="anim-db-arm" style="animation-delay:1.2s">
+<line x1="76" y1="82" x2="78" y2="54" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="78" y1="54" x2="84" y2="30" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+</g>
+<g class="anim-db-leg">
+<line x1="108" y1="76" x2="126" y2="96" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="126" y1="96" x2="144" y2="116" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="132" y1="116" x2="156" y2="116" stroke="#1a2a3a" stroke-width="8" stroke-linecap="round"/>
+</g>
+<g class="anim-db-leg" style="animation-delay:1.2s">
+<line x1="120" y1="72" x2="138" y2="90" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="138" y1="90" x2="154" y2="108" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Dead Bug</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 130" width="160" height="130" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="6" y1="122" x2="154" y2="122" stroke="#444" stroke-width="8"/>
+<circle cx="22" cy="76" r="12" fill="#f5c4a2"/>
+<ellipse cx="22" cy="64" rx="10" ry="6" fill="#5a3c28"/>
+<line x1="34" y1="76" x2="86" y2="72" stroke="#7a4f3a" stroke-width="18" stroke-linecap="round"/>
+<line x1="86" y1="72" x2="96" y2="64" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="50" y1="78" x2="48" y2="106" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="36" y1="106" x2="60" y2="106" stroke="#1a2a3a" stroke-width="8" stroke-linecap="round"/>
+<line x1="80" y1="78" x2="82" y2="106" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="70" y1="106" x2="94" y2="106" stroke="#1a2a3a" stroke-width="8" stroke-linecap="round"/>
+<g class="anim-bdog-arm">
+<line x1="34" y1="74" x2="8" y2="68" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="8" y1="68" x2="6" y2="54" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+</g>
+<g class="anim-bdog-leg">
+<line x1="96" y1="70" x2="124" y2="68" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="124" y1="68" x2="150" y2="68" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="140" y1="62" x2="154" y2="76" stroke="#1a2a3a" stroke-width="8" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Bird Dog</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 150" width="160" height="150" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="144" x2="150" y2="144" stroke="#333" stroke-width="6"/>
+<rect x="6" y="68" width="80" height="68" rx="8" fill="#444" opacity="0.4"/>
+<rect x="6" y="116" width="148" height="18" rx="5" fill="#444"/>
+<rect x="6" y="86" width="14" height="40" rx="4" fill="#444"/>
+<circle cx="28" cy="78" r="13" fill="#f5c4a2"/>
+<ellipse cx="28" cy="66" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="28" y1="91" x2="60" y2="110" stroke="#7a4f3a" stroke-width="18" stroke-linecap="round"/>
+<line x1="44" y1="112" x2="36" y2="116" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="22" y1="90" x2="20" y2="116" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-lpress">
+<line x1="60" y1="106" x2="100" y2="72" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="100" y1="72" x2="134" y2="50" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<rect x="128" y="16" width="24" height="56" rx="5" fill="#444"/>
+<line x1="118" y1="116" x2="148" y2="116" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Leg Press</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 165" width="140" height="165" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="158" x2="120" y2="158" stroke="#333" stroke-width="6"/>
+<circle cx="70" cy="20" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="8" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="33" x2="70" y2="80" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="54" y1="82" x2="36" y2="82" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="82" x2="104" y2="82" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="84" x2="46" y2="122" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="122" x2="44" y2="156" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="86" y1="84" x2="94" y2="122" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="94" y1="122" x2="96" y2="156" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="30" y1="156" x2="58" y2="156" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="82" y1="156" x2="110" y2="156" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="58" y1="42" x2="54" y2="28" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="82" y1="42" x2="86" y2="28" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-oe">
+<line x1="54" y1="28" x2="56" y2="60" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="86" y1="28" x2="84" y2="60" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="42" y1="10" x2="98" y2="10" stroke="#888" stroke-width="7"/>
+<ellipse cx="40" cy="10" rx="7" ry="11" fill="#555"/>
+<ellipse cx="100" cy="10" rx="7" ry="11" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Overhead Ext</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 160" width="140" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="154" x2="120" y2="154" stroke="#333" stroke-width="6"/>
+<circle cx="70" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="31" x2="70" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="54" y1="80" x2="36" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="80" x2="104" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="82" x2="46" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="120" x2="44" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="86" y1="82" x2="94" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="94" y1="120" x2="96" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="30" y1="152" x2="58" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="82" y1="152" x2="110" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="104" y1="80" x2="110" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-hcurl">
+<line x1="110" y1="46" x2="118" y2="18" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<rect x="112" y="4" width="8" height="28" rx="3" fill="#444"/>
+<ellipse cx="116" cy="2" rx="9" ry="5" fill="#555"/>
+<ellipse cx="116" cy="34" rx="9" ry="5" fill="#555"/>
+</g>
+<line x1="36" y1="80" x2="30" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-hcurl" style="animation-delay:.6s">
+<line x1="30" y1="46" x2="22" y2="18" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Hammer Curl</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="20" y1="148" x2="140" y2="148" stroke="#333" stroke-width="6"/>
+<rect x="138" y="38" width="14" height="78" rx="4" fill="#444"/>
+<circle cx="138" cy="64" r="12" fill="#444" stroke="#444" stroke-width="2"/>
+<circle cx="70" cy="26" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="14" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="39" x2="70" y2="86" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="54" y1="88" x2="36" y2="88" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="88" x2="104" y2="88" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="90" x2="46" y2="126" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="126" x2="44" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="86" y1="90" x2="94" y2="126" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="94" y1="126" x2="96" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="30" y1="146" x2="58" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="82" y1="146" x2="110" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<g class="anim-fpull">
+<line x1="54" y1="46" x2="26" y2="34" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="26" y1="34" x2="8" y2="28" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="86" y1="46" x2="114" y2="34" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="114" y1="34" x2="132" y2="30" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="8" y1="28" x2="132" y2="30" stroke="#888" stroke-width="4" opacity="0.5"/>
+</g>
+</g></svg></div>
+    <div class="label">Face Pull</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="148" x2="150" y2="148" stroke="#333" stroke-width="6"/>
+<rect x="134" y="88" width="18" height="56" rx="4" fill="#444"/>
+<circle cx="140" cy="104" r="10" fill="#444" stroke="#444" stroke-width="2"/>
+<circle cx="46" cy="44" r="13" fill="#f5c4a2"/>
+<ellipse cx="46" cy="32" rx="11" ry="6" fill="#5a3c28"/>
+<g class="anim-pthr">
+<line x1="46" y1="57" x2="70" y2="86" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="62" y1="60" x2="36" y2="58" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="36" y1="58" x2="10" y2="56" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="10" y1="56" x2="134" y2="106" stroke="#888" stroke-width="4" opacity="0.6"/>
+<line x1="70" y1="88" x2="60" y2="124" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="60" y1="124" x2="58" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="80" y1="84" x2="100" y2="116" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="100" y1="116" x2="102" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="44" y1="146" x2="72" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="88" y1="146" x2="116" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Pull Through</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="148" x2="150" y2="148" stroke="#333" stroke-width="6"/>
+<g class="anim-srdl">
+<circle cx="62" cy="22" r="13" fill="#f5c4a2"/>
+<ellipse cx="62" cy="10" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="62" y1="35" x2="62" y2="80" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="44" y1="46" x2="20" y2="52" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="20" y1="52" x2="6" y2="68" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<rect x="0" y="50" width="8" height="34" rx="3" fill="#444"/>
+<ellipse cx="4" cy="48" rx="7" ry="5" fill="#555"/>
+<ellipse cx="4" cy="86" rx="7" ry="5" fill="#555"/>
+<line x1="80" y1="46" x2="104" y2="52" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="104" y1="52" x2="118" y2="68" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="56" y1="82" x2="48" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="48" y1="120" x2="46" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="32" y1="146" x2="60" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="68" y1="80" x2="100" y2="60" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="100" y1="60" x2="136" y2="48" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="124" y1="46" x2="148" y2="52" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Single-Leg RDL</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 150" width="160" height="150" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="144" x2="150" y2="144" stroke="#333" stroke-width="6"/>
+<rect x="132" y="56" width="18" height="80" rx="4" fill="#444"/>
+<circle cx="140" cy="84" r="10" fill="#444" stroke="#444" stroke-width="2"/>
+<rect x="30" y="104" width="68" height="16" rx="4" fill="#444" opacity="0.5"/>
+<rect x="34" y="120" width="10" height="22" rx="3" fill="#444"/>
+<rect x="82" y="120" width="10" height="22" rx="3" fill="#444"/>
+<circle cx="44" cy="68" r="13" fill="#f5c4a2"/>
+<ellipse cx="44" cy="56" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="44" y1="81" x2="60" y2="104" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="50" y1="104" x2="40" y2="140" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="70" y1="104" x2="80" y2="140" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="26" y1="140" x2="54" y2="140" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="66" y1="140" x2="94" y2="140" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="36" y1="86" x2="22" y2="86" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-crow">
+<line x1="22" y1="86" x2="6" y2="84" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="6" y1="84" x2="132" y2="84" stroke="#888" stroke-width="4" opacity="0.5"/>
+</g>
+</g></svg></div>
+    <div class="label">Cable Row</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 145" width="160" height="145" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="138" x2="150" y2="138" stroke="#333" stroke-width="6"/>
+<rect x="10" y="84" width="140" height="18" rx="6" fill="#444"/>
+<rect x="10" y="62" width="50" height="28" rx="6" fill="#444" opacity="0.5"/>
+<rect x="100" y="94" width="50" height="14" rx="4" fill="#444"/>
+<circle cx="28" cy="72" r="13" fill="#f5c4a2"/>
+<ellipse cx="28" cy="60" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="28" y1="85" x2="76" y2="82" stroke="#7a4f3a" stroke-width="18" stroke-linecap="round"/>
+<line x1="44" y1="84" x2="36" y2="84" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="64" y1="84" x2="76" y2="84" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="36" y1="86" x2="28" y2="84" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-lcurl">
+<line x1="76" y1="86" x2="96" y2="100" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="96" y1="100" x2="124" y2="80" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<rect x="112" y="94" width="38" height="12" rx="4" fill="#444"/>
+<line x1="116" y1="136" x2="148" y2="136" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Leg Curl</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 160" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="154" x2="150" y2="154" stroke="#333" stroke-width="6"/>
+<circle cx="68" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="68" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="68" y1="31" x2="68" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="42" y1="52" x2="26" y2="68" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="94" y1="52" x2="110" y2="68" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="58" y1="80" x2="40" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<g class="anim-lunge-body">
+<line x1="40" y1="82" x2="32" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="32" y1="120" x2="30" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="16" y1="152" x2="44" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+<line x1="78" y1="80" x2="96" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="96" y1="82" x2="116" y2="116" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="116" y1="116" x2="124" y2="140" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="110" y1="152" x2="138" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g></svg></div>
+    <div class="label">Lunge</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 140 160" width="140" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="154" x2="130" y2="154" stroke="#333" stroke-width="6"/>
+<g class="anim-carry">
+<circle cx="70" cy="18" r="13" fill="#f5c4a2"/>
+<ellipse cx="70" cy="7" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="70" y1="31" x2="70" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="54" y1="80" x2="36" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="86" y1="80" x2="104" y2="80" stroke="#2a4e6d" stroke-width="16" stroke-linecap="round"/>
+<line x1="54" y1="82" x2="46" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="46" y1="120" x2="44" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="86" y1="82" x2="94" y2="120" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="94" y1="120" x2="96" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="30" y1="152" x2="58" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="82" y1="152" x2="110" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="44" y1="42" x2="16" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="16" y1="46" x2="14" y2="100" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<rect x="6" y="34" width="10" height="76" rx="4" fill="#444"/>
+<ellipse cx="11" cy="32" rx="10" ry="6" fill="#555"/>
+<ellipse cx="11" cy="112" rx="10" ry="6" fill="#555"/>
+<line x1="96" y1="42" x2="124" y2="46" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="124" y1="46" x2="126" y2="100" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<rect x="124" y="34" width="10" height="76" rx="4" fill="#444"/>
+<ellipse cx="129" cy="32" rx="10" ry="6" fill="#555"/>
+<ellipse cx="129" cy="112" rx="10" ry="6" fill="#555"/>
+</g>
+</g></svg></div>
+    <div class="label">Farmers Carry</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="148" x2="150" y2="148" stroke="#444" stroke-width="10"/>
+<g class="anim-run">
+<circle cx="80" cy="16" r="13" fill="#f5c4a2"/>
+<ellipse cx="80" cy="5" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="80" y1="29" x2="80" y2="74" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="60" y1="40" x2="36" y2="58" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="36" y1="58" x2="22" y2="78" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="100" y1="40" x2="124" y2="52" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="124" y1="52" x2="138" y2="34" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="64" y1="76" x2="44" y2="114" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="44" y1="114" x2="26" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="12" y1="146" x2="40" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="96" y1="76" x2="118" y2="106" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="118" y1="106" x2="126" y2="84" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="112" y1="82" x2="140" y2="88" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Cardio</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 160 155" width="160" height="155" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="148" x2="150" y2="148" stroke="#333" stroke-width="6"/>
+<circle cx="46" cy="38" r="13" fill="#f5c4a2"/>
+<ellipse cx="46" cy="26" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="46" y1="51" x2="60" y2="88" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="36" y1="58" x2="14" y2="72" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="14" y1="72" x2="6" y2="90" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="50" y1="60" x2="72" y2="74" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="72" y1="74" x2="86" y2="88" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="52" y1="90" x2="40" y2="128" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="40" y1="128" x2="36" y2="146" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="22" y1="146" x2="50" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<g class="anim-mob">
+<line x1="68" y1="90" x2="108" y2="82" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="108" y1="82" x2="136" y2="80" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="108" y1="84" x2="114" y2="120" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="100" y1="146" x2="128" y2="146" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Mobility</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 180 160" width="180" height="160" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="154" x2="170" y2="154" stroke="#444" stroke-width="7" opacity="0.5"/>
+<g class="anim-yoga">
+<circle cx="90" cy="20" r="13" fill="#f5c4a2"/>
+<ellipse cx="90" cy="8" rx="12" ry="7" fill="#5a3c28"/>
+<line x1="90" y1="33" x2="90" y2="78" stroke="#7a4f3a" stroke-width="20" stroke-linecap="round"/>
+<line x1="66" y1="42" x2="20" y2="38" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="20" y1="38" x2="6" y2="42" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="114" y1="42" x2="160" y2="38" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<line x1="160" y1="38" x2="174" y2="42" stroke="#f5c4a2" stroke-width="11" stroke-linecap="round"/>
+<line x1="72" y1="80" x2="42" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="42" y1="118" x2="28" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="14" y1="152" x2="42" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+<line x1="108" y1="80" x2="138" y2="118" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="138" y1="118" x2="152" y2="152" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<line x1="138" y1="152" x2="166" y2="152" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Yoga</div>
+  </div>
+
+  <div class="card">
+    <div class="anim-box"><svg viewBox="0 0 180 140" width="180" height="140" xmlns="http://www.w3.org/2000/svg">
+<g stroke-linecap="round" stroke-linejoin="round">
+<line x1="10" y1="132" x2="170" y2="132" stroke="#333" stroke-width="6"/>
+<rect x="10" y="94" width="160" height="14" rx="5" fill="#444"/>
+<rect x="10" y="80" width="16" height="28" rx="4" fill="#444"/>
+<rect x="154" y="80" width="16" height="28" rx="4" fill="#444"/>
+<rect x="12" y="72" width="10" height="24" rx="3" fill="#444"/>
+<circle cx="30" cy="80" r="13" fill="#f5c4a2"/>
+<ellipse cx="30" cy="68" rx="11" ry="6" fill="#5a3c28"/>
+<line x1="30" y1="93" x2="76" y2="92" stroke="#7a4f3a" stroke-width="18" stroke-linecap="round"/>
+<line x1="44" y1="94" x2="36" y2="94" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="26" y1="82" x2="18" y2="94" stroke="#7a4f3a" stroke-width="12" stroke-linecap="round"/>
+<g class="anim-pilates">
+<line x1="76" y1="94" x2="114" y2="70" stroke="#2a4e6d" stroke-width="14" stroke-linecap="round"/>
+<line x1="114" y1="70" x2="148" y2="56" stroke="#f5c4a2" stroke-width="12" stroke-linecap="round"/>
+<rect x="148" y="80" width="22" height="14" rx="4" fill="#444"/>
+<line x1="150" y1="130" x2="172" y2="130" stroke="#1a2a3a" stroke-width="9" stroke-linecap="round"/>
+</g>
+</g></svg></div>
+    <div class="label">Pilates</div>
+  </div>
+</div>
+</body>
+</html>

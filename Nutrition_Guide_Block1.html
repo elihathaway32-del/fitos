@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eli — Nutrition Guide Block 1</title>
+<style>
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56;
+    --blue: #185FA5; --blue-light: #E6F1FB;
+    --amber: #BA7517; --amber-light: #FAEEDA;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --purple: #534AB7; --purple-light: #EEEDFE;
+    --gray: #5F5E5A; --gray-light: #F1EFE8;
+    --text: #1a1a1a; --text-muted: #666; --border: #e0ddd6;
+    --bg: #fafaf8; --white: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.65; }
+  .header { background: var(--text); color: white; padding: 2rem; text-align: center; }
+  .header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
+  .header p { color: #aaa; font-size: 0.9rem; margin-top: 0.4rem; }
+  .badge { display: inline-block; background: var(--green); color: white; font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; margin-top: 0.6rem; font-weight: 500; }
+  .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2rem 0 1rem; }
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .macro-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .macro-tile { border-radius: 10px; padding: 1rem; text-align: center; }
+  .macro-tile .val { font-size: 1.5rem; font-weight: 600; }
+  .macro-tile .lbl { font-size: 0.72rem; margin-top: 3px; font-weight: 500; opacity: 0.85; }
+  .tile-cal { background: #1a1a1a; color: white; }
+  .tile-p { background: var(--blue-light); color: var(--blue); }
+  .tile-c { background: var(--amber-light); color: var(--amber); }
+  .tile-f { background: var(--red-light); color: var(--red); }
+  .tile-fi { background: var(--green-light); color: var(--green-dark); }
+  .meal-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1rem; overflow: hidden; }
+  .meal-header { padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; background: var(--gray-light); border-bottom: 1px solid var(--border); }
+  .meal-header h3 { font-size: 0.95rem; font-weight: 600; }
+  .meal-macros { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 10px; }
+  .meal-macros span { font-weight: 500; }
+  .meal-body { padding: 1rem 1.25rem; }
+  .food-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .food-row:last-child { border-bottom: none; }
+  .food-name { color: var(--text); }
+  .food-macro { font-size: 0.78rem; color: var(--text-muted); text-align: right; }
+  .food-macro strong { color: var(--blue); }
+  .tip-box { border-left: 3px solid var(--amber); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; background: var(--amber-light); }
+  .tip-box strong { color: var(--amber); }
+  .info-box { border-left: 3px solid var(--blue); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; background: var(--blue-light); }
+  .info-box strong { color: var(--blue); }
+  .green-box { border-left: 3px solid var(--green); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; background: var(--green-light); }
+  .green-box strong { color: var(--green-dark); }
+  .timing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .timing-item { background: var(--gray-light); border-radius: 8px; padding: 0.85rem 1rem; }
+  .timing-item .time { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+  .timing-item .action { font-size: 0.88rem; font-weight: 500; margin-top: 3px; }
+  .timing-item .note { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+  .micro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .micro-item { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; }
+  .micro-item .micro-name { font-size: 0.88rem; font-weight: 500; }
+  .micro-item .micro-why { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+  .micro-item .micro-source { font-size: 0.75rem; color: var(--green-dark); margin-top: 4px; font-style: italic; }
+  .supp-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .supp-row:last-child { border-bottom: none; }
+  .supp-name { font-weight: 500; }
+  .supp-dose { font-size: 0.8rem; color: var(--text-muted); }
+  .supp-priority { font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .p-essential { background: #1a1a1a; color: white; }
+  .p-good { background: var(--blue-light); color: var(--blue); }
+  .p-optional { background: var(--gray-light); color: var(--gray); }
+  .footer { text-align: center; padding: 2rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
+  table.micro-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.micro-table th { text-align: left; padding: 8px 12px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; background: var(--gray-light); font-weight: 500; }
+  table.micro-table td { padding: 9px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Nutrition Guide — Block 1</h1>
+  <p>Eli Hathaway &bull; Body Recomposition &bull; 95kg &bull; 2,450 cal target</p>
+  <div class="badge">High Protein &bull; Performance Carbs &bull; Anti-Inflammatory Focus</div>
+</div>
+
+<div class="container">
+
+  <!-- Macro Summary -->
+  <p class="section-title">Daily macro targets</p>
+  <div class="macro-summary">
+    <div class="macro-tile tile-cal"><div class="val">2,450</div><div class="lbl">Total calories</div></div>
+    <div class="macro-tile tile-p"><div class="val">200g</div><div class="lbl">Protein &bull; 800 cal</div></div>
+    <div class="macro-tile tile-c"><div class="val">220g</div><div class="lbl">Carbs &bull; 880 cal</div></div>
+    <div class="macro-tile tile-f"><div class="val">85g</div><div class="lbl">Fat &bull; 770 cal</div></div>
+    <div class="macro-tile tile-fi"><div class="val">30–35g</div><div class="lbl">Fibre &bull; daily min</div></div>
+  </div>
+
+  <div class="info-box">
+    <strong>Why these numbers:</strong> Your TDEE is ~2,856 cal/day. A 400-calorie deficit puts you in fat-loss territory without tanking performance or muscle. At 20–22% body fat you have plenty of stored energy — the goal is to use that fat as fuel while keeping protein high enough to preserve (and build) muscle simultaneously. Protein at 2.2g per kg lean body mass is the gold standard for body recomp.
+  </div>
+
+  <!-- Training vs Rest Day -->
+  <p class="section-title">Training day vs rest day — carb cycling</p>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <div style="font-size:0.85rem;font-weight:600;color:var(--blue);margin-bottom:0.75rem;padding-bottom:6px;border-bottom:1px solid var(--border)">Training day (Mon, Tue, Thu, Fri)</div>
+        <div class="food-row"><span class="food-name">Calories</span><span class="food-macro"><strong>2,500 cal</strong></span></div>
+        <div class="food-row"><span class="food-name">Protein</span><span class="food-macro"><strong>200g</strong></span></div>
+        <div class="food-row"><span class="food-name">Carbohydrates</span><span class="food-macro"><strong>260g</strong> — fuel for training</span></div>
+        <div class="food-row"><span class="food-name">Fats</span><span class="food-macro"><strong>75g</strong></span></div>
+      </div>
+      <div>
+        <div style="font-size:0.85rem;font-weight:600;color:var(--green-dark);margin-bottom:0.75rem;padding-bottom:6px;border-bottom:1px solid var(--border)">Rest day (Wed, Sat, Sun)</div>
+        <div class="food-row"><span class="food-name">Calories</span><span class="food-macro"><strong>2,300 cal</strong></span></div>
+        <div class="food-row"><span class="food-name">Protein</span><span class="food-macro"><strong>200g</strong> — never drops</span></div>
+        <div class="food-row"><span class="food-name">Carbohydrates</span><span class="food-macro"><strong>160g</strong> — lower demand</span></div>
+        <div class="food-row"><span class="food-name">Fats</span><span class="food-macro"><strong>95g</strong> — slightly higher</span></div>
+      </div>
+    </div>
+    <div class="tip-box" style="margin-top:1rem;margin-bottom:0">
+      <strong>Simple rule:</strong> Earn your carbs by training. Rest days = lower carbs, higher fat. Protein never changes. Don't overthink it — if you're tracking at all, you're already ahead of 90% of people.
+    </div>
+  </div>
+
+  <!-- Sample Meal Plan - Training Day -->
+  <p class="section-title">Sample training day meal plan (~2,500 cal)</p>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 1 — Breakfast (7:00–8:00am)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 48g</span><span style="color:var(--amber)">C: 62g</span><span style="color:var(--red)">F: 18g</span><span>~600 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Rolled oats (dry) — 80g</span><span class="food-macro">C: 54g &bull; P: 10g &bull; 290 cal</span></div>
+      <div class="food-row"><span class="food-name">Whole eggs — 3 large</span><span class="food-macro">P: 18g &bull; F: 15g &bull; 210 cal</span></div>
+      <div class="food-row"><span class="food-name">Egg whites — 3 (from carton)</span><span class="food-macro">P: 11g &bull; 50 cal</span></div>
+      <div class="food-row"><span class="food-name">Banana — 1 medium</span><span class="food-macro">C: 27g &bull; 105 cal</span></div>
+      <div class="food-row"><span class="food-name">Blueberries — handful (60g)</span><span class="food-macro">C: 8g &bull; antioxidants &bull; 35 cal</span></div>
+      <div class="food-row"><span class="food-name">Black coffee or green tea</span><span class="food-macro">0 cal &bull; pre-workout focus</span></div>
+      <div class="tip-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Why oats:</strong> Low glycaemic index — slow glucose release keeps insulin stable, avoids energy crash mid-morning. Beta-glucan in oats supports gut health and lowers LDL cholesterol. The eggs give you complete amino acids plus choline for cognitive function — a desk warrior staple.
+      </div>
+    </div>
+  </div>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 2 — Pre-training snack (11:30am or 1hr before gym)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 35g</span><span style="color:var(--amber)">C: 45g</span><span style="color:var(--red)">F: 8g</span><span>~390 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Greek yoghurt (full fat) — 200g</span><span class="food-macro">P: 18g &bull; F: 8g &bull; 180 cal</span></div>
+      <div class="food-row"><span class="food-name">Rice cakes — 4 plain</span><span class="food-macro">C: 28g &bull; 120 cal</span></div>
+      <div class="food-row"><span class="food-name">Honey — 1 tbsp</span><span class="food-macro">C: 17g &bull; 60 cal</span></div>
+      <div class="food-row"><span class="food-name">Protein shake — 1 scoop whey</span><span class="food-macro">P: 25g &bull; 120 cal</span></div>
+      <div class="tip-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Pre-workout nutrition science:</strong> You want fast-digesting carbs 45–60 min before lifting to top off muscle glycogen without sitting heavy in your gut. Rice cakes + honey are pure glucose. Whey protein 1 hour pre-workout increases muscle protein synthesis during the session itself — not just after. Don't train fasted if you're doing heavy compound movements.
+      </div>
+    </div>
+  </div>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 3 — Post-training lunch (1:30–2:30pm)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 55g</span><span style="color:var(--amber)">C: 80g</span><span style="color:var(--red)">F: 15g</span><span>~675 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Chicken breast (grilled) — 200g</span><span class="food-macro">P: 46g &bull; F: 4g &bull; 220 cal</span></div>
+      <div class="food-row"><span class="food-name">White rice (cooked) — 250g</span><span class="food-macro">C: 58g &bull; 230 cal</span></div>
+      <div class="food-row"><span class="food-name">Avocado — 1/4</span><span class="food-macro">F: 8g &bull; 80 cal</span></div>
+      <div class="food-row"><span class="food-name">Broccoli + spinach — 150g total</span><span class="food-macro">C: 8g &bull; fibre + micronutrients &bull; 55 cal</span></div>
+      <div class="food-row"><span class="food-name">Olive oil (cooking) — 1 tsp</span><span class="food-macro">F: 5g &bull; 45 cal</span></div>
+      <div class="green-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Post-workout window:</strong> Your muscles are insulin-sensitive for 60–90 minutes post-training — this is when they absorb glucose most efficiently for glycogen resynthesis. White rice is ideal here (high GI, fast absorption). The leucine-rich chicken triggers mTOR signalling for muscle protein synthesis. Don't eat a fat-heavy meal post-workout — fats slow gastric emptying and blunt the insulin response you actually want right now.
+      </div>
+    </div>
+  </div>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 4 — Afternoon snack (5:00pm)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 30g</span><span style="color:var(--amber)">C: 25g</span><span style="color:var(--red)">F: 12g</span><span>~330 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Cottage cheese — 200g</span><span class="food-macro">P: 22g &bull; F: 4g &bull; 140 cal</span></div>
+      <div class="food-row"><span class="food-name">Mixed nuts — 30g (small handful)</span><span class="food-macro">F: 15g &bull; P: 6g &bull; 175 cal</span></div>
+      <div class="food-row"><span class="food-name">Apple or pear — 1 medium</span><span class="food-macro">C: 25g &bull; fibre &bull; 80 cal</span></div>
+      <div class="tip-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Cottage cheese is underrated:</strong> It's high in casein protein — the slow-digesting kind that keeps amino acids trickling into your bloodstream for hours. Perfect afternoon snack for staying anabolic between meals without spiking calories.
+      </div>
+    </div>
+  </div>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 5 — Dinner (7:00–8:00pm)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 50g</span><span style="color:var(--amber)">C: 50g</span><span style="color:var(--red)">F: 20g</span><span>~590 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Atlantic salmon (fillet) — 180g</span><span class="food-macro">P: 36g &bull; F: 16g &bull; 310 cal</span></div>
+      <div class="food-row"><span class="food-name">Sweet potato (baked) — 200g</span><span class="food-macro">C: 40g &bull; beta-carotene &bull; 180 cal</span></div>
+      <div class="food-row"><span class="food-name">Mixed green salad — 100g</span><span class="food-macro">C: 5g &bull; vitamins K/C &bull; 25 cal</span></div>
+      <div class="food-row"><span class="food-name">Lemon juice + olive oil dressing — 1 tsp</span><span class="food-macro">F: 5g &bull; 45 cal</span></div>
+      <div class="green-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Salmon for your back:</strong> Atlantic salmon is loaded with EPA and DHA — the omega-3 fatty acids that directly reduce pro-inflammatory cytokines (IL-6, TNF-alpha). With a recent back injury, getting 2–3 serves of fatty fish per week is genuinely therapeutic. It's not just nutrition, it's targeted anti-inflammatory medicine.
+      </div>
+    </div>
+  </div>
+
+  <div class="meal-card">
+    <div class="meal-header">
+      <h3>Meal 6 — Before bed (9:30–10:00pm)</h3>
+      <div class="meal-macros"><span style="color:var(--blue)">P: 30g</span><span style="color:var(--amber)">C: 0g</span><span style="color:var(--red)">F: 8g</span><span>~190 cal</span></div>
+    </div>
+    <div class="meal-body">
+      <div class="food-row"><span class="food-name">Casein protein shake — 1 scoop</span><span class="food-macro">P: 25g &bull; 120 cal</span></div>
+      <div class="food-row"><span class="food-name">Skim milk — 150ml (to mix)</span><span class="food-macro">P: 5g &bull; C: 7g &bull; 55 cal</span></div>
+      <div class="tip-box" style="margin-top:0.75rem;margin-bottom:0">
+        <strong>Overnight anabolism:</strong> You fast for 7–9 hours while sleeping. Casein is a micellar protein that forms a gel in your stomach — it releases amino acids slowly over 6–8 hours, keeping you in a net positive nitrogen balance all night. This is how serious lifters don't catabolise muscle overnight. If you don't have casein, 200g of Greek yoghurt or cottage cheese does the same job.
+      </div>
+    </div>
+  </div>
+
+  <!-- Nutrient Timing -->
+  <p class="section-title">Nutrient timing cheat sheet</p>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="timing-grid" style="gap:0">
+      <div class="timing-item" style="border-radius:0;border-right:1px solid var(--border);border-bottom:1px solid var(--border)">
+        <div class="time">Wake up</div>
+        <div class="action">Hydrate first</div>
+        <div class="note">500ml water before any food. Starts metabolism, flushes overnight metabolic waste.</div>
+      </div>
+      <div class="timing-item" style="border-radius:0;border-bottom:1px solid var(--border)">
+        <div class="time">60–90 min pre-gym</div>
+        <div class="action">Carbs + protein</div>
+        <div class="note">Fast carbs + whey. No heavy fats. Targets glycogen stores and MPS initiation.</div>
+      </div>
+      <div class="timing-item" style="border-radius:0;border-right:1px solid var(--border)">
+        <div class="time">0–60 min post-gym</div>
+        <div class="action">Protein + carbs fast</div>
+        <div class="note">Insulin sensitivity window. Rice + chicken or shake + banana. Fat minimal here.</div>
+      </div>
+      <div class="timing-item" style="border-radius:0">
+        <div class="time">Before bed</div>
+        <div class="action">Slow protein</div>
+        <div class="note">Casein or cottage cheese. Prevents overnight muscle catabolism. Skip carbs unless under-eaten for the day.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Micronutrients -->
+  <p class="section-title">Key micronutrients — don't ignore these</p>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="micro-table">
+      <thead>
+        <tr>
+          <th>Nutrient</th>
+          <th>Why it matters for you</th>
+          <th>Best food sources</th>
+          <th>Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Magnesium</strong></td>
+          <td>Muscle contraction, recovery, sleep quality. Most active people are deficient. Low magnesium = poor sleep = impaired GH secretion = less recovery.</td>
+          <td>Pumpkin seeds, spinach, dark chocolate (85%+), black beans, almonds</td>
+          <td>400–420mg/day</td>
+        </tr>
+        <tr>
+          <td><strong>Vitamin D3</strong></td>
+          <td>Testosterone production, bone density, immune function. Over 50% of Australians are deficient despite the sunshine. Drives muscle protein synthesis.</td>
+          <td>Sunlight (20 min daily), fatty fish, egg yolks. Supplement if not getting sun.</td>
+          <td>2,000–4,000 IU/day via supplement</td>
+        </tr>
+        <tr>
+          <td><strong>Zinc</strong></td>
+          <td>Testosterone synthesis, immune function, protein metabolism. Depleted through sweat — serious for regular lifters.</td>
+          <td>Lean red meat, pumpkin seeds, cashews, chickpeas, dark chocolate (⚠️ avoid all shellfish — allergen)</td>
+          <td>11mg/day</td>
+        </tr>
+        <tr>
+          <td><strong>Omega-3 (EPA/DHA)</strong></td>
+          <td>Reduces inflammation — critical during back recovery. Also improves insulin sensitivity and muscle protein synthesis rate.</td>
+          <td>Salmon, sardines, mackerel, walnuts, chia seeds. Supplement fish oil if needed.</td>
+          <td>2–3g EPA+DHA/day</td>
+        </tr>
+        <tr>
+          <td><strong>Potassium</strong></td>
+          <td>Electrolyte balance, muscle function, blood pressure regulation. Often under-eaten when cutting calories.</td>
+          <td>Bananas, sweet potato, avocado, spinach, white beans</td>
+          <td>3,500–4,700mg/day</td>
+        </tr>
+        <tr>
+          <td><strong>Vitamin C</strong></td>
+          <td>Collagen synthesis — critical for ligament, tendon and disc repair. Your back injury specifically benefits from adequate vitamin C intake.</td>
+          <td>Capsicum (highest), kiwi, citrus, strawberries, broccoli</td>
+          <td>500–1,000mg/day</td>
+        </tr>
+        <tr>
+          <td><strong>Iron</strong></td>
+          <td>Oxygen transport to muscles. Low iron = fatigue, reduced VO2, poor performance. Meat eaters generally fine; monitor if reducing red meat.</td>
+          <td>Red meat, liver, legumes with vitamin C, spinach</td>
+          <td>8mg/day (male)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Supplements -->
+  <p class="section-title">Supplements — priority stack</p>
+  <div class="card">
+    <div class="supp-row">
+      <div><div class="supp-name">Creatine monohydrate</div><div class="supp-dose">5g daily — any time, with food or water. No loading needed. Takes 4 weeks to saturate.</div></div>
+      <span class="supp-priority p-essential">Essential</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Whey protein isolate</div><div class="supp-dose">1–2 scoops daily to hit protein target. Pre or post-workout. 25g protein per scoop.</div></div>
+      <span class="supp-priority p-essential">Essential</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Casein protein (before bed)</div><div class="supp-dose">1 scoop before sleep. Slow-release overnight MPS. Micellar casein preferred over calcium caseinate.</div></div>
+      <span class="supp-priority p-good">Highly recommended</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Vitamin D3 + K2</div><div class="supp-dose">2,000–4,000 IU D3 + 100mcg K2 daily. Morning with fat-containing meal for absorption. K2 directs calcium to bones not arteries.</div></div>
+      <span class="supp-priority p-good">Highly recommended</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Magnesium glycinate (not oxide)</div><div class="supp-dose">400mg before bed. Glycinate form is most bioavailable and doesn't cause GI issues like oxide does. Improves sleep depth.</div></div>
+      <span class="supp-priority p-good">Highly recommended</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Fish oil (EPA/DHA)</div><div class="supp-dose">2–3g EPA+DHA daily (check label). Anti-inflammatory. Especially important during back recovery. Take with meals.</div></div>
+      <span class="supp-priority p-good">Highly recommended (back)</span>
+    </div>
+    <div class="supp-row">
+      <div><div class="supp-name">Zinc + Copper</div><div class="supp-dose">15mg zinc / 2mg copper. Take at night — not with iron-containing foods. Copper prevents zinc-induced deficiency.</div></div>
+      <span class="supp-priority p-optional">Optional</span>
+    </div>
+    <div class="supp-row" style="border:none">
+      <div><div class="supp-name">Caffeine (pre-workout)</div><div class="supp-dose">100–200mg, 30–45min pre-training. Black coffee is fine. Cycle off 1 week every 6 weeks to maintain sensitivity.</div></div>
+      <span class="supp-priority p-optional">Optional</span>
+    </div>
+    <div class="info-box" style="margin-top:1rem;margin-bottom:0">
+      <strong>Creatine is non-negotiable:</strong> It's the single most evidence-backed performance supplement on earth. 800+ peer-reviewed studies. Increases phosphocreatine stores in muscle, directly improving ATP regeneration during high-intensity sets. At 95kg you'll retain ~3–4L of water intracellularly in the first 2 weeks — this is normal, not fat, and it's inside the muscle cells making them more anabolic.
+    </div>
+  </div>
+
+  <!-- Hydration -->
+  <p class="section-title">Hydration protocol</p>
+  <div class="card">
+    <div class="food-row"><span class="food-name">Total daily water target</span><span class="food-macro"><strong>3.5–4 litres</strong></span></div>
+    <div class="food-row"><span class="food-name">On waking</span><span class="food-macro"><strong>500ml before coffee or food</strong></span></div>
+    <div class="food-row"><span class="food-name">During training</span><span class="food-macro"><strong>500–750ml per hour</strong></span></div>
+    <div class="food-row"><span class="food-name">Post-training</span><span class="food-macro"><strong>500ml within 30 min</strong></span></div>
+    <div class="food-row" style="border:none"><span class="food-name">Urine colour check</span><span class="food-macro"><strong>Pale yellow = good. Dark = drink more.</strong></span></div>
+    <div class="tip-box" style="margin-top:0.75rem;margin-bottom:0">
+      <strong>Add electrolytes on training days:</strong> A small pinch of Himalayan salt in your water bottle or a sugar-free electrolyte tab covers sodium, potassium and chloride losses from sweat. Especially important in hot Australian gyms. Dehydration of just 2% body weight reduces strength output by up to 10%.
+    </div>
+  </div>
+
+  <!-- Alcohol -->
+  <p class="section-title">Alcohol — the honest chat</p>
+  <div class="card">
+    <p style="font-size:0.9rem;line-height:1.7;color:var(--text-muted)">Ethanol directly inhibits muscle protein synthesis by suppressing mTOR signalling — the same pathway creatine and protein are trying to activate. It also elevates cortisol, suppresses testosterone, disrupts sleep architecture (REM specifically), and blunts growth hormone release during sleep. A big night out can set your recovery back 48–72 hours.</p>
+    <div class="tip-box" style="margin-top:1rem;margin-bottom:0">
+      <strong>Practical rule:</strong> 1–2 standard drinks max on social occasions. If you're going to drink, eat your full protein for the day first, drink plenty of water, and don't train the day after a big session — your nervous system and liver are already working overtime. This is body recomp, not boot camp — enjoy your life, just be smart about it.
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Nutrition Guide — Block 1 &bull; Eli Hathaway &bull; 2026<br>
+  Pair with Block 1 Training Program and Grocery Shopping List
+</div>
+
+</body>
+</html>

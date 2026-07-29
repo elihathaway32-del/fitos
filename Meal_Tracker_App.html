@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Eli — Meal Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d0d;--s1:#1a1a1a;--s2:#242424;--s3:#2e2e2e;--border:#333;--text:#f0efed;--muted:#888;--green:#1D9E75;--blue:#4a90d9;--amber:#f0a030;--red:#e05050}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;min-height:100vh}
+#app{max-width:480px;margin:0 auto;padding-bottom:80px}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;transition:transform .1s}
+.btn:active{transform:scale(0.97)}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:6px 12px;font-size:0.8rem;border-radius:8px;display:inline-block;width:auto}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+/* MACRO BARS */
+.macro-bars{padding:16px;border-bottom:1px solid var(--border)}
+.macro-row{margin-bottom:14px}
+.macro-label{display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px}
+.macro-label .name{color:var(--muted)}
+.macro-label .vals{font-weight:600}
+.bar-track{height:10px;background:var(--s3);border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px;transition:width .5s ease}
+.totals-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s2)}
+.total-tile{text-align:center}
+.total-tile .tv{font-size:1.1rem;font-weight:700}
+.total-tile .tl{font-size:0.68rem;color:var(--muted);margin-top:2px}
+/* MEALS */
+.meal-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;margin:0 16px 12px;overflow:hidden;transition:all .2s}
+.meal-card.done-card{border-color:var(--green);background:#1D9E7510}
+.meal-header{padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.meal-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:14px}
+.meal-check.checked{background:var(--green);border-color:var(--green);color:#fff}
+.meal-title{flex:1}
+.meal-name{font-size:0.95rem;font-weight:600}
+.meal-time{font-size:0.72rem;color:var(--muted);margin-top:2px}
+.meal-macros-small{display:flex;gap:8px;font-size:0.72rem}
+.meal-body{padding:0 14px 14px;border-top:1px solid var(--border)}
+.food-item{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--s3);font-size:0.85rem}
+.food-item:last-child{border:none}
+.food-mac{font-size:0.75rem;color:var(--muted)}
+.macro-inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.m-input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text);font-size:0.85rem;text-align:center;width:100%}
+.m-input:focus{outline:none;border-color:var(--green)}
+.m-label{font-size:0.68rem;color:var(--muted);text-align:center;margin-top:2px}
+/* DAY TOGGLE */
+.day-strip{display:flex;gap:6px;padding:12px 16px;overflow-x:auto;border-bottom:1px solid var(--border)}
+.day-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:0.78rem;cursor:pointer;border:1px solid var(--border);background:var(--s2);color:var(--muted)}
+.day-chip.active{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+/* WATER */
+.water-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.water-drops{display:flex;gap:4px;flex:1}
+.drop{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid var(--blue);cursor:pointer;transition:all .15s}
+.drop.filled{background:var(--blue)}
+/* CHECK IN */
+.checkin-card{margin:16px;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px}
+.ci-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.ci-row:last-child{border:none}
+/* BOTTOM TABS */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);display:flex;z-index:200;max-width:480px;margin:0 auto}
+.tab{flex:1;padding:10px;text-align:center;font-size:0.72rem;cursor:pointer;color:var(--muted);border:none;background:none}
+.tab.active{color:var(--green)}
+.tab svg{display:block;margin:0 auto 2px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const TARGETS={cal:2450,protein:200,carbs:220,fat:85,fibre:32,water:8};
+const MEALS=[
+  {id:'m1',name:'Breakfast',time:'7:00–8:00am',targetP:48,targetC:62,targetF:18,targetCal:600,foods:[
+    {name:'Rolled oats 80g',p:10,c:54,f:2,cal:290},{name:'Whole eggs × 3',p:18,c:0,f:15,cal:210},
+    {name:'Egg whites × 3',p:11,c:0,f:0,cal:50},{name:'Banana 1 med',p:1,c:27,f:0,cal:105},{name:'Blueberries 60g',p:0,c:8,f:0,cal:35}]},
+  {id:'m2',name:'Pre-Training Snack',time:'1hr before gym',targetP:35,targetC:45,targetF:8,targetCal:390,foods:[
+    {name:'Greek yoghurt 200g',p:18,c:8,f:8,cal:180},{name:'Rice cakes × 4',p:2,c:28,f:0,cal:120},
+    {name:'Honey 1 tbsp',p:0,c:17,f:0,cal:60},{name:'Whey protein 1 scoop',p:25,c:2,f:1,cal:120}]},
+  {id:'m3',name:'Post-Training Lunch',time:'Within 60min post gym',targetP:55,targetC:80,targetF:15,targetCal:675,foods:[
+    {name:'Chicken breast 200g',p:46,c:0,f:4,cal:220},{name:'White rice 250g cooked',p:4,c:58,f:0,cal:230},
+    {name:'Avocado ¼',p:1,c:4,f:8,cal:80},{name:'Broccoli + spinach 150g',p:4,c:8,f:0,cal:55}]},
+  {id:'m4',name:'Afternoon Snack',time:'5:00pm',targetP:30,targetC:25,targetF:12,targetCal:330,foods:[
+    {name:'Cottage cheese 200g',p:22,c:6,f:4,cal:140},{name:'Mixed nuts 30g',p:6,c:3,f:15,cal:175},
+    {name:'Apple or pear 1',p:0,c:25,f:0,cal:80}]},
+  {id:'m5',name:'Dinner',time:'7:00–8:00pm',targetP:50,targetC:50,targetF:20,targetCal:590,foods:[
+    {name:'Atlantic salmon 180g',p:36,c:0,f:16,cal:310},{name:'Sweet potato 200g',p:3,c:40,f:0,cal:180},
+    {name:'Mixed salad 100g',p:2,c:5,f:0,cal:25},{name:'Olive oil 1 tsp',p:0,c:0,f:5,cal:45}]},
+  {id:'m6',name:'Before Bed',time:'9:30–10:00pm',targetP:30,targetC:7,targetF:8,targetCal:190,foods:[
+    {name:'Casein protein 1 scoop',p:25,c:3,f:2,cal:120},{name:'Skim milk 150ml',p:5,c:7,f:0,cal:55}]}
+];
+
+// State
+let S={
+  tab:'today',
+  date: new Date().toISOString().split('T')[0],
+  data: JSON.parse(localStorage.getItem('eli_meals')||'{}'),
+  expandedMeal:null
+};
+
+function getDay(d){
+  if(!S.data[d]) S.data[d]={checked:{},overrides:{},water:0,notes:''};
+  return S.data[d];
+}
+function save(){localStorage.setItem('eli_meals',JSON.stringify(S.data));}
+function fmt(d){return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
+
+function calcTotals(d){
+  const day=getDay(d);
+  let p=0,c=0,f=0,cal=0;
+  MEALS.forEach(m=>{
+    if(day.checked[m.id]){
+      const ov=day.overrides[m.id]||{};
+      p+=ov.p!==undefined?ov.p:m.targetP;
+      c+=ov.c!==undefined?ov.c:m.targetC;
+      f+=ov.f!==undefined?ov.f:m.targetF;
+      cal+=ov.cal!==undefined?ov.cal:m.targetCal;
+    }
+  });
+  return{p,c,f,cal};
+}
+
+function render(){
+  const views={today:renderToday,history:renderHistory,checkin:renderCheckin};
+  document.getElementById('app').innerHTML=(views[S.tab]||renderToday)();
+}
+
+function renderToday(){
+  const day=getDay(S.date);
+  const tot=calcTotals(S.date);
+  const pctP=Math.min(100,Math.round(tot.p/TARGETS.protein*100));
+  const pctC=Math.min(100,Math.round(tot.c/TARGETS.carbs*100));
+  const pctF=Math.min(100,Math.round(tot.f/TARGETS.fat*100));
+  const pctCal=Math.min(100,Math.round(tot.cal/TARGETS.cal*100));
+  const mealsChecked=MEALS.filter(m=>day.checked[m.id]).length;
+  return `
+<div class="top-bar">
+  <div>
+    <div style="font-size:1rem;font-weight:700">Meal Tracker</div>
+    <div style="font-size:0.75rem;color:var(--muted)">${fmt(S.date)} · ${mealsChecked}/${MEALS.length} meals done</div>
+  </div>
+  <div style="font-size:1.8rem;font-weight:700;color:${pctCal>=80?'var(--green)':pctCal>=50?'var(--amber)':'var(--muted)'}">${pctCal}%</div>
+</div>
+<div class="totals-row">
+  <div class="total-tile"><div class="tv" style="color:#fff">${tot.cal.toLocaleString()}<span style="font-size:0.6rem;font-weight:400;color:var(--muted)">/${TARGETS.cal}</span></div><div class="tl">Calories</div></div>
+  <div class="total-tile"><div class="tv" style="color:var(--blue)">${tot.p}g<span style="font-size:0.6rem;font-weight:400;color:var(--muted)">/${TARGETS.protein}</span></div><div class="tl">Protein</div></div>
+  <div class="total-tile"><div class="tv" style="color:var(--amber)">${tot.c}g<span style="font-size:0.6rem;font-weight:400;color:var(--muted)">/${TARGETS.carbs}</span></div><div class="tl">Carbs</div></div>
+  <div class="total-tile"><div class="tv" style="color:var(--red)">${tot.f}g<span style="font-size:0.6rem;font-weight:400;color:var(--muted)">/${TARGETS.fat}</span></div><div class="tl">Fat</div></div>
+</div>
+<div class="macro-bars">
+  <div class="macro-row">
+    <div class="macro-label"><span class="name">Calories</span><span class="vals" style="color:#fff">${tot.cal} / ${TARGETS.cal} cal</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pctCal}%;background:#fff;opacity:.6"></div></div>
+  </div>
+  <div class="macro-row">
+    <div class="macro-label"><span class="name">Protein</span><span class="vals" style="color:var(--blue)">${tot.p}g / ${TARGETS.protein}g</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pctP}%;background:var(--blue)"></div></div>
+  </div>
+  <div class="macro-row">
+    <div class="macro-label"><span class="name">Carbohydrates</span><span class="vals" style="color:var(--amber)">${tot.c}g / ${TARGETS.carbs}g</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pctC}%;background:var(--amber)"></div></div>
+  </div>
+  <div class="macro-row" style="margin-bottom:0">
+    <div class="macro-label"><span class="name">Fat</span><span class="vals" style="color:var(--red)">${tot.f}g / ${TARGETS.fat}g</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pctF}%;background:var(--red)"></div></div>
+  </div>
+</div>
+<div class="water-row">
+  <span style="font-size:0.82rem;color:var(--muted);min-width:60px">Water 💧<br><span style="font-size:0.7rem">${day.water||0}/${TARGETS.water} glasses</span></span>
+  <div class="water-drops">
+    ${Array.from({length:TARGETS.water},(_,i)=>`<div class="drop${(day.water||0)>i?' filled':''}" onclick="logWater(${i+1})"></div>`).join('')}
+  </div>
+</div>
+<div style="padding:12px 16px 4px;font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Today's Meals</div>
+${MEALS.map(m=>{
+  const checked=!!day.checked[m.id];
+  const expanded=S.expandedMeal===m.id;
+  const ov=day.overrides[m.id]||{};
+  return `
+<div class="meal-card${checked?' done-card':''}">
+  <div class="meal-header" onclick="toggleMeal('${m.id}')">
+    <div class="meal-check${checked?' checked':''}" onclick="checkMeal(event,'${m.id}')">${checked?'✓':''}</div>
+    <div class="meal-title">
+      <div class="meal-name">${m.name}</div>
+      <div class="meal-time">${m.time}</div>
+    </div>
+    <div class="meal-macros-small">
+      <span style="color:var(--blue)">${ov.p!==undefined?ov.p:m.targetP}g P</span>
+      <span style="color:var(--amber)">${ov.c!==undefined?ov.c:m.targetC}g C</span>
+      <span style="color:var(--red)">${ov.f!==undefined?ov.f:m.targetF}g F</span>
+    </div>
+    <span style="color:var(--muted);margin-left:8px;font-size:0.85rem">${expanded?'▲':'▼'}</span>
+  </div>
+  ${expanded?`
+  <div class="meal-body">
+    ${m.foods.map(f=>`<div class="food-item"><span>${f.name}</span><span class="food-mac">${f.p}P · ${f.c}C · ${f.f}F · ${f.cal}cal</span></div>`).join('')}
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--muted);margin-bottom:6px">Override macros if you ate differently:</div>
+    <div class="macro-inputs">
+      <div><input class="m-input" type="number" placeholder="Protein g" value="${ov.p!==undefined?ov.p:''}" onchange="overrideMacro('${m.id}','p',this.value)"/><div class="m-label">Protein</div></div>
+      <div><input class="m-input" type="number" placeholder="Carbs g" value="${ov.c!==undefined?ov.c:''}" onchange="overrideMacro('${m.id}','c',this.value)"/><div class="m-label">Carbs</div></div>
+      <div><input class="m-input" type="number" placeholder="Fat g" value="${ov.f!==undefined?ov.f:''}" onchange="overrideMacro('${m.id}','f',this.value)"/><div class="m-label">Fat</div></div>
+    </div>
+    <button class="btn btn-green" style="margin-top:10px;padding:10px" onclick="checkMealFromBody('${m.id}')">${checked?'✓ Logged':'Mark as eaten'}</button>
+  </div>`:''}
+</div>`;}).join('')}
+<div style="padding:12px 16px">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Daily notes (optional)</div>
+  <textarea style="width:100%;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:0.85rem;resize:none;min-height:70px" placeholder="How are you feeling? Energy, sleep, hunger..." onchange="saveNotes(this.value)">${day.notes||''}</textarea>
+</div>
+<div class="tab-bar">
+  <button class="tab${S.tab==='today'?' active':''}" onclick="switchTab('today')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>Today</button>
+  <button class="tab${S.tab==='history'?' active':''}" onclick="switchTab('history')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>History</button>
+  <button class="tab${S.tab==='checkin'?' active':''}" onclick="switchTab('checkin')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Check-in</button>
+</div>`;
+}
+
+function renderHistory(){
+  const dates=Object.keys(S.data).sort().reverse().slice(0,14);
+  return `
+<div class="top-bar"><div style="font-size:1rem;font-weight:700">Nutrition History</div></div>
+<div style="padding:16px">
+${dates.length?dates.map(d=>{
+  const tot=calcTotals(d);
+  const day=getDay(d);
+  const meals=MEALS.filter(m=>day.checked[m.id]).length;
+  const pct=Math.min(100,Math.round(tot.cal/TARGETS.cal*100));
+  return `
+  <div class="card" onclick="viewDay('${d}')" style="cursor:pointer">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-weight:600">${fmt(d)}</span>
+      <span style="font-size:0.8rem;color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'};font-weight:600">${pct}% target</span>
+    </div>
+    <div style="display:flex;gap:12px;font-size:0.8rem">
+      <span style="color:var(--blue)">${tot.p}g P</span>
+      <span style="color:var(--amber)">${tot.c}g C</span>
+      <span style="color:var(--red)">${tot.f}g F</span>
+      <span style="color:var(--muted)">${meals}/6 meals</span>
+      <span style="color:var(--muted)">${day.water||0}/${TARGETS.water} water</span>
+    </div>
+  </div>`;}).join(''):`<div style="text-align:center;padding:40px;color:var(--muted)">No history yet. Start tracking today!</div>`}
+</div>
+<div class="tab-bar">
+  <button class="tab${S.tab==='today'?' active':''}" onclick="switchTab('today')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>Today</button>
+  <button class="tab${S.tab==='history'?' active':''}" onclick="switchTab('history')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>History</button>
+  <button class="tab${S.tab==='checkin'?' active':''}" onclick="switchTab('checkin')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Check-in</button>
+</div>`;
+}
+
+function renderCheckin(){
+  // Generate last 7 days summary
+  const today=new Date();
+  const week=Array.from({length:7},(_,i)=>{
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    return d.toISOString().split('T')[0];
+  }).reverse();
+  let out=`SUNDAY CHECK-IN | Nutrition | ${fmt(week[week.length-1])}\n\n`;
+  let totalDays=0,totalMeals=0,totalProtein=0;
+  week.forEach(d=>{
+    const day=getDay(d);
+    const tot=calcTotals(d);
+    const meals=MEALS.filter(m=>day.checked[m.id]).length;
+    if(meals>0){
+      out+=`${fmt(d)}: ${tot.cal}cal | P:${tot.p}g C:${tot.c}g F:${tot.f}g | ${meals}/6 meals | Water:${day.water||0}/${TARGETS.water}\n`;
+      totalDays++;totalMeals+=meals;totalProtein+=tot.p;
+    }
+  });
+  out+=`\nWeek average protein: ${totalDays?Math.round(totalProtein/totalDays):0}g/day`;
+  out+=`\nMeal compliance: ${totalDays?Math.round(totalMeals/(totalDays*6)*100):0}%`;
+  return `
+<div class="top-bar"><div style="font-size:1rem;font-weight:700">Sunday Check-In</div></div>
+<div style="padding:16px">
+  <div style="font-size:0.82rem;color:var(--muted);margin-bottom:12px">Your weekly nutrition summary — copy and paste this to Claude for your check-in.</div>
+  <div style="background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.8;white-space:pre-wrap;margin-bottom:12px" id="checkin-text">${out}</div>
+  <button class="btn btn-outline" style="margin-bottom:10px" onclick="copyCheckin()">Copy to Clipboard</button>
+  <div style="background:var(--s1);border-radius:12px;padding:14px;margin-top:8px">
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px">Weekly averages</div>
+    ${week.map(d=>{
+      const day=getDay(d);
+      const tot=calcTotals(d);
+      const pct=Math.min(100,Math.round(tot.cal/TARGETS.cal*100));
+      return `<div class="ci-row"><span>${fmt(d)}</span><span style="color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</span></div>`;
+    }).join('')}
+  </div>
+</div>
+<div class="tab-bar">
+  <button class="tab${S.tab==='today'?' active':''}" onclick="switchTab('today')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>Today</button>
+  <button class="tab${S.tab==='history'?' active':''}" onclick="switchTab('history')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>History</button>
+  <button class="tab${S.tab==='checkin'?' active':''}" onclick="switchTab('checkin')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Check-in</button>
+</div>`;
+}
+
+function switchTab(t){S.tab=t;render();}
+function toggleMeal(id){S.expandedMeal=S.expandedMeal===id?null:id;render();}
+function checkMeal(e,id){e.stopPropagation();const day=getDay(S.date);day.checked[id]=!day.checked[id];save();render();}
+function checkMealFromBody(id){const day=getDay(S.date);day.checked[id]=!day.checked[id];save();S.expandedMeal=null;render();}
+function overrideMacro(mealId,macro,val){const day=getDay(S.date);if(!day.overrides[mealId])day.overrides[mealId]={};day.overrides[mealId][macro]=parseFloat(val)||0;save();}
+function logWater(n){const day=getDay(S.date);day.water=n;save();render();}
+function saveNotes(val){const day=getDay(S.date);day.notes=val;save();}
+function viewDay(d){S.date=d;S.tab='today';render();}
+function copyCheckin(){const txt=document.getElementById('checkin-text').textContent;navigator.clipboard.writeText(txt).then(()=>alert('Check-in copied! Paste to Claude.')).catch(()=>{});}
+
+render();
+</script>
+</body>
+</html>

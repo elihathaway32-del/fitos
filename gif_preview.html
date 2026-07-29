@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FitOS GIF Preview</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;font-family:system-ui,sans-serif;padding:24px}
+h1{color:#00d4ff;text-align:center;margin-bottom:6px;font-size:22px}
+p{color:#888;text-align:center;margin-bottom:24px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-width:1400px;margin:0 auto}
+.card{background:#161b22;border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;border:2px solid #21262d}
+.card.ok{border-color:#22c55e44}
+.card.fail{border-color:#ef444444}
+.img-wrap{width:180px;height:160px;background:#111827;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
+.broken{color:#ef4444;font-size:12px;text-align:center;padding:16px;line-height:1.6}
+.label{color:#e6edf3;font-size:13px;font-weight:600;margin-top:8px}
+.size{color:#555;font-size:10px;margin-top:3px}
+</style>
+</head>
+<body>
+<h1>FitOS — Exercise GIF Preview</h1>
+<p>26 of 26 loaded · Using local files from gifs/ folder</p>
+<div class="grid">
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/bench.gif" alt="Bench Press"/>
+    </div>
+    <div class="label">Bench Press</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/squat.gif" alt="Squat"/>
+    </div>
+    <div class="label">Squat</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/pull.gif" alt="Pull-Ups"/>
+    </div>
+    <div class="label">Pull-Ups</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/curl.gif" alt="Bicep Curl"/>
+    </div>
+    <div class="label">Bicep Curl</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/lateral.gif" alt="Lateral Raise"/>
+    </div>
+    <div class="label">Lateral Raise</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/row.gif" alt="Bent-Over Row"/>
+    </div>
+    <div class="label">Bent-Over Row</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/calf.gif" alt="Calf Raise"/>
+    </div>
+    <div class="label">Calf Raise</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/hip-thrust.gif" alt="Hip Thrust"/>
+    </div>
+    <div class="label">Hip Thrust</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/shoulder-press.gif" alt="Shoulder Press"/>
+    </div>
+    <div class="label">Shoulder Press</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/split-squat.gif" alt="Split Squat"/>
+    </div>
+    <div class="label">Split Squat</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/dead-bug.gif" alt="Dead Bug"/>
+    </div>
+    <div class="label">Dead Bug</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/bird-dog.gif" alt="Bird Dog"/>
+    </div>
+    <div class="label">Bird Dog</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/leg-press.gif" alt="Leg Press"/>
+    </div>
+    <div class="label">Leg Press</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/overhead-ext.gif" alt="Overhead Ext"/>
+    </div>
+    <div class="label">Overhead Ext</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/hammer-curl.gif" alt="Hammer Curl"/>
+    </div>
+    <div class="label">Hammer Curl</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/face-pull.gif" alt="Face Pull"/>
+    </div>
+    <div class="label">Face Pull</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/pull-through.gif" alt="Pull Through"/>
+    </div>
+    <div class="label">Pull Through</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/single-leg-rdl.gif" alt="Single-Leg RDL"/>
+    </div>
+    <div class="label">Single-Leg RDL</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/cable-row.gif" alt="Cable Row"/>
+    </div>
+    <div class="label">Cable Row</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/leg-curl.gif" alt="Leg Curl"/>
+    </div>
+    <div class="label">Leg Curl</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/lunge.gif" alt="Lunge"/>
+    </div>
+    <div class="label">Lunge</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/carry.gif" alt="Farmers Carry"/>
+    </div>
+    <div class="label">Farmers Carry</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/cardio.gif" alt="Cardio"/>
+    </div>
+    <div class="label">Cardio</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/mob.gif" alt="Mobility"/>
+    </div>
+    <div class="label">Mobility</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/yoga.gif" alt="Yoga"/>
+    </div>
+    <div class="label">Yoga</div>
+    <div class="size">32KB</div>
+  </div>
+  <div class="card ok">
+    <div class="img-wrap">
+      <img src="gifs/pilates.gif" alt="Pilates"/>
+    </div>
+    <div class="label">Pilates</div>
+    <div class="size">32KB</div>
+  </div></div>
+</body>
+</html>

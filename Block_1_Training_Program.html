@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eli — Block 1 Training Program</title>
+<style>
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56;
+    --blue: #185FA5; --blue-light: #E6F1FB;
+    --amber: #BA7517; --amber-light: #FAEEDA;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --gray: #5F5E5A; --gray-light: #F1EFE8;
+    --text: #1a1a1a; --text-muted: #666; --border: #e0ddd6;
+    --bg: #fafaf8; --white: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+  .header { background: var(--text); color: white; padding: 2rem; text-align: center; }
+  .header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
+  .header p { color: #aaa; font-size: 0.9rem; margin-top: 0.4rem; }
+  .badge { display: inline-block; background: var(--green); color: white; font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; margin-top: 0.6rem; font-weight: 500; }
+  .badge-warn { display: inline-block; background: #BA7517; color: white; font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; margin-top: 0.6rem; font-weight: 500; margin-left: 6px; }
+  .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2rem 0 1rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+  .stat-val { font-size: 1.3rem; font-weight: 600; color: var(--green); }
+  .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  .week-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 1.5rem; }
+  .week-pill { text-align: center; padding: 8px 4px; border-radius: 8px; font-size: 0.75rem; font-weight: 500; }
+  .week-pill.vol { background: var(--blue-light); color: var(--blue); }
+  .week-pill.deload { background: var(--amber-light); color: var(--amber); }
+  .week-pill.int { background: var(--green-light); color: var(--green-dark); }
+  .week-pill.peak { background: var(--red-light); color: var(--red); }
+  .week-pill span { display: block; font-size: 0.65rem; font-weight: 400; margin-top: 2px; }
+  .day-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1.25rem; overflow: hidden; }
+  .day-header { padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .day-header h2 { font-size: 1rem; font-weight: 600; }
+  .day-tag { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .tag-push { background: var(--blue-light); color: var(--blue); }
+  .tag-pull { background: var(--green-light); color: var(--green-dark); }
+  .tag-lower { background: var(--amber-light); color: var(--amber); }
+  .tag-hinge { background: var(--red-light); color: var(--red); }
+  .exercise-table { width: 100%; border-collapse: collapse; }
+  .exercise-table thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; padding: 8px 14px; text-align: left; background: var(--gray-light); }
+  .exercise-table tbody tr { border-top: 1px solid var(--border); }
+  .exercise-table tbody tr:hover { background: var(--bg); }
+  .exercise-table td { padding: 10px 14px; font-size: 0.88rem; vertical-align: middle; }
+  .ex-name { font-weight: 500; color: var(--text); }
+  .ex-cue { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+  .pill { display: inline-block; font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .pill-compound { background: #1a1a1a; color: white; }
+  .pill-iso { background: var(--gray-light); color: var(--gray); }
+  .pill-rehab { background: #E1F5EE; color: #0F6E56; }
+  .sets-reps { font-weight: 600; color: var(--text); }
+  .rir-note { font-size: 0.72rem; background: var(--green-light); color: var(--green-dark); padding: 2px 7px; border-radius: 12px; display: inline-block; }
+  .cardio-block { margin: 0; padding: 1rem 1.25rem; background: var(--gray-light); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .cardio-block .icon { font-size: 1.1rem; }
+  .cardio-text { font-size: 0.85rem; font-weight: 500; }
+  .cardio-text span { color: var(--text-muted); font-weight: 400; font-size: 0.8rem; }
+  .overload-box { background: #1a1a1a; color: white; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .overload-box h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 0.75rem; }
+  .overload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .overload-item .phase { font-size: 0.75rem; color: #888; }
+  .overload-item .rule { font-size: 0.9rem; font-weight: 500; }
+  .nutrition-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .macro-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .macro-row:last-child { border-bottom: none; }
+  .macro-name { font-size: 0.88rem; color: var(--text-muted); }
+  .macro-val { font-weight: 600; font-size: 0.95rem; }
+  .dispatch-card { background: var(--white); border: 2px solid var(--green); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .dispatch-card h3 { font-size: 0.9rem; font-weight: 600; color: var(--green-dark); margin-bottom: 0.75rem; }
+  .dispatch-example { background: #1a1a1a; color: #7fff9a; font-family: 'Courier New', monospace; font-size: 0.8rem; padding: 0.75rem 1rem; border-radius: 8px; line-height: 1.8; }
+  .tip-box { background: var(--amber-light); border-left: 3px solid var(--amber); border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; }
+  .tip-box strong { color: var(--amber); }
+  .alert-box { background: #FCEBEB; border-left: 3px solid #A32D2D; border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.85rem; }
+  .alert-box strong { color: #A32D2D; }
+  .rehab-box { background: var(--green-light); border: 1px solid #9FE1CB; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .rehab-box h3 { font-size: 0.9rem; font-weight: 600; color: var(--green-dark); margin-bottom: 0.75rem; }
+  .warm-up-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .warm-up-item { background: white; border-radius: 8px; padding: 0.75rem 1rem; border: 1px solid #9FE1CB; }
+  .warm-up-item .wu-name { font-size: 0.88rem; font-weight: 500; }
+  .warm-up-item .wu-detail { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+  .footer { text-align: center; padding: 2rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
+  @media (max-width: 600px) {
+    .exercise-table thead { display: none; }
+    .exercise-table td { display: block; padding: 6px 14px; }
+    .exercise-table td:first-child { padding-top: 12px; }
+    .exercise-table td:last-child { padding-bottom: 12px; }
+    .week-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Block 1 — Body Recomposition</h1>
+  <p>Eli Hathaway &bull; 95kg &bull; 170cm &bull; Age 35 &bull; O2 Oxygen Gym</p>
+  <div class="badge">8-Week Upper/Lower Hypertrophy + Strength Hybrid</div>
+  <div class="badge-warn">&#9888; Lower back injury protocol active</div>
+</div>
+
+<div class="container">
+
+  <!-- Injury Alert -->
+  <div class="alert-box" style="margin-top:1.5rem">
+    <strong>&#9888; Lower back injury — active management protocol:</strong> Romanian deadlifts, conventional deadlifts, and all high-load spinal compression movements have been removed. Day D has been redesigned around glute dominance and machine-based hamstring work. All lower back exercises should be pain-free. If you feel any sharp or radiating pain, stop and rest. Reassess at Week 4 deload.
+  </div>
+
+  <!-- Stats -->
+  <p class="section-title">Your baseline</p>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val">2,856</div><div class="stat-label">TDEE (cal)</div></div>
+    <div class="stat-card"><div class="stat-val">2,450</div><div class="stat-label">Target (cal)</div></div>
+    <div class="stat-card"><div class="stat-val">~200g</div><div class="stat-label">Protein daily</div></div>
+    <div class="stat-card"><div class="stat-val">100kg</div><div class="stat-label">Bench x 8–10</div></div>
+    <div class="stat-card"><div class="stat-val">100kg+</div><div class="stat-label">Squat 8 reps</div></div>
+    <div class="stat-card"><div class="stat-val">No DL</div><div class="stat-label">Back rehab phase</div></div>
+  </div>
+
+  <!-- 8-Week Periodisation -->
+  <p class="section-title">8-Week periodisation map</p>
+  <div class="week-grid">
+    <div class="week-pill vol">W1<span>Volume</span></div>
+    <div class="week-pill vol">W2<span>Volume</span></div>
+    <div class="week-pill vol">W3<span>Volume+</span></div>
+    <div class="week-pill deload">W4<span>Deload</span></div>
+    <div class="week-pill int">W5<span>Intensity</span></div>
+    <div class="week-pill int">W6<span>Intensity</span></div>
+    <div class="week-pill int">W7<span>Intensity+</span></div>
+    <div class="week-pill peak">W8<span>Peak/Test</span></div>
+  </div>
+
+  <!-- Progressive Overload Rules -->
+  <div class="overload-box">
+    <h3>Progressive overload protocol</h3>
+    <div class="overload-grid">
+      <div class="overload-item"><div class="phase">Weeks 1–2</div><div class="rule">3 RIR — 3 reps left in the tank</div></div>
+      <div class="overload-item"><div class="phase">Weeks 3–4</div><div class="rule">2 RIR — push closer to failure</div></div>
+      <div class="overload-item"><div class="phase">Weeks 5–6</div><div class="rule">1 RIR — near failure every set</div></div>
+      <div class="overload-item"><div class="phase">Week 7</div><div class="rule">0 RIR — technical failure</div></div>
+      <div class="overload-item"><div class="phase">Week 8</div><div class="rule">Deload + test your heavy sets</div></div>
+      <div class="overload-item"><div class="phase">Load rule</div><div class="rule">Add 2.5kg when you hit top of range for 2 sessions straight</div></div>
+    </div>
+  </div>
+
+  <!-- Warm-Up Protocol -->
+  <p class="section-title">Warm-up protocol — do this before every session</p>
+  <div class="rehab-box">
+    <h3>General warm-up (5–7 min) — every session</h3>
+    <div class="warm-up-grid">
+      <div class="warm-up-item"><div class="wu-name">Bike or treadmill</div><div class="wu-detail">5 min easy, elevate heart rate to 110–120 bpm</div></div>
+      <div class="warm-up-item"><div class="wu-name">90/90 hip stretch</div><div class="wu-detail">60 sec each side — opens hip flexors and external rotators</div></div>
+      <div class="warm-up-item"><div class="wu-name">Cat-cow</div><div class="wu-detail">10 reps slow — mobilises lumbar and thoracic spine</div></div>
+      <div class="warm-up-item"><div class="wu-name">Bird-dog</div><div class="wu-detail">10 reps each side — activates deep lumbar stabilisers</div></div>
+      <div class="warm-up-item"><div class="wu-name">Glute bridge (bodyweight)</div><div class="wu-detail">15 reps, hold 2 sec at top — wakes up glutes before lower days</div></div>
+      <div class="warm-up-item"><div class="wu-name">Band pull-apart</div><div class="wu-detail">20 reps — activates rear delts + rhomboids before upper days</div></div>
+    </div>
+
+    <h3 style="margin-top:1.25rem">Additional lower back rehab (do daily — 5 min)</h3>
+    <div class="warm-up-grid">
+      <div class="warm-up-item"><div class="wu-name">Dead bug</div><div class="wu-detail">3 x 10 each side — core anti-extension, lumbar safe</div></div>
+      <div class="warm-up-item"><div class="wu-name">Child's pose</div><div class="wu-detail">60 sec hold — decompress lumbar, daily recovery</div></div>
+      <div class="warm-up-item"><div class="wu-name">Pigeon stretch</div><div class="wu-detail">60 sec each side — piriformis and glute tightness relief</div></div>
+      <div class="warm-up-item"><div class="wu-name">Knee-to-chest</div><div class="wu-detail">30 sec each side — gentle lumbar flexion mob</div></div>
+    </div>
+    <div class="tip-box" style="margin-top:0.75rem">
+      <strong>Recovery rule:</strong> Ice (first 72hrs post-injury) then heat. Sleep on your side with a pillow between your knees. Take ibuprofen with food if inflammation is present. If pain is radiating down a leg, see a physio before training lower body.
+    </div>
+  </div>
+
+  <!-- DAY A -->
+  <p class="section-title">Day A — Upper Push (Chest, Shoulders, Triceps)</p>
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Day A — Upper Push</h2>
+      <span class="day-tag tag-push">~65 min &bull; Back-safe</span>
+    </div>
+    <table class="exercise-table">
+      <thead>
+        <tr><th>#</th><th>Exercise</th><th>Sets &times; Reps</th><th>Rest</th><th>Cues</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><div class="ex-name">Barbell Bench Press</div><span class="pill pill-compound">Primary compound</span></td>
+          <td><span class="sets-reps">4 &times; 6–8</span><br><span class="rir-note">W1: 3RIR</span></td>
+          <td>2–3 min</td>
+          <td><div class="ex-cue">Retract scapula, slight arch, drive feet into floor. Bar touches lower chest. Elbows 45–70° flare — NOT 90°.</div></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><div class="ex-name">Incline Dumbbell Press (30–45°)</div><span class="pill pill-compound">Secondary compound</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">3 sec eccentric. Full stretch at bottom, squeeze at top. Neutral wrist throughout.</div></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><div class="ex-name">Seated Dumbbell Shoulder Press</div><span class="pill pill-compound">Secondary compound</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">Back supported. Start at ear height. Full lockout. Don't hyperextend lower back — keep core braced.</div></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><div class="ex-name">Cable Lateral Raise</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">4 &times; 15–20</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Cable from low, slight lean into cable. Lead with elbow, thumb pointing down. Don't shrug.</div></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><div class="ex-name">Tricep Rope Pushdown</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">3 &times; 12–15</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Elbows pinned to sides. Flare rope out at full extension. Slow return.</div></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><div class="ex-name">Overhead Cable Tricep Extension</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">2 &times; 15</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Long head emphasis. Stand upright — don't arch lumbar. Stretch behind skull, elbows don't flare.</div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cardio-block">
+      <span class="icon">&#127939;</span>
+      <div><div class="cardio-text">Post-session: Stairmaster or bike <span>— 15 min, RPE 5–6 (avoid incline treadmill if back sore)</span></div></div>
+    </div>
+  </div>
+
+  <!-- DAY B -->
+  <p class="section-title">Day B — Lower Quad Dominant (Quads, Glutes, Calves)</p>
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Day B — Lower Quad Dominant</h2>
+      <span class="day-tag tag-lower">~70 min &bull; Monitor back</span>
+    </div>
+    <div style="padding:10px 14px;background:#FAEEDA;font-size:0.82rem;color:#633806;border-bottom:1px solid #e0ddd6">
+      &#9888; If lower back flares on squats in Weeks 1–2, swap to goblet squat or hack squat machine instead. Never push through spinal pain.
+    </div>
+    <table class="exercise-table">
+      <thead>
+        <tr><th>#</th><th>Exercise</th><th>Sets &times; Reps</th><th>Rest</th><th>Cues</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><div class="ex-name">Back Squat (High Bar) — or Hack Squat if pain</div><span class="pill pill-compound">Primary compound</span></td>
+          <td><span class="sets-reps">4 &times; 6–8</span><br><span class="rir-note">W1: 3RIR</span></td>
+          <td>2–3 min</td>
+          <td><div class="ex-cue">Brace 360° before descent. Knees track toes. At or below parallel. Drive knees out on ascent. If lower back aches after set, drop to hack squat.</div></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><div class="ex-name">Leg Press (feet high and wide)</div><span class="pill pill-compound">Secondary compound</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>2 min</td>
+          <td><div class="ex-cue">High foot placement shifts load to glutes. Don't let lower back curl off pad at bottom. Control descent.</div></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><div class="ex-name">Bulgarian Split Squat (Dumbbells)</div><span class="pill pill-compound">Unilateral</span></td>
+          <td><span class="sets-reps">3 &times; 10 each</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">Rear foot elevated. Front shin stays vertical. Feel the stretch through the front glute. No spinal compression — safe for back.</div></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><div class="ex-name">Leg Extension (Machine)</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">3 &times; 15</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">2-sec hold at top. Toes slightly inward for VMO. Full extension, no hyperextension.</div></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><div class="ex-name">Standing Calf Raise</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">4 &times; 20</span></td>
+          <td>45 sec</td>
+          <td><div class="ex-cue">Full stretch at bottom (1 sec). Full squeeze at top (1 sec). No bouncing.</div></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><div class="ex-name">Dead Bug (Core rehab)</div><span class="pill pill-rehab">Core — back rehab</span></td>
+          <td><span class="sets-reps">3 &times; 10 each side</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Lower back FLAT on floor throughout. Breathe out as you extend arm + opposite leg. Slow and controlled. This is medicine for your back.</div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cardio-block">
+      <span class="icon">&#127939;</span>
+      <div><div class="cardio-text">Post-session: Bike (preferred over treadmill) <span>— 15 min, easy pace, protects lumbar</span></div></div>
+    </div>
+  </div>
+
+  <!-- DAY C -->
+  <p class="section-title">Day C — Upper Pull (Back, Biceps, Rear Delts)</p>
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Day C — Upper Pull</h2>
+      <span class="day-tag tag-pull">~65 min &bull; Modified rows</span>
+    </div>
+    <div style="padding:10px 14px;background:#E6F1FB;font-size:0.82rem;color:#0C447C;border-bottom:1px solid #e0ddd6">
+      Note: Barbell bent-over rows require lumbar bracing under load. In Weeks 1–2, use chest-supported DB row instead if lower back is still sore.
+    </div>
+    <table class="exercise-table">
+      <thead>
+        <tr><th>#</th><th>Exercise</th><th>Sets &times; Reps</th><th>Rest</th><th>Cues</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><div class="ex-name">Weighted Pull-Up or Lat Pulldown (heavy)</div><span class="pill pill-compound">Primary compound</span></td>
+          <td><span class="sets-reps">4 &times; 6–8</span><br><span class="rir-note">W1: 3RIR</span></td>
+          <td>2–3 min</td>
+          <td><div class="ex-cue">Dead hang start. Depress scapula before pulling. Drive elbows to hips. Chest to bar or bar to chest. No kipping.</div></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><div class="ex-name">Chest-Supported DB Row (Weeks 1–2) → BB Row (Weeks 3+)</div><span class="pill pill-compound">Secondary compound</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>2 min</td>
+          <td><div class="ex-cue">Chest-supported version takes ALL lumbar load off. Incline bench at 45°. Pull elbows back and together. Squeeze rhomboids. Safer while back heals.</div></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><div class="ex-name">Seated Cable Row (Neutral Grip, Wide)</div><span class="pill pill-compound">Secondary compound</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">Full stretch forward. Pull to lower chest. Don't lean back more than 10° — keep lumbar stable.</div></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><div class="ex-name">Face Pull (Rope, eye height)</div><span class="pill pill-iso">Rear delt / rotator cuff</span></td>
+          <td><span class="sets-reps">3 &times; 15–20</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">External rotation at end. Elbows at or above shoulder. This is as much shoulder rehab as it is a muscle builder — do it every upper session.</div></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><div class="ex-name">EZ-Bar or Barbell Curl</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">3 &times; 10–12</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Elbows fixed. Supinate at top. Full stretch at bottom — honour the stretch.</div></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><div class="ex-name">Incline Dumbbell Hammer Curl</div><span class="pill pill-iso">Isolation</span></td>
+          <td><span class="sets-reps">2 &times; 12</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">Incline bench 45–60°. Neutral grip. Long head bias. Slow down on the way down.</div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cardio-block">
+      <span class="icon">&#127939;</span>
+      <div><div class="cardio-text">Post-session: Rowing machine or bike <span>— 15 min, moderate, RPE 5–6</span></div></div>
+    </div>
+  </div>
+
+  <!-- DAY D — REDESIGNED: no deadlifts, glute dominant -->
+  <p class="section-title">Day D — Lower Posterior (Glutes, Hamstrings) — Deadlift-Free</p>
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Day D — Posterior Chain (No Deadlifts)</h2>
+      <span class="day-tag tag-hinge">~65 min &bull; Back-safe build</span>
+    </div>
+    <div style="padding:10px 14px;background:#E1F5EE;font-size:0.82rem;color:#0F6E56;border-bottom:1px solid #e0ddd6">
+      &#9989; This session has been fully redesigned to build your posterior chain without any spinal loading under bar. Hip thrust is the primary. All exercises are lumbar-safe. Deadlifts re-introduced in Block 2 once cleared.
+    </div>
+    <table class="exercise-table">
+      <thead>
+        <tr><th>#</th><th>Exercise</th><th>Sets &times; Reps</th><th>Rest</th><th>Cues</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><div class="ex-name">Barbell Hip Thrust</div><span class="pill pill-compound">Primary compound — glutes</span></td>
+          <td><span class="sets-reps">4 &times; 8–10</span><br><span class="rir-note">W1: 3RIR</span></td>
+          <td>2 min</td>
+          <td><div class="ex-cue">Upper back on bench at shoulder blade height. Bar padded, sits across hip crease. Drive through heels. Posterior pelvic tilt at TOP — tuck pelvis, squeeze glutes hard for 2 sec. Chin tucked, don't hyperextend neck. ZERO lumbar stress when done correctly.</div></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><div class="ex-name">Seated Leg Curl (Machine)</div><span class="pill pill-compound">Hamstrings</span></td>
+          <td><span class="sets-reps">4 &times; 10–12</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">Seated gives more hamstring stretch than lying. Flex foot at the bottom. 3-sec eccentric. Both hamstring heads get hit — much safer than RDL right now.</div></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><div class="ex-name">Cable Pull-Through</div><span class="pill pill-rehab">Hip hinge — rehab progression</span></td>
+          <td><span class="sets-reps">3 &times; 15</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">Rope between legs from low cable. Push hips back (NOT bend forward), feel hamstring stretch. Drive hips forward to stand. Pure hip hinge — teaches the pattern safely. Load is pulling horizontally, NOT compressing spine. This is your deadlift substitute right now.</div></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><div class="ex-name">Single-Leg Romanian Deadlift (Dumbbell, light)</div><span class="pill pill-rehab">Rehab progression — Weeks 3+ only</span></td>
+          <td><span class="sets-reps">3 &times; 10 each — skip W1-2</span></td>
+          <td>90 sec</td>
+          <td><div class="ex-cue">START WEEKS 3–4 ONLY if pain-free. Single-leg version teaches hip hinge with minimal lumbar load. Hold one light DB. Hinge at hip, keep spine neutral. Touch DB to floor, drive standing leg's hip forward. Don't progress load until pain-free for 2 full weeks.</div></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><div class="ex-name">Seated Calf Raise</div><span class="pill pill-iso">Soleus</span></td>
+          <td><span class="sets-reps">4 &times; 20</span></td>
+          <td>45 sec</td>
+          <td><div class="ex-cue">Seated targets soleus (deep calf). Full ROM. 1-sec pause at stretch and at squeeze.</div></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><div class="ex-name">Bird-Dog (Core / Lumbar rehab)</div><span class="pill pill-rehab">Core — back rehab</span></td>
+          <td><span class="sets-reps">3 &times; 10 each side</span></td>
+          <td>60 sec</td>
+          <td><div class="ex-cue">On hands and knees. Extend opposite arm and leg simultaneously. Don't rotate hips or arch low back. Hold 2 sec at extension. One of the most evidence-backed exercises for lumbar rehab. Do it slowly — this is not for tempo, it's for motor control.</div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cardio-block">
+      <span class="icon">&#127939;</span>
+      <div><div class="cardio-text">Post-session: Bike only (no stairmaster) <span>— 15 min easy — protect the lumbar on Day D</span></div></div>
+    </div>
+  </div>
+
+  <!-- Weekly Schedule -->
+  <p class="section-title">Suggested weekly schedule</p>
+  <div class="nutrition-card">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:8px 12px;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:#888;background:#f5f5f3">Day</th>
+          <th style="text-align:left;padding:8px 12px;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:#888;background:#f5f5f3">Session</th>
+          <th style="text-align:left;padding:8px 12px;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:#888;background:#f5f5f3">Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Monday</td><td style="padding:10px 12px">Day A</td><td style="padding:10px 12px;color:#185FA5">Upper Push</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Tuesday</td><td style="padding:10px 12px">Day B</td><td style="padding:10px 12px;color:#BA7517">Lower Quad</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Wednesday</td><td style="padding:10px 12px;color:#888">Rest + daily back rehab</td><td style="padding:10px 12px;color:#888">Cat-cow, bird-dog, child's pose</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Thursday</td><td style="padding:10px 12px">Day C</td><td style="padding:10px 12px;color:#1D9E75">Upper Pull</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Friday</td><td style="padding:10px 12px">Day D</td><td style="padding:10px 12px;color:#A32D2D">Posterior chain (deadlift-free)</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Saturday</td><td style="padding:10px 12px;color:#888">Optional: 30 min walk + back rehab</td><td style="padding:10px 12px;color:#888">Easy movement — no compression</td></tr>
+        <tr style="border-top:1px solid #e0ddd6"><td style="padding:10px 12px;font-weight:500">Sunday</td><td style="padding:10px 12px;color:#888">Full rest</td><td style="padding:10px 12px;color:#888">Recover, eat your protein, sleep 8hrs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Nutrition Summary -->
+  <p class="section-title">Daily nutrition targets</p>
+  <div class="nutrition-card">
+    <div class="macro-row">
+      <span class="macro-name">Total calories (recomp target)</span>
+      <span class="macro-val" style="color:var(--green)">2,450 cal/day</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name">Protein — 2.2g &times; LBM (74kg)</span>
+      <span class="macro-val" style="color:#185FA5">~200g &bull; 800 cal</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name">Carbohydrates (performance fuel)</span>
+      <span class="macro-val" style="color:#BA7517">~220g &bull; 880 cal</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name">Fats (hormonal support)</span>
+      <span class="macro-val" style="color:#A32D2D">~85g &bull; 770 cal</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name">Fibre minimum</span>
+      <span class="macro-val" style="color:#3B6D11">30–35g/day</span>
+    </div>
+    <div class="macro-row" style="border:none">
+      <span class="macro-name">Water target</span>
+      <span class="macro-val">3.5–4L/day</span>
+    </div>
+    <div class="tip-box">
+      <strong>Priority rule:</strong> Hit protein first. Every single day. Non-negotiable. If you're over calories but on protein — you're winning. Under protein — fix that first.
+    </div>
+    <div class="tip-box" style="background:var(--blue-light);border-color:var(--blue)">
+      <strong style="color:var(--blue)">Anti-inflammatory foods during back recovery:</strong> Increase omega-3s (salmon, sardines, walnuts, flaxseed). Turmeric + black pepper daily. Reduce processed food and alcohol — both spike systemic inflammation and slow tissue recovery.
+    </div>
+  </div>
+
+  <!-- Dispatch Log -->
+  <p class="section-title">Workout dispatch — how to log your sessions</p>
+  <div class="dispatch-card">
+    <h3>Log your sets in real-time using dispatch</h3>
+    <p style="font-size:0.85rem;color:#555;margin-bottom:0.75rem">After each exercise or at end of session, type your workout data. After 6–8 weeks, paste all your dispatches and ask Claude to build Block 2.</p>
+    <div class="dispatch-example">
+DISPATCH | Day D | Week 1<br>
+Hip Thrust: 80kg x 10, x 9, x 9, x 8<br>
+Seated Leg Curl: 50kg x 12, x 11, x 10, x 10<br>
+Cable Pull-Through: 40kg x 15, x 15, x 14<br>
+SL RDL: skipped (back still sore)<br>
+Seated Calf: 50kg x 20, x 18, x 17, x 17<br>
+Bird-Dog: 3 x 10 each — felt good<br>
+Cardio: Bike 15 min easy<br>
+Back pain level: 3/10 dull ache | Energy: 7/10
+    </div>
+    <p style="font-size:0.8rem;color:#888;margin-top:0.75rem">Always log your back pain level (0–10) on lower days. This data tells Claude when it is safe to reintroduce deadlift variations in Block 2.</p>
+  </div>
+
+  <!-- Movement Posture Quick Ref -->
+  <p class="section-title">Movement posture quick reference</p>
+  <div class="nutrition-card">
+    <div class="macro-row">
+      <span class="macro-name" style="font-weight:500">Bench Press</span>
+      <span style="font-size:0.8rem;color:var(--red)">Elbows flaring &gt;90° → shoulder impingement over time</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name" style="font-weight:500">Squat</span>
+      <span style="font-size:0.8rem;color:var(--red)">Knee cave (valgus collapse) on ascent → knee injury risk</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name" style="font-weight:500">Hip Thrust</span>
+      <span style="font-size:0.8rem;color:var(--red)">Hyperextending lumbar at top instead of glute squeeze → lower back stress</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name" style="font-weight:500">Pull-Up</span>
+      <span style="font-size:0.8rem;color:var(--red)">Shrugging up instead of depressing scapula → no lat activation</span>
+    </div>
+    <div class="macro-row">
+      <span class="macro-name" style="font-weight:500">Cable Pull-Through</span>
+      <span style="font-size:0.8rem;color:var(--red)">Bending spine forward instead of hinging at hip → defeats purpose</span>
+    </div>
+    <div class="macro-row" style="border:none">
+      <span class="macro-name" style="font-weight:500">Bird-Dog</span>
+      <span style="font-size:0.8rem;color:var(--red)">Rotating hips or arching back on extension → compensation, not rehab</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Block 1 — Body Transformation Build &bull; Eli Hathaway &bull; 2026<br>
+  Lower back injury protocol active &bull; Log dispatches weekly &bull; Reassess deadlift at Week 4 deload
+</div>
+
+</body>
+</html>

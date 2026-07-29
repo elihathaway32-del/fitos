@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Eli — Gym Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d0d;--s1:#1a1a1a;--s2:#242424;--s3:#2e2e2e;--border:#333;--text:#f0efed;--muted:#888;--green:#1D9E75;--blue:#4a90d9;--amber:#f0a030;--red:#e05050}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:16px;min-height:100vh;overscroll-behavior:none}
+#app{max-width:480px;margin:0 auto;min-height:100vh}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.prog-wrap{height:3px;background:var(--s3);position:sticky;top:49px;z-index:99}
+.prog-fill{height:100%;background:var(--green);transition:width .4s ease}
+.btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;transition:transform .1s}
+.btn:active{transform:scale(0.97)}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:8px 14px;font-size:0.82rem;border-radius:8px;display:inline-block;width:auto}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
+.day-btn:active{transform:scale(0.97)}
+.day-btn.selected{border-color:var(--green);background:#1D9E7520}
+.day-btn .day-letter{font-size:1.6rem;font-weight:700;line-height:1}
+.day-btn .day-name{font-size:0.82rem;margin-top:4px;color:var(--muted)}
+.day-btn .day-tag{font-size:0.68rem;margin-top:6px}
+.week-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.week-pill{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:0.82rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+.week-pill.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.hist-item:last-child{border:none}
+.ex-header{padding:16px;border-bottom:1px solid var(--border)}
+.ex-type-badge{display:inline-block;font-size:0.7rem;padding:3px 9px;border-radius:20px;font-weight:600;margin-bottom:8px}
+.badge-compound{background:#1a1a1a;color:#ccc;border:1px solid #444}
+.badge-iso{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.badge-rehab{background:#1D9E7520;color:var(--green);border:1px solid #1D9E7550}
+.ex-name{font-size:1.3rem;font-weight:700;line-height:1.2;margin-bottom:6px}
+.ex-target{font-size:0.88rem;color:var(--muted)}
+.ex-target strong{color:var(--text)}
+.rir-badge{display:inline-block;background:#1D9E7520;color:var(--green);font-size:0.75rem;padding:3px 9px;border-radius:20px;margin-left:8px;font-weight:600}
+
+/* DEMO AREA */
+.demo-area{position:relative;background:var(--s2);border-bottom:1px solid var(--border);overflow:hidden}
+.demo-gif{width:100%;height:220px;object-fit:contain;display:block;background:var(--s2)}
+.demo-svg-wrap{display:flex;align-items:center;justify-content:center;height:220px;background:linear-gradient(135deg,#111 0%,#1a1a1a 100%)}
+.demo-svg-wrap svg{filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+.demo-overlay{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;align-items:center;justify-content:space-between}
+.muscle-tags{display:flex;flex-wrap:wrap;gap:4px}
+.muscle-tag{font-size:0.68rem;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.yt-btn{display:inline-flex;align-items:center;gap:5px;background:#ff0000;border:none;border-radius:8px;padding:6px 10px;font-size:0.75rem;color:#fff;cursor:pointer;font-weight:600;text-decoration:none;flex-shrink:0}
+.api-badge{position:absolute;top:10px;right:10px;font-size:0.65rem;padding:3px 7px;border-radius:8px;font-weight:600}
+.api-badge.live{background:#1D9E7540;color:var(--green);border:1px solid var(--green)}
+.api-badge.fallback{background:rgba(0,0,0,.5);color:var(--muted);border:1px solid var(--border)}
+
+/* CUE */
+.cue-box{margin:12px 16px;background:var(--s2);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.82rem;color:#ccc;line-height:1.6}
+
+/* SET LOGGER */
+.set-logger{padding:16px}
+.set-row-header{display:grid;grid-template-columns:36px 1fr 1fr 76px;gap:8px;margin-bottom:8px;font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.set-row{display:grid;grid-template-columns:36px 1fr 1fr 76px;gap:8px;align-items:center;margin-bottom:8px}
+.set-num{width:32px;height:32px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:600;color:var(--muted)}
+.set-num.done{background:var(--green);color:#fff}
+.set-input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-size:1rem;font-weight:600;text-align:center;width:100%;-webkit-appearance:none}
+.set-input:focus{outline:none;border-color:var(--green)}
+.log-btn{background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.8rem;font-weight:600;padding:7px 6px;cursor:pointer;width:100%;transition:all .15s}
+.log-btn:active{transform:scale(0.95)}
+.log-btn.done-btn{background:var(--s3);color:var(--muted)}
+.logged-set{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1D9E7515;border:1px solid #1D9E7530;border-radius:8px;margin-bottom:6px;font-size:0.85rem}
+.logged-set .sv{font-weight:600;color:var(--green)}
+.prev-box{margin:0 16px 12px;background:var(--s2);border-radius:10px;padding:10px 12px}
+.prev-title{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.prev-set{font-size:0.82rem;color:#aaa}
+.injury-alert{margin:10px 16px;background:#e0505015;border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:8px 12px;font-size:0.78rem;color:#f08080}
+.upcoming-ex{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:.5}
+.upcoming-ex:last-child{border:none}
+.upcoming-ex .ex-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.bottom-actions{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px}
+.rest-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}
+.rest-circle{width:190px;height:190px;border-radius:50%;border:3px solid var(--s3);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:20px auto;position:relative}
+.rest-circle svg{position:absolute;top:-2px;left:-2px;width:198px;height:198px;transform:rotate(-90deg)}
+.rest-time{font-size:3.2rem;font-weight:700;line-height:1}
+.rest-label{font-size:0.8rem;color:var(--muted);margin-top:4px}
+.next-up{background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;width:100%}
+.dispatch-box{background:var(--s1);border:1px solid var(--green);border-radius:12px;padding:14px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
+
+/* WARM-UP / COOL-DOWN / REST DAY */
+.phase-screen{padding:16px;max-width:480px;margin:0 auto}
+.phase-title{font-size:1.3rem;font-weight:700;margin-bottom:4px}
+.phase-subtitle{font-size:0.82rem;color:var(--muted);margin-bottom:18px}
+.phase-section{margin-bottom:20px}
+.phase-section-title{font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.check-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.check-item.checked{background:#1D9E7512;border-color:#1D9E7540}
+.check-item:active{transform:scale(0.98)}
+.check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all .2s}
+.check-item.checked .check-circle{background:var(--green);border-color:var(--green)}
+.check-info{flex:1}
+.check-name{font-size:0.9rem;font-weight:600;margin-bottom:2px}
+.check-item.checked .check-name{color:var(--muted);text-decoration:line-through}
+.check-detail{font-size:0.75rem;color:var(--muted);line-height:1.4}
+.rest-day-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.rest-day-header{font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.rest-type-btn{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;text-align:left;width:100%}
+.rest-type-btn:active{transform:scale(0.98)}
+.rest-type-btn.selected{border-color:var(--amber);background:#f0a03015}
+.injury-rehab-note{background:#e0505015;border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.78rem;color:#f08080;margin-bottom:14px;line-height:1.6}
+
+/* SETTINGS OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.overlay-card{background:var(--s1);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px;border-top:1px solid var(--border)}
+.api-input{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:0.85rem;width:100%;margin:8px 0;font-family:'Courier New',monospace}
+.api-input:focus{outline:none;border-color:var(--green)}
+.settings-btn{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 8px}
+
+/* HUMAN FIGURE ANIMATIONS */
+@keyframes bench-rep{0%,100%{transform:translateY(0px)}45%{transform:translateY(-22px)}55%{transform:translateY(-22px)}}
+@keyframes squat-rep{0%,100%{transform:scaleY(1) translateY(0px)}45%{transform:scaleY(.72) translateY(16px)}55%{transform:scaleY(.72) translateY(16px)}}
+@keyframes pullup-rep{0%,100%{transform:translateY(12px)}45%{transform:translateY(-6px)}55%{transform:translateY(-6px)}}
+@keyframes press-rep{0%,100%{transform:translateY(0px)}45%{transform:translateY(-18px)}55%{transform:translateY(-18px)}}
+@keyframes curl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-80deg)}55%{transform:rotate(-80deg)}}
+@keyframes lateral-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-50deg)}55%{transform:rotate(-50deg)}}
+@keyframes lateral-rep-r{0%,100%{transform:rotate(0deg)}45%{transform:rotate(50deg)}55%{transform:rotate(50deg)}}
+@keyframes hinge-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-28deg)}55%{transform:rotate(-28deg)}}
+@keyframes legcurl-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(70deg)}55%{transform:rotate(70deg)}}
+@keyframes pushdown-rep{0%,100%{transform:rotate(0deg)}45%{transform:rotate(55deg)}55%{transform:rotate(55deg)}}
+@keyframes row-rep{0%,100%{transform:translateX(0)}45%{transform:translateX(-16px)}55%{transform:translateX(-16px)}}
+@keyframes deadbug-arm{0%,100%{transform:rotate(0deg)}45%{transform:rotate(70deg)}55%{transform:rotate(70deg)}}
+@keyframes deadbug-leg{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-70deg)}55%{transform:rotate(-70deg)}}
+.anim-bench-bar{animation:bench-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 90%}
+.anim-squat-body{animation:squat-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 55%}
+.anim-pull-body{animation:pullup-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 15%}
+.anim-press-bar{animation:press-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 90%}
+.anim-curl-arm{animation:curl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 8%}
+.anim-lat-l{animation:lateral-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 8%}
+.anim-lat-r{animation:lateral-rep-r 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 8%}
+.anim-hinge{animation:hinge-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 55%}
+.anim-legcurl{animation:legcurl-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-pushdown{animation:pushdown-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 5%}
+.anim-row{animation:row-rep 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 50%}
+.anim-db-arm{animation:deadbug-arm 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+.anim-db-leg{animation:deadbug-leg 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── AUDIO DING ───────────────────────────────────────────────────────────
+function playDing(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,.0],[1100,.13],[1320,.26]].forEach(([f,t])=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.frequency.value=f;o.type='sine';
+      g.gain.setValueAtTime(0,ac.currentTime+t);
+      g.gain.linearRampToValueAtTime(.35,ac.currentTime+t+.02);
+      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t+.45);
+      o.start(ac.currentTime+t);o.stop(ac.currentTime+t+.5);
+    });
+  }catch(e){}
+}
+
+// ─── SKIN / COLOURS ───────────────────────────────────────────────────────
+const SK='#d4956a', SH='#3a2510', SHT='#2f5fa8', SHTS='#1d3d70',
+      SHORT='#1f3a60', SHOE='#1a1a1a', BAR='#999', PLT='#555', PLT2='#444',
+      GY='#3a3a3a', FLR='#2a2a2a';
+
+// ─── HUMAN SVG ANIMATIONS ─────────────────────────────────────────────────
+const ANIM = {
+
+bench: `<svg viewBox="0 0 140 120" width="140" height="120">
+  <rect x="8" y="72" width="124" height="10" rx="4" fill="${GY}"/>
+  <rect x="14" y="82" width="6" height="22" rx="2" fill="${FLR}"/>
+  <rect x="120" y="82" width="6" height="22" rx="2" fill="${FLR}"/>
+  <!-- body on bench -->
+  <rect x="26" y="60" width="68" height="14" rx="6" fill="${SHT}"/>
+  <!-- head -->
+  <ellipse cx="105" cy="63" rx="12" ry="13" fill="${SK}"/>
+  <ellipse cx="105" cy="51" rx="12" ry="7" fill="${SH}"/>
+  <!-- legs bent down -->
+  <rect x="26" y="73" width="12" height="20" rx="5" fill="${SHORT}" transform="rotate(20,32,73)"/>
+  <ellipse cx="23" cy="92" rx="10" ry="6" fill="${SHOE}"/>
+  <!-- animated: arms + bar -->
+  <g class="anim-bench-bar">
+    <rect x="34" y="38" width="9" height="26" rx="4" fill="${SK}" transform="rotate(-8,38,51)"/>
+    <rect x="92" y="38" width="9" height="26" rx="4" fill="${SK}" transform="rotate(8,97,51)"/>
+    <rect x="20" y="34" width="100" height="7" rx="3" fill="${BAR}"/>
+    <rect x="12" y="28" width="10" height="18" rx="3" fill="${PLT}"/>
+    <rect x="9" y="30" width="5" height="14" rx="2" fill="${PLT2}"/>
+    <rect x="118" y="28" width="10" height="18" rx="3" fill="${PLT}"/>
+    <rect x="126" y="30" width="5" height="14" rx="2" fill="${PLT2}"/>
+  </g>
+</svg>`,
+
+squat: `<svg viewBox="0 0 120 130" width="120" height="130">
+  <rect x="20" y="118" width="80" height="6" rx="2" fill="${FLR}"/>
+  <g class="anim-squat-body">
+    <!-- bar on back -->
+    <rect x="14" y="30" width="92" height="6" rx="3" fill="${BAR}"/>
+    <rect x="6" y="24" width="10" height="18" rx="3" fill="${PLT}"/>
+    <rect x="3" y="26" width="5" height="14" rx="2" fill="${PLT2}"/>
+    <rect x="104" y="24" width="10" height="18" rx="3" fill="${PLT}"/>
+    <rect x="111" y="26" width="5" height="14" rx="2" fill="${PLT2}"/>
+    <!-- head -->
+    <ellipse cx="60" cy="18" rx="13" ry="14" fill="${SK}"/>
+    <ellipse cx="60" cy="6" rx="13" ry="8" fill="${SH}"/>
+    <!-- torso -->
+    <rect x="46" y="30" width="28" height="36" rx="7" fill="${SHT}"/>
+    <!-- upper arms -->
+    <rect x="28" y="30" width="18" height="10" rx="4" fill="${SK}"/>
+    <rect x="74" y="30" width="18" height="10" rx="4" fill="${SK}"/>
+    <!-- thighs -->
+    <rect x="40" y="64" width="16" height="30" rx="6" fill="${SHORT}" transform="rotate(-12,48,79)"/>
+    <rect x="64" y="64" width="16" height="30" rx="6" fill="${SHORT}" transform="rotate(12,72,79)"/>
+    <!-- shins -->
+    <rect x="34" y="88" width="14" height="28" rx="5" fill="${SHORT}" transform="rotate(12,41,102)"/>
+    <rect x="72" y="88" width="14" height="28" rx="5" fill="${SHORT}" transform="rotate(-12,79,102)"/>
+    <!-- shoes -->
+    <ellipse cx="38" cy="116" rx="12" ry="6" fill="${SHOE}"/>
+    <ellipse cx="82" cy="116" rx="12" ry="6" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+pull: `<svg viewBox="0 0 120 140" width="120" height="140">
+  <rect x="10" y="10" width="100" height="8" rx="3" fill="${GY}"/>
+  <rect x="50" y="6" width="20" height="6" rx="2" fill="${FLR}"/>
+  <g class="anim-pull-body">
+    <!-- hands gripping bar -->
+    <ellipse cx="36" cy="24" rx="7" ry="5" fill="${SK}"/>
+    <ellipse cx="84" cy="24" rx="7" ry="5" fill="${SK}"/>
+    <!-- upper arms -->
+    <rect x="30" y="22" width="12" height="28" rx="5" fill="${SK}" transform="rotate(-15,36,36)"/>
+    <rect x="78" y="22" width="12" height="28" rx="5" fill="${SK}" transform="rotate(15,84,36)"/>
+    <!-- head -->
+    <ellipse cx="60" cy="44" rx="13" ry="14" fill="${SK}"/>
+    <ellipse cx="60" cy="31" rx="13" ry="8" fill="${SH}"/>
+    <!-- torso -->
+    <rect x="46" y="56" width="28" height="38" rx="7" fill="${SHT}"/>
+    <!-- lower arms -->
+    <rect x="32" y="42" width="10" height="18" rx="4" fill="${SK}" transform="rotate(-8,37,51)"/>
+    <rect x="78" y="42" width="10" height="18" rx="4" fill="${SK}" transform="rotate(8,83,51)"/>
+    <!-- thighs angled back -->
+    <rect x="44" y="92" width="14" height="30" rx="5" fill="${SHORT}" transform="rotate(15,51,107)"/>
+    <rect x="62" y="92" width="14" height="30" rx="5" fill="${SHORT}" transform="rotate(-15,69,107)"/>
+    <!-- lower legs crossed back -->
+    <rect x="46" y="116" width="12" height="24" rx="4" fill="${SHORT}" transform="rotate(25,52,128)"/>
+    <rect x="62" y="116" width="12" height="24" rx="4" fill="${SHORT}" transform="rotate(-25,68,128)"/>
+  </g>
+</svg>`,
+
+'shoulder-press': `<svg viewBox="0 0 130 150" width="130" height="150">
+  <!-- seated bench -->
+  <rect x="30" y="110" width="70" height="8" rx="3" fill="${GY}"/>
+  <rect x="36" y="118" width="8" height="20" rx="2" fill="${FLR}"/>
+  <rect x="86" y="118" width="8" height="20" rx="2" fill="${FLR}"/>
+  <!-- legs -->
+  <rect x="38" y="110" width="18" height="26" rx="6" fill="${SHORT}"/>
+  <rect x="74" y="110" width="18" height="26" rx="6" fill="${SHORT}"/>
+  <ellipse cx="47" cy="136" rx="12" ry="6" fill="${SHOE}"/>
+  <ellipse cx="83" cy="136" rx="12" ry="6" fill="${SHOE}"/>
+  <!-- torso -->
+  <rect x="46" y="70" width="38" height="42" rx="8" fill="${SHT}"/>
+  <!-- head -->
+  <ellipse cx="65" cy="56" rx="14" ry="15" fill="${SK}"/>
+  <ellipse cx="65" cy="42" rx="14" ry="9" fill="${SH}"/>
+  <!-- upper arms static -->
+  <rect x="30" y="72" width="18" height="12" rx="5" fill="${SK}"/>
+  <rect x="82" y="72" width="18" height="12" rx="5" fill="${SK}"/>
+  <!-- animated: forearms + bar -->
+  <g class="anim-press-bar">
+    <rect x="26" y="58" width="12" height="20" rx="4" fill="${SK}" transform="rotate(-8,32,68)"/>
+    <rect x="92" y="58" width="12" height="20" rx="4" fill="${SK}" transform="rotate(8,98,68)"/>
+    <rect x="18" y="54" width="94" height="7" rx="3" fill="${BAR}"/>
+    <rect x="9" y="48" width="11" height="19" rx="3" fill="${PLT}"/>
+    <rect x="6" y="50" width="5" height="15" rx="2" fill="${PLT2}"/>
+    <rect x="110" y="48" width="11" height="19" rx="3" fill="${PLT}"/>
+    <rect x="115" y="50" width="5" height="15" rx="2" fill="${PLT2}"/>
+  </g>
+</svg>`,
+
+'hip-thrust': `<svg viewBox="0 0 160 120" width="160" height="120">
+  <!-- floor -->
+  <rect x="0" y="108" width="160" height="6" rx="0" fill="${FLR}"/>
+  <!-- bench -->
+  <rect x="8" y="62" width="36" height="12" rx="4" fill="${GY}"/>
+  <rect x="12" y="74" width="6" height="20" rx="2" fill="${FLR}"/>
+  <rect x="30" y="74" width="6" height="20" rx="2" fill="${FLR}"/>
+  <g class="anim-hinge">
+    <!-- torso against bench -->
+    <rect x="10" y="46" width="42" height="18" rx="7" fill="${SHT}"/>
+    <!-- head -->
+    <ellipse cx="58" cy="49" rx="13" ry="14" fill="${SK}"/>
+    <ellipse cx="60" cy="36" rx="13" ry="8" fill="${SH}"/>
+    <!-- hips/pelvis -->
+    <ellipse cx="52" cy="62" rx="14" ry="10" fill="${SHORT}"/>
+    <!-- barbell over hips -->
+    <rect x="50" y="56" width="80" height="7" rx="3" fill="${BAR}"/>
+    <rect x="126" y="50" width="10" height="18" rx="3" fill="${PLT}"/>
+    <rect x="134" y="52" width="5" height="14" rx="2" fill="${PLT2}"/>
+    <!-- upper thighs -->
+    <rect x="44" y="70" width="18" height="24" rx="7" fill="${SHORT}" transform="rotate(-20,53,82)"/>
+    <rect x="68" y="70" width="18" height="24" rx="7" fill="${SHORT}" transform="rotate(8,77,82)"/>
+    <!-- shins vertical from floor -->
+    <rect x="38" y="88" width="14" height="26" rx="5" fill="${SHORT}"/>
+    <rect x="70" y="84" width="14" height="28" rx="5" fill="${SHORT}"/>
+    <!-- feet -->
+    <ellipse cx="45" cy="108" rx="13" ry="6" fill="${SHOE}"/>
+    <ellipse cx="77" cy="108" rx="13" ry="6" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+curl: `<svg viewBox="0 0 120 150" width="120" height="150">
+  <!-- floor -->
+  <rect x="0" y="138" width="120" height="6" rx="0" fill="${FLR}"/>
+  <!-- head -->
+  <ellipse cx="60" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="60" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <!-- torso -->
+  <rect x="46" y="30" width="28" height="44" rx="7" fill="${SHT}"/>
+  <!-- legs -->
+  <rect x="46" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <rect x="62" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="50" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <ellipse cx="72" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <!-- static right arm -->
+  <rect x="72" y="38" width="12" height="22" rx="5" fill="${SK}"/>
+  <rect x="72" y="60" width="12" height="22" rx="5" fill="${SK}" transform="rotate(-8,78,71)"/>
+  <!-- dumbbell right -->
+  <rect x="68" y="80" width="20" height="7" rx="3" fill="${BAR}"/>
+  <rect x="64" y="78" width="6" height="11" rx="2" fill="${PLT}"/>
+  <rect x="86" y="78" width="6" height="11" rx="2" fill="${PLT}"/>
+  <!-- animated left arm -->
+  <rect x="36" y="38" width="12" height="22" rx="5" fill="${SK}"/>
+  <g class="anim-curl-arm" style="transform-origin:42px 62px">
+    <rect x="36" y="60" width="12" height="24" rx="5" fill="${SK}"/>
+    <!-- dumbbell -->
+    <rect x="28" y="82" width="24" height="7" rx="3" fill="${BAR}"/>
+    <rect x="24" y="80" width="6" height="11" rx="2" fill="${PLT}"/>
+    <rect x="48" y="80" width="6" height="11" rx="2" fill="${PLT}"/>
+  </g>
+</svg>`,
+
+lateral: `<svg viewBox="0 0 160 150" width="160" height="150">
+  <rect x="0" y="138" width="160" height="6" rx="0" fill="${FLR}"/>
+  <ellipse cx="80" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="80" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <rect x="66" y="30" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="66" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <rect x="82" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="73" cy="108" rx="13" ry="6" fill="${SHOE}"/>
+  <ellipse cx="93" cy="108" rx="13" ry="6" fill="${SHOE}"/>
+  <!-- left arm animated -->
+  <g class="anim-lat-l" style="transform-origin:78px 44px">
+    <rect x="52" y="36" width="26" height="12" rx="5" fill="${SK}"/>
+    <rect x="30" y="36" width="10" height="16" rx="4" fill="${BAR}"/>
+    <ellipse cx="26" cy="43" rx="8" ry="5" fill="${PLT}"/>
+  </g>
+  <!-- right arm animated -->
+  <g class="anim-lat-r" style="transform-origin:82px 44px">
+    <rect x="82" y="36" width="26" height="12" rx="5" fill="${SK}"/>
+    <rect x="100" y="36" width="10" height="16" rx="4" fill="${BAR}"/>
+    <ellipse cx="114" cy="43" rx="8" ry="5" fill="${PLT}"/>
+  </g>
+</svg>`,
+
+row: `<svg viewBox="0 0 160 130" width="160" height="130">
+  <!-- cable machine suggestion -->
+  <rect x="136" y="10" width="16" height="100" rx="4" fill="${GY}"/>
+  <rect x="140" y="55" width="8" height="8" rx="2" fill="${PLT}"/>
+  <!-- floor -->
+  <rect x="0" y="118" width="160" height="6" rx="0" fill="${FLR}"/>
+  <!-- seated person -->
+  <rect x="20" y="78" width="54" height="8" rx="3" fill="${GY}"/>
+  <!-- torso at 45° angle -->
+  <rect x="28" y="44" width="26" height="36" rx="7" fill="${SHT}" transform="rotate(0,41,62)"/>
+  <ellipse cx="40" cy="30" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="40" cy="17" rx="13" ry="8" fill="${SH}"/>
+  <!-- seated legs -->
+  <rect x="24" y="80" width="20" height="14" rx="5" fill="${SHORT}"/>
+  <rect x="24" y="92" width="14" height="26" rx="5" fill="${SHORT}"/>
+  <ellipse cx="30" cy="118" rx="14" ry="6" fill="${SHOE}"/>
+  <!-- static upper arm -->
+  <rect x="58" y="52" width="14" height="10" rx="4" fill="${SK}"/>
+  <!-- animated forearm + cable handle -->
+  <g class="anim-row" style="transform-origin:58px 57px">
+    <rect x="60" y="52" width="34" height="10" rx="4" fill="${SK}"/>
+    <rect x="94" y="50" width="14" height="14" rx="4" fill="${PLT}"/>
+    <line x1="108" y1="57" x2="144" y2="57" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+  </g>
+</svg>`,
+
+'leg-curl': `<svg viewBox="0 0 150 110" width="150" height="110">
+  <!-- machine -->
+  <rect x="10" y="36" width="70" height="10" rx="4" fill="${GY}"/>
+  <rect x="14" y="46" width="10" height="48" rx="3" fill="${GY}"/>
+  <rect x="62" y="46" width="10" height="48" rx="3" fill="${GY}"/>
+  <!-- pad under thighs -->
+  <rect x="20" y="34" width="60" height="8" rx="3" fill="${PLT}"/>
+  <!-- person lying face down -->
+  <rect x="28" y="22" width="58" height="14" rx="6" fill="${SHT}"/>
+  <ellipse cx="94" cy="24" rx="12" ry="13" fill="${SK}"/>
+  <ellipse cx="97" cy="12" rx="11" ry="7" fill="${SH}"/>
+  <!-- thighs on pad -->
+  <rect x="24" y="34" width="26" height="14" rx="5" fill="${SHORT}"/>
+  <rect x="56" y="34" width="26" height="14" rx="5" fill="${SHORT}"/>
+  <!-- animated lower legs -->
+  <g class="anim-legcurl" style="transform-origin:37px 48px">
+    <rect x="30" y="46" width="14" height="32" rx="5" fill="${SHORT}"/>
+    <ellipse cx="37" cy="80" rx="10" ry="6" fill="${SHOE}"/>
+  </g>
+  <g class="anim-legcurl" style="transform-origin:69px 48px;animation-delay:.1s">
+    <rect x="62" y="46" width="14" height="32" rx="5" fill="${SHORT}"/>
+    <ellipse cx="69" cy="80" rx="10" ry="6" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+'dead-bug': `<svg viewBox="0 0 160 100" width="160" height="100">
+  <rect x="0" y="88" width="160" height="8" rx="0" fill="${FLR}"/>
+  <!-- torso on floor -->
+  <rect x="44" y="56" width="72" height="18" rx="7" fill="${SHT}"/>
+  <!-- head -->
+  <ellipse cx="124" cy="58" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="126" cy="45" rx="12" ry="8" fill="${SH}"/>
+  <!-- thighs up (90°) -->
+  <rect x="58" y="36" width="14" height="26" rx="5" fill="${SHORT}"/>
+  <rect x="80" y="36" width="14" height="26" rx="5" fill="${SHORT}"/>
+  <!-- shins horizontal -->
+  <rect x="42" y="26" width="26" height="12" rx="4" fill="${SHORT}"/>
+  <rect x="80" y="26" width="26" height="12" rx="4" fill="${SHORT}"/>
+  <!-- animated arm (extends overhead) -->
+  <g class="anim-db-arm" style="transform-origin:52px 56px">
+    <rect x="46" y="32" width="12" height="28" rx="5" fill="${SK}" transform="rotate(-12,52,46)"/>
+  </g>
+  <!-- animated opposite leg -->
+  <g class="anim-db-leg" style="transform-origin:72px 60px">
+    <rect x="66" y="60" width="14" height="26" rx="5" fill="${SHORT}"/>
+    <ellipse cx="73" cy="88" rx="12" ry="6" fill="${SHOE}"/>
+  </g>
+  <!-- static arm -->
+  <rect x="100" y="30" width="12" height="28" rx="5" fill="${SK}" transform="rotate(10,106,44)"/>
+</svg>`,
+
+pushdown: `<svg viewBox="0 0 130 150" width="130" height="150">
+  <!-- cable stack -->
+  <rect x="106" y="6" width="18" height="80" rx="4" fill="${GY}"/>
+  <rect x="110" y="30" width="10" height="10" rx="2" fill="${PLT}"/>
+  <line x1="115" y1="40" x2="90" y2="56" stroke="#888" stroke-width="2" stroke-dasharray="3,3"/>
+  <rect x="0" y="138" width="130" height="6" rx="0" fill="${FLR}"/>
+  <ellipse cx="58" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="58" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <rect x="44" y="30" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="44" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <rect x="60" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="50" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <ellipse cx="72" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <!-- upper arms static, elbows pinned -->
+  <rect x="36" y="38" width="10" height="20" rx="4" fill="${SK}"/>
+  <rect x="72" y="38" width="10" height="20" rx="4" fill="${SK}"/>
+  <!-- forearms animated down -->
+  <g class="anim-pushdown" style="transform-origin:41px 58px">
+    <rect x="36" y="56" width="10" height="28" rx="4" fill="${SK}"/>
+  </g>
+  <g class="anim-pushdown" style="transform-origin:77px 58px">
+    <rect x="72" y="56" width="10" height="28" rx="4" fill="${SK}"/>
+    <!-- rope handle -->
+    <rect x="62" y="82" width="30" height="6" rx="3" fill="${PLT}"/>
+    <rect x="58" y="86" width="8" height="10" rx="2" fill="${PLT}"/>
+    <rect x="86" y="86" width="8" height="10" rx="2" fill="${PLT}"/>
+  </g>
+</svg>`,
+
+'pull-through': `<svg viewBox="0 0 160 140" width="160" height="140">
+  <!-- cable low pulley -->
+  <rect x="130" y="108" width="22" height="16" rx="4" fill="${GY}"/>
+  <ellipse cx="141" cy="116" rx="8" ry="8" fill="${PLT}"/>
+  <!-- floor -->
+  <rect x="0" y="128" width="160" height="8" rx="0" fill="${FLR}"/>
+  <g class="anim-hinge" style="transform-origin:50px 70px">
+    <!-- torso hinged forward -->
+    <rect x="32" y="44" width="26" height="40" rx="7" fill="${SHT}" transform="rotate(-40,45,64)"/>
+    <!-- head -->
+    <ellipse cx="62" cy="30" rx="13" ry="13" fill="${SK}"/>
+    <ellipse cx="65" cy="18" rx="12" ry="7" fill="${SH}"/>
+    <!-- arms reaching through legs toward cable -->
+    <rect x="40" y="68" width="12" height="34" rx="5" fill="${SK}" transform="rotate(30,46,85)"/>
+    <rect x="54" y="68" width="12" height="34" rx="5" fill="${SK}" transform="rotate(30,60,85)"/>
+    <!-- rope handle -->
+    <rect x="72" y="96" width="30" height="7" rx="3" fill="${PLT}"/>
+    <!-- cable line -->
+    <line x1="102" y1="100" x2="132" y2="116" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+  </g>
+  <!-- thighs -->
+  <rect x="36" y="84" width="16" height="32" rx="6" fill="${SHORT}"/>
+  <rect x="60" y="84" width="16" height="32" rx="6" fill="${SHORT}"/>
+  <!-- feet -->
+  <ellipse cx="44" cy="120" rx="14" ry="6" fill="${SHOE}"/>
+  <ellipse cx="68" cy="120" rx="14" ry="6" fill="${SHOE}"/>
+</svg>`,
+
+'face-pull': `<svg viewBox="0 0 160 140" width="160" height="140">
+  <!-- cable machine -->
+  <rect x="130" y="10" width="22" height="100" rx="4" fill="${GY}"/>
+  <rect x="135" y="44" width="12" height="10" rx="2" fill="${PLT}"/>
+  <!-- floor -->
+  <rect x="0" y="128" width="160" height="8" rx="0" fill="${FLR}"/>
+  <ellipse cx="50" cy="26" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="50" cy="13" rx="13" ry="8" fill="${SH}"/>
+  <rect x="36" y="38" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="36" y="80" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <rect x="52" y="80" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="43" cy="116" rx="12" ry="6" fill="${SHOE}"/>
+  <ellipse cx="65" cy="116" rx="12" ry="6" fill="${SHOE}"/>
+  <!-- animated arms pulling rope to face -->
+  <g class="anim-row" style="transform-origin:60px 48px">
+    <rect x="60" y="40" width="36" height="12" rx="5" fill="${SK}"/>
+    <rect x="96" y="38" width="12" height="16" rx="4" fill="${SK}"/>
+    <!-- rope -->
+    <rect x="106" y="42" width="26" height="5" rx="2" fill="${PLT}" style="transform-origin:106px 45px"/>
+    <line x1="132" y1="45" x2="141" y2="50" stroke="#888" stroke-width="2" stroke-dasharray="3,3"/>
+  </g>
+</svg>`,
+
+'bird-dog': `<svg viewBox="0 0 180 110" width="180" height="110">
+  <rect x="0" y="98" width="180" height="8" rx="0" fill="${FLR}"/>
+  <!-- person on all fours -->
+  <!-- torso horizontal -->
+  <rect x="52" y="44" width="72" height="16" rx="7" fill="${SHT}"/>
+  <!-- head -->
+  <ellipse cx="132" cy="44" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="134" cy="31" rx="12" ry="7" fill="${SH}"/>
+  <!-- static supporting limbs -->
+  <rect x="82" y="58" width="14" height="26" rx="5" fill="${SHORT}"/>
+  <ellipse cx="89" cy="86" rx="12" ry="7" fill="${SHOE}"/>
+  <rect x="112" y="56" width="12" height="14" rx="5" fill="${SK}"/>
+  <!-- animated arm extends forward -->
+  <g class="anim-db-arm" style="transform-origin:54px 52px">
+    <rect x="28" y="46" width="28" height="12" rx="5" fill="${SK}"/>
+  </g>
+  <!-- animated opposite leg extends back -->
+  <g class="anim-db-leg" style="transform-origin:58px 60px">
+    <rect x="30" y="56" width="30" height="14" rx="6" fill="${SHORT}"/>
+    <ellipse cx="23" cy="62" rx="10" ry="6" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+'single-leg-rdl': `<svg viewBox="0 0 130 150" width="130" height="150">
+  <rect x="0" y="138" width="130" height="6" rx="0" fill="${FLR}"/>
+  <g class="anim-hinge" style="transform-origin:60px 76px">
+    <!-- torso hinging forward -->
+    <rect x="40" y="36" width="26" height="44" rx="7" fill="${SHT}" transform="rotate(-20,53,58)"/>
+    <!-- head -->
+    <ellipse cx="74" cy="24" rx="13" ry="14" fill="${SK}"/>
+    <ellipse cx="76" cy="11" rx="12" ry="8" fill="${SH}"/>
+    <!-- arm with dumbbell -->
+    <rect x="36" y="62" width="12" height="32" rx="5" fill="${SK}" transform="rotate(-20,42,78)"/>
+    <rect x="22" y="88" width="24" height="8" rx="3" fill="${BAR}" transform="rotate(-20,34,92)"/>
+    <ellipse cx="16" cy="86" rx="7" ry="5" fill="${PLT}" transform="rotate(-20,23,90)"/>
+    <ellipse cx="48" cy="96" rx="7" ry="5" fill="${PLT}" transform="rotate(-20,42,100)"/>
+    <!-- leg extending back -->
+    <rect x="56" y="76" width="16" height="40" rx="6" fill="${SHORT}" transform="rotate(25,64,96)"/>
+  </g>
+  <!-- standing leg -->
+  <rect x="54" y="80" width="16" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="62" cy="118" rx="16" ry="7" fill="${SHOE}"/>
+</svg>`,
+
+'leg-press': `<svg viewBox="0 0 160 130" width="160" height="130">
+  <!-- machine frame -->
+  <rect x="90" y="10" width="60" height="80" rx="6" fill="${GY}"/>
+  <!-- sliding platform -->
+  <rect x="90" y="44" width="60" height="16" rx="3" fill="${PLT}"/>
+  <!-- person reclined -->
+  <rect x="20" y="62" width="70" height="14" rx="6" fill="${SHT}" transform="rotate(-20,55,69)"/>
+  <ellipse cx="14" cy="52" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="12" cy="39" rx="12" ry="8" fill="${SH}"/>
+  <!-- animated legs pressing platform -->
+  <g class="anim-squat-body" style="transform-origin:86px 52px">
+    <rect x="64" y="40" width="18" height="32" rx="7" fill="${SHORT}" transform="rotate(-30,73,56)"/>
+    <rect x="78" y="40" width="18" height="32" rx="7" fill="${SHORT}" transform="rotate(-20,87,56)"/>
+    <ellipse cx="92" cy="52" rx="12" ry="12" fill="${SHOE}"/>
+    <ellipse cx="104" cy="48" rx="12" ry="12" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+'split-squat': `<svg viewBox="0 0 130 150" width="130" height="150">
+  <!-- rear bench for foot -->
+  <rect x="76" y="76" width="46" height="10" rx="4" fill="${GY}"/>
+  <rect x="80" y="86" width="8" height="22" rx="2" fill="${FLR}"/>
+  <rect x="108" y="86" width="8" height="22" rx="2" fill="${FLR}"/>
+  <!-- floor -->
+  <rect x="0" y="132" width="130" height="6" rx="0" fill="${FLR}"/>
+  <!-- person -->
+  <ellipse cx="55" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="55" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <g class="anim-squat-body" style="transform-origin:55px 58px">
+    <rect x="41" y="30" width="28" height="42" rx="7" fill="${SHT}"/>
+    <!-- dumbbells -->
+    <rect x="28" y="52" width="14" height="28" rx="5" fill="${SK}"/>
+    <rect x="20" y="74" width="20" height="7" rx="3" fill="${BAR}"/>
+    <rect x="14" y="72" width="7" height="11" rx="2" fill="${PLT}"/>
+    <rect x="36" y="72" width="7" height="11" rx="2" fill="${PLT}"/>
+    <rect x="76" y="52" width="14" height="28" rx="5" fill="${SK}"/>
+    <rect x="72" y="74" width="20" height="7" rx="3" fill="${BAR}"/>
+    <rect x="68" y="72" width="7" height="11" rx="2" fill="${PLT}"/>
+    <rect x="88" y="72" width="7" height="11" rx="2" fill="${PLT}"/>
+    <!-- front leg -->
+    <rect x="42" y="70" width="16" height="34" rx="6" fill="${SHORT}"/>
+    <rect x="38" y="100" width="14" height="30" rx="5" fill="${SHORT}" transform="rotate(-5,45,115)"/>
+    <ellipse cx="44" cy="130" rx="16" ry="7" fill="${SHOE}"/>
+    <!-- rear leg up on bench -->
+    <rect x="60" y="70" width="16" height="30" rx="6" fill="${SHORT}" transform="rotate(20,68,85)"/>
+    <rect x="76" y="68" width="14" height="12" rx="5" fill="${SHORT}"/>
+  </g>
+</svg>`,
+
+'leg-ext': `<svg viewBox="0 0 150 130" width="150" height="130">
+  <!-- machine seat -->
+  <rect x="60" y="56" width="82" height="14" rx="5" fill="${GY}"/>
+  <rect x="66" y="70" width="10" height="44" rx="3" fill="${GY}"/>
+  <rect x="126" y="70" width="10" height="44" rx="3" fill="${GY}"/>
+  <!-- pad in front of shins -->
+  <rect x="20" y="92" width="52" height="10" rx="4" fill="${PLT}"/>
+  <!-- person seated -->
+  <ellipse cx="94" cy="24" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="94" cy="11" rx="13" ry="8" fill="${SH}"/>
+  <rect x="78" y="36" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="78" y="56" width="14" height="16" rx="5" fill="${SHORT}"/>
+  <rect x="94" y="56" width="14" height="16" rx="5" fill="${SHORT}"/>
+  <!-- animated lower legs extending -->
+  <g class="anim-curl-arm" style="transform-origin:85px 72px;animation-direction:reverse">
+    <rect x="72" y="70" width="14" height="34" rx="5" fill="${SHORT}"/>
+    <ellipse cx="79" cy="106" rx="12" ry="6" fill="${SHOE}"/>
+  </g>
+  <g class="anim-curl-arm" style="transform-origin:101px 72px;animation-direction:reverse;animation-delay:.05s">
+    <rect x="94" y="70" width="14" height="34" rx="5" fill="${SHORT}"/>
+    <ellipse cx="101" cy="106" rx="12" ry="6" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+calf: `<svg viewBox="0 0 120 150" width="120" height="150">
+  <!-- platform edge -->
+  <rect x="24" y="106" width="72" height="10" rx="3" fill="${GY}"/>
+  <rect x="20" y="116" width="80" height="20" rx="3" fill="${FLR}"/>
+  <ellipse cx="60" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="60" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <rect x="46" y="30" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="46" y="72" width="14" height="34" rx="6" fill="${SHORT}"/>
+  <rect x="62" y="72" width="14" height="34" rx="6" fill="${SHORT}"/>
+  <!-- animated calves + heels rising -->
+  <g class="anim-curl-arm" style="transform-origin:53px 106px;animation-name:curl-rep">
+    <rect x="44" y="104" width="14" height="14" rx="4" fill="${SHOE}"/>
+    <rect x="44" y="112" width="24" height="8" rx="3" fill="${SHOE}"/>
+  </g>
+  <g class="anim-curl-arm" style="transform-origin:69px 106px;animation-name:curl-rep;animation-delay:.05s">
+    <rect x="62" y="104" width="14" height="14" rx="4" fill="${SHOE}"/>
+    <rect x="56" y="112" width="24" height="8" rx="3" fill="${SHOE}"/>
+  </g>
+</svg>`,
+
+'overhead-ext': `<svg viewBox="0 0 120 150" width="120" height="150">
+  <rect x="0" y="138" width="120" height="6" rx="0" fill="${FLR}"/>
+  <ellipse cx="60" cy="18" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="60" cy="6" rx="13" ry="8" fill="${SH}"/>
+  <rect x="46" y="30" width="28" height="44" rx="7" fill="${SHT}"/>
+  <rect x="46" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <rect x="62" y="72" width="14" height="36" rx="6" fill="${SHORT}"/>
+  <ellipse cx="50" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <ellipse cx="72" cy="108" rx="12" ry="6" fill="${SHOE}"/>
+  <!-- upper arms above head, static -->
+  <rect x="50" y="20" width="10" height="22" rx="4" fill="${SK}"/>
+  <rect x="62" y="20" width="10" height="22" rx="4" fill="${SK}"/>
+  <!-- animated forearms hinge at elbow -->
+  <g class="anim-curl-arm" style="transform-origin:55px 42px">
+    <rect x="50" y="40" width="10" height="24" rx="4" fill="${SK}"/>
+    <rect x="46" y="62" width="28" height="7" rx="3" fill="${BAR}"/>
+    <rect x="38" y="59" width="8" height="13" rx="2" fill="${PLT}"/>
+    <rect x="74" y="59" width="8" height="13" rx="2" fill="${PLT}"/>
+  </g>
+</svg>`,
+
+'hammer-curl': `<svg viewBox="0 0 130 150" width="130" height="150">
+  <!-- incline bench -->
+  <rect x="52" y="54" width="70" height="70" rx="8" fill="${GY}" transform="rotate(-40,87,89)"/>
+  <rect x="0" y="138" width="130" height="6" rx="0" fill="${FLR}"/>
+  <!-- person on incline -->
+  <ellipse cx="30" cy="32" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="28" cy="19" rx="12" ry="8" fill="${SH}"/>
+  <rect x="34" y="42" width="28" height="44" rx="7" fill="${SHT}" transform="rotate(-40,48,64)"/>
+  <!-- static arm -->
+  <rect x="60" y="60" width="12" height="26" rx="5" fill="${SK}" transform="rotate(-40,66,73)"/>
+  <rect x="56" y="84" width="20" height="7" rx="3" fill="${BAR}" transform="rotate(-40,66,88)"/>
+  <rect x="50" y="82" width="7" height="11" rx="2" fill="${PLT}" transform="rotate(-40,54,88)"/>
+  <rect x="72" y="82" width="7" height="11" rx="2" fill="${PLT}" transform="rotate(-40,76,88)"/>
+  <!-- animated arm -->
+  <g class="anim-curl-arm" style="transform-origin:28px 64px">
+    <rect x="22" y="62" width="12" height="28" rx="5" fill="${SK}"/>
+    <rect x="16" y="88" width="24" height="7" rx="3" fill="${BAR}"/>
+    <rect x="10" y="86" width="7" height="11" rx="2" fill="${PLT}"/>
+    <rect x="30" y="86" width="7" height="11" rx="2" fill="${PLT}"/>
+  </g>
+</svg>`,
+
+'cable-row': `<svg viewBox="0 0 160 130" width="160" height="130">
+  <rect x="128" y="10" width="24" height="100" rx="4" fill="${GY}"/>
+  <rect x="132" y="52" width="14" height="12" rx="3" fill="${PLT}"/>
+  <rect x="0" y="118" width="160" height="6" rx="0" fill="${FLR}"/>
+  <!-- seated figure -->
+  <rect x="24" y="78" width="56" height="10" rx="4" fill="${GY}"/>
+  <ellipse cx="44" cy="28" rx="13" ry="14" fill="${SK}"/>
+  <ellipse cx="44" cy="15" rx="13" ry="8" fill="${SH}"/>
+  <rect x="30" y="40" width="28" height="40" rx="7" fill="${SHT}"/>
+  <rect x="28" y="78" width="18" height="14" rx="5" fill="${SHORT}"/>
+  <rect x="50" y="78" width="18" height="14" rx="5" fill="${SHORT}"/>
+  <rect x="22" y="90" width="20" height="28" rx="5" fill="${SHORT}"/>
+  <rect x="50" y="90" width="20" height="28" rx="5" fill="${SHORT}"/>
+  <ellipse cx="32" cy="118" rx="14" ry="6" fill="${SHOE}"/>
+  <ellipse cx="60" cy="118" rx="14" ry="6" fill="${SHOE}"/>
+  <!-- animated arms pulling cable -->
+  <g class="anim-row" style="transform-origin:56px 58px">
+    <rect x="56" y="50" width="38" height="12" rx="5" fill="${SK}"/>
+    <rect x="94" y="48" width="16" height="16" rx="4" fill="${PLT}"/>
+    <line x1="110" y1="56" x2="134" y2="58" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+  </g>
+</svg>`
+};
+
+// ─── WORKOUT DATA ──────────────────────────────────────────────────────────
+const WK={
+  A:{name:"Upper Push",color:"#4a90d9",tag:"Chest · Shoulders · Triceps",exercises:[
+    {id:"bench",name:"Barbell Bench Press",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Chest","Front Delt","Triceps"],cue:"Retract scapula, slight arch, feet drive into floor. Bar to lower chest. Elbows 45–70°.",anim:"bench",yt:"barbell+bench+press+proper+form+tutorial"},
+    {id:"incline-db",name:"Incline Dumbbell Press",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Upper Chest","Front Delt","Triceps"],cue:"30–45° incline. 3 sec eccentric. Full stretch at bottom. Don't let DBs crash at top.",anim:"bench",yt:"incline+dumbbell+press+form+tutorial"},
+    {id:"seated-press",name:"Seated DB Shoulder Press",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Side Delt","Front Delt","Triceps"],cue:"Back supported. Start at ear height. Core braced. Full lockout without shrugging.",anim:"shoulder-press",yt:"seated+dumbbell+shoulder+press+form+tutorial"},
+    {id:"cable-lateral",name:"Cable Lateral Raise",type:"Isolation",sets:4,lo:15,hi:20,rest:60,muscles:["Side Delt"],cue:"Cable low, slight lean. Lead with elbow, thumb pointing down. No shrugging.",anim:"lateral",yt:"cable+lateral+raise+side+delt+form"},
+    {id:"rope-pushdown",name:"Tricep Rope Pushdown",type:"Isolation",sets:3,lo:12,hi:15,rest:60,muscles:["Triceps"],cue:"Elbows pinned to sides. Flare rope out at full extension. Slow return.",anim:"pushdown",yt:"tricep+rope+pushdown+form+tutorial"},
+    {id:"oh-ext",name:"Overhead Cable Tricep Extension",type:"Isolation",sets:2,lo:15,hi:15,rest:60,muscles:["Triceps Long Head"],cue:"Arms overhead. Stretch behind skull. Stand upright. Elbows stay in.",anim:"overhead-ext",yt:"overhead+cable+tricep+extension+form"}
+  ]},
+  B:{name:"Lower Quad",color:"#f0a030",tag:"Quads · Glutes · Calves",injuryNote:"⚠️ If squat causes lower back pain → switch to Hack Squat machine",exercises:[
+    {id:"squat",name:"Back Squat (High Bar)",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Quads","Glutes","Hamstrings"],cue:"360° brace. Knees track toes. At or below parallel. Drive knees OUT on ascent. If back aches → hack squat.",anim:"squat",yt:"high+bar+back+squat+form+tutorial"},
+    {id:"leg-press",name:"Leg Press (feet high/wide)",type:"Secondary compound",sets:3,lo:10,hi:12,rest:120,muscles:["Quads","Glutes"],cue:"High foot placement = more glutes. Don't let lower back curl off pad. Controlled descent.",anim:"leg-press",yt:"leg+press+high+foot+placement+glutes+form"},
+    {id:"bss",name:"Bulgarian Split Squat (DB)",type:"Unilateral",sets:3,lo:10,hi:10,rest:90,muscles:["Quads","Glutes","Hip Flexors"],cue:"Rear foot elevated. Front shin vertical. Feel the glute stretch at bottom.",anim:"split-squat",yt:"bulgarian+split+squat+form+tutorial"},
+    {id:"leg-ext",name:"Leg Extension (Machine)",type:"Isolation",sets:3,lo:15,hi:15,rest:60,muscles:["Quads","VMO"],cue:"2-sec hold at top. Toes slightly inward for VMO. Full extension, no hyperextension.",anim:"leg-ext",yt:"leg+extension+machine+form+VMO"},
+    {id:"calf-stand",name:"Standing Calf Raise",type:"Isolation",sets:4,lo:20,hi:20,rest:45,muscles:["Gastrocnemius"],cue:"Full stretch at bottom (1 sec). Full squeeze at top (1 sec). No bouncing.",anim:"calf",yt:"standing+calf+raise+form+gastrocnemius"},
+    {id:"dead-bug",name:"Dead Bug (Core Rehab)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Lower back FLAT on floor. Breathe out as you extend. Slow and controlled. Medicine for your back.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"}
+  ]},
+  C:{name:"Upper Pull",color:"#1D9E75",tag:"Back · Biceps · Rear Delts",exercises:[
+    {id:"pull-up",name:"Weighted Pull-Up / Lat Pulldown",type:"Primary compound",sets:4,lo:6,hi:8,rest:180,muscles:["Lats","Rhomboids","Biceps"],cue:"Dead hang start. Depress scapula BEFORE pulling. Drive elbows to hips. Chest to bar.",anim:"pull",yt:"weighted+pull+up+lat+pulldown+form+tutorial"},
+    {id:"cs-row",name:"Chest-Supported Row (Wk 1–2) → BB Row",type:"Secondary compound",sets:3,lo:10,hi:12,rest:120,muscles:["Rhomboids","Lats","Rear Delt","Biceps"],cue:"Wk 1–2: chest-supported (lumbar-safe). Wk 3+: barbell at 45°. Pull elbows back together.",anim:"row",yt:"chest+supported+dumbbell+row+form"},
+    {id:"cable-row",name:"Seated Cable Row (Wide Neutral)",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Mid Back","Lats","Rhomboids"],cue:"Full stretch forward. Pull to lower chest. Max 10° lean back. Keep lumbar stable.",anim:"cable-row",yt:"seated+cable+row+wide+neutral+grip+form"},
+    {id:"face-pull",name:"Face Pull (Rope to Face Height)",type:"Rotator cuff",sets:3,lo:15,hi:20,rest:60,muscles:["Rear Delt","External Rotators","Mid Traps"],cue:"External rotation at end. Elbows at or ABOVE shoulder. Do this every upper session.",anim:"face-pull",yt:"face+pull+form+shoulder+health+rotator+cuff"},
+    {id:"ez-curl",name:"EZ-Bar or Barbell Curl",type:"Isolation",sets:3,lo:10,hi:12,rest:60,muscles:["Biceps","Brachialis"],cue:"Elbows fixed. Supinate at top. Full stretch at bottom — honour it.",anim:"curl",yt:"ez+bar+curl+bicep+form+tutorial"},
+    {id:"hammer-curl",name:"Incline DB Hammer Curl",type:"Isolation",sets:2,lo:12,hi:12,rest:60,muscles:["Brachialis","Brachioradialis"],cue:"Incline bench 45–60°. Neutral grip. Long head loaded from stretch. 3-sec eccentric.",anim:"hammer-curl",yt:"incline+dumbbell+hammer+curl+form"}
+  ]},
+  D:{name:"Posterior Chain",color:"#e05050",tag:"Glutes · Hamstrings · No Deadlifts",injuryNote:"⚠️ Lower back injury protocol — NO deadlifts. Hip Thrust is your primary.",exercises:[
+    {id:"hip-thrust",name:"Barbell Hip Thrust",type:"Primary compound",sets:4,lo:8,hi:10,rest:120,muscles:["Glutes","Hamstrings"],cue:"Upper back on bench at shoulder blade height. Drive through heels. POSTERIOR PELVIC TILT at top — squeeze glutes 2 sec. Chin tucked.",anim:"hip-thrust",yt:"barbell+hip+thrust+form+tutorial+glutes"},
+    {id:"seated-leg-curl",name:"Seated Leg Curl (Machine)",type:"Hamstrings",sets:4,lo:10,hi:12,rest:90,muscles:["Hamstrings","Biceps Femoris"],cue:"Seated = more hamstring stretch. Flex foot at bottom. 3-sec eccentric.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
+    {id:"pull-through",name:"Cable Pull-Through",type:"Hip hinge rehab",sets:3,lo:15,hi:15,rest:90,muscles:["Glutes","Hamstrings","Erectors"],cue:"Push hips BACK (not bend forward). Feel hamstring stretch. Drive hips forward to stand.",anim:"pull-through",yt:"cable+pull+through+hip+hinge+form+tutorial"},
+    {id:"sl-rdl",name:"Single-Leg RDL — SKIP WEEKS 1–2",type:"Rehab progression",sets:3,lo:10,hi:10,rest:90,muscles:["Hamstrings","Glutes"],cue:"WEEKS 3+ ONLY if pain-free. Light DB. Hinge at hip. Spine neutral throughout.",anim:"single-leg-rdl",yt:"single+leg+romanian+deadlift+form+tutorial"},
+    {id:"seated-calf",name:"Seated Calf Raise",type:"Isolation",sets:4,lo:20,hi:20,rest:45,muscles:["Soleus"],cue:"Seated = soleus emphasis. Full ROM. 1-sec pause at stretch and squeeze.",anim:"calf",yt:"seated+calf+raise+form+soleus"},
+    {id:"bird-dog",name:"Bird-Dog (Lumbar Rehab)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers","Glutes"],cue:"Opposite arm + leg extends simultaneously. DON'T rotate hips. Hold 2 sec. Motor control.",anim:"bird-dog",yt:"bird+dog+exercise+form+lumbar+back+rehab"}
+  ]}
+};
+
+const WEEK_RIR=[3,3,2,2,1,1,0,0];
+const WEEK_PHASE=["Volume","Volume","Volume+","Deload","Intensity","Intensity","Intensity+","Peak/Test"];
+const WEEK_CLR=["#4a90d9","#4a90d9","#4a90d9","#f0a030","#1D9E75","#1D9E75","#1D9E75","#e05050"];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let S={
+  screen:'home',day:null,week:1,exIdx:0,loggedSets:{},
+  restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
+  showSettings:false,
+  warmupChecked:new Set(),
+  cooldownChecked:new Set(),
+  restDayType:'wed',
+  restDayChecked:new Set(),
+  gifErrors:{},
+  apiKey:localStorage.getItem('eli_rapid_key')||'86371dc952mshb4e5d9ecf28271bp116827jsn1329a1b8695c',
+  gifCache:JSON.parse(localStorage.getItem('eli_gif_cache')||'{}'),
+  history:JSON.parse(localStorage.getItem('eli_gym_history')||'[]')
+};
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+function save(){localStorage.setItem('eli_gym_history',JSON.stringify(S.history));}
+function saveGifCache(){localStorage.setItem('eli_gif_cache',JSON.stringify(S.gifCache));}
+function curEx(){return WK[S.day].exercises[S.exIdx];}
+function totalEx(){return WK[S.day].exercises.length;}
+function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
+function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
+function getPrevSession(day){return S.history.slice().reverse().find(h=>h.day===day)||null;}
+function getPrevSets(day,exId){const p=getPrevSession(day);return p&&p.sets[exId]?p.sets[exId]:[];}
+
+// ─── ExerciseDB GIF FETCH ──────────────────────────────────────────────────
+async function fetchGif(exName,exId){
+  if(!S.apiKey) return null;
+  if(S.gifCache[exId]) return S.gifCache[exId];
+  const cleanName=exName.split('(')[0].trim().toLowerCase();
+  const target=`https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(cleanName)}?limit=1`;
+  const headers={'X-RapidAPI-Key':S.apiKey,'X-RapidAPI-Host':'exercisedb.p.rapidapi.com'};
+  // Three proxy options — try direct (works on HTTPS), then two fallbacks for file:// origin
+  const proxies=[
+    ()=>fetch(target,{headers}),
+    ()=>fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,{headers}),
+    ()=>fetch(`https://corsproxy.io/?${encodeURIComponent(target)}`,{headers})
+  ];
+  let res=null;
+  for(const tryFetch of proxies){
+    try{
+      res=await tryFetch();
+      if(res.ok) break; // got a good response, stop trying
+    }catch(e){ res=null; } // CORS error or network — try next proxy
+  }
+  if(!res||!res.ok){
+    const code=res?res.status:0;
+    S.gifErrors[exId]=code===403?'Key issue':code===429?'Rate limit':code?`HTTP ${code}`:'No connection';
+    render();return null;
+  }
+  try{
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length&&data[0].gifUrl){
+      S.gifCache[exId]=data[0].gifUrl;
+      delete S.gifErrors[exId];
+      saveGifCache();render();
+      return data[0].gifUrl;
+    }
+    // API returned non-array (error object) or empty — don't show badge at all
+    delete S.gifErrors[exId];
+    render();return null;
+  }catch(e){
+    delete S.gifErrors[exId];
+    render();return null;
+  }
+}
+
+// ─── WARM-UP & COOL-DOWN DATA ─────────────────────────────────────────────
+const WARMUP_GENERAL=[
+  {id:'wu1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. Get HR to 110–120 bpm before anything else.'},
+  {id:'wu2',name:'90/90 Hip Stretch',detail:'60 sec each side — opens hip flexors and external rotators. Essential pre-lower.'},
+  {id:'wu3',name:'Cat-Cow',detail:'10 reps slow — mobilises lumbar and thoracic spine. Go full range each rep.'},
+  {id:'wu4',name:'Bird-Dog',detail:'10 reps each side — activates deep lumbar stabilisers. Slow, controlled.'},
+  {id:'wu5',name:'Bodyweight Glute Bridge',detail:'15 reps, hold 2 sec at top — fires up glutes and teaches hip extension pattern.'},
+  {id:'wu6',name:'Band Pull-Apart',detail:'20 reps — activates rear delts and rhomboids. Use light band or towel.'}
+];
+const WARMUP_REHAB=[
+  {id:'wr1',name:'Dead Bug',detail:'3 × 10 each side — core anti-extension. Keep lower back pressed to floor. Lumbar safe.'},
+  {id:'wr2',name:"Child's Pose",detail:'60 sec hold — decompresses the lumbar spine. Breathe deep into lower back.'},
+  {id:'wr3',name:'Pigeon Stretch',detail:'60 sec each side — releases piriformis and glute tightness. Takes pressure off lumbar.'},
+  {id:'wr4',name:'Knee-to-Chest',detail:'30 sec each side — gentle lumbar flexion mobilisation. Never force.'}
+];
+const COOLDOWN={
+  upper:[
+    {id:'cd1',name:'Chest / Pec Doorway Stretch',detail:'30 sec each side — arms at 90°, lean through doorway. Full pec stretch.'},
+    {id:'cd2',name:'Lat Overhead Stretch',detail:'30 sec each side — reach overhead, bend sideways. Decompress thoracic spine.'},
+    {id:'cd3',name:'Cross-Body Shoulder Stretch',detail:'30 sec each — pull arm across chest. Rear delt and rotator cuff relief.'},
+    {id:'cd4',name:'Tricep Overhead Stretch',detail:'30 sec each — elbow behind head, gently press down. Long head stretch.'},
+    {id:'cd5',name:'Neck Side Stretch',detail:'30 sec each side — ear to shoulder, light hand pressure. Releases upper trap tension.'},
+    {id:'cd6',name:"Child's Pose",detail:'60 sec — lumbar decompression. Non-negotiable given the back injury. Breathe.'}
+  ],
+  lower:[
+    {id:'cd1',name:'Hip Flexor Lunge Stretch',detail:'60 sec each side — rear knee down, hips forward. Counters the sitting done between sessions.'},
+    {id:'cd2',name:'Pigeon Pose',detail:'60 sec each side — glute and piriformis release. Reduces lower back load.'},
+    {id:'cd3',name:'Seated Hamstring Stretch',detail:'30 sec each — leg straight, reach toward foot. Feel the pull behind knee.'},
+    {id:'cd4',name:'Figure-Four Glute Stretch',detail:'30 sec each — cross ankle over opposite knee, pull to chest. Deep glute med.'},
+    {id:'cd5',name:'Standing Calf Stretch',detail:'30 sec each — heel down, lean into wall. Hit both gastrocnemius and soleus.'},
+    {id:'cd6',name:"Child's Pose",detail:'90 sec — lumbar decompression. Always last. Let the spine breathe.'}
+  ]
+};
+const REST_DAY_REHAB=[
+  {id:'rd1',name:'Cat-Cow',detail:'10 reps slow — spinal mobility, start easy.'},
+  {id:'rd2',name:'Bird-Dog',detail:'10 each side — lumbar stabiliser activation.'},
+  {id:'rd3',name:'Dead Bug',detail:'3 × 10 each side — core anti-extension, floor-based.'},
+  {id:'rd4',name:"Child's Pose",detail:'60 sec — lumbar decompression.'},
+  {id:'rd5',name:'Pigeon Stretch',detail:'60 sec each side — piriformis and glute release.'},
+  {id:'rd6',name:'Knee-to-Chest',detail:'30 sec each side — gentle flexion mob.'}
+];
+
+// ─── RENDER ENGINE ─────────────────────────────────────────────────────────
+function render(){
+  document.getElementById('app').innerHTML=({
+    home:renderHome,warmup:renderWarmup,workout:renderWorkout,
+    rest:renderRest,cooldown:renderCooldown,complete:renderComplete,
+    restday:renderRestDay
+  }[S.screen]||renderHome)()+( S.showSettings?renderSettings():'');
+}
+
+// ─── HOME ──────────────────────────────────────────────────────────────────
+function renderHome(){
+  const hist=S.history.slice(-4).reverse();
+  return`<div class="top-bar">
+  <div><div style="font-size:1.1rem;font-weight:700">Eli's Gym Tracker</div><div style="font-size:0.72rem;color:var(--muted)">Block 1 · Body Recomp · ${new Date().toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</div></div>
+  <button class="settings-btn" onclick="toggleSettings()" title="Settings">⚙️</button>
+</div>
+<div style="padding:16px">
+<div class="card-title">Select Day</div>
+<div class="day-grid">${['A','B','C','D'].map(d=>`
+  <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')">
+    <div class="day-letter" style="color:${WK[d].color}">Day ${d}</div>
+    <div class="day-name">${WK[d].name}</div>
+    <div class="day-tag" style="color:${WK[d].color}">${WK[d].tag}</div>
+  </div>`).join('')}</div>
+<div class="card-title">Select Week</div>
+<div class="week-row">${[1,2,3,4,5,6,7,8].map(w=>`
+  <div class="week-pill${S.week===w?' selected':''}" onclick="selectWeek(${w})" ${S.week===w?`style="background:${WEEK_CLR[w-1]};border-color:${WEEK_CLR[w-1]}"`:''}><span style="font-size:0.78rem;font-weight:600">W${w}</span><br><span style="font-size:0.62rem;opacity:.8">${WEEK_PHASE[w-1]}</span></div>`).join('')}
+</div>
+${S.day?`<div class="card" style="border-color:${WK[S.day].color}40;margin-bottom:14px">
+  <div class="card-title">Day ${S.day} — ${WK[S.day].name}</div>
+  ${WK[S.day].exercises.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.85rem"><span>${e.name}</span><span style="color:var(--muted);font-size:0.78rem">${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div>`).join('')}
+  <div style="padding-top:8px;font-size:0.78rem;color:var(--muted)">Week ${S.week} RIR: <strong style="color:var(--green)">${WEEK_RIR[S.week-1]} reps in reserve</strong></div>
+</div>
+<button class="btn btn-green" onclick="goToWarmup()">▶ Start Day ${S.day} — Week ${S.week}</button>`
+:`<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.9rem">Select a day above to begin</div>`}
+<div style="margin-top:10px">
+  <div class="card-title" style="margin-top:20px">Rest Day / Recovery</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+    <div class="day-btn" onclick="openRestDay('wed')" style="text-align:center;padding:12px 8px">
+      <div style="font-size:1.1rem">🔄</div>
+      <div style="font-size:0.78rem;font-weight:600;margin-top:4px">Wednesday</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Back rehab</div>
+    </div>
+    <div class="day-btn" onclick="openRestDay('sat')" style="text-align:center;padding:12px 8px">
+      <div style="font-size:1.1rem">🚶</div>
+      <div style="font-size:0.78rem;font-weight:600;margin-top:4px">Saturday</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Walk + rehab</div>
+    </div>
+    <div class="day-btn" onclick="openRestDay('sun')" style="text-align:center;padding:12px 8px">
+      <div style="font-size:1.1rem">😴</div>
+      <div style="font-size:0.78rem;font-weight:600;margin-top:4px">Sunday</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Full rest</div>
+    </div>
+  </div>
+</div>
+${hist.length?`<div class="card-title" style="margin-top:20px">Recent Sessions</div>
+<div class="card">${hist.map(h=>`<div class="hist-item"><div><strong>Day ${h.day}</strong> — ${WK[h.day].name}<br><span style="color:var(--muted);font-size:0.75rem">${fmt(h.date)} · Wk ${h.week}</span></div><span style="font-size:0.8rem;color:var(--muted)">${Object.values(h.sets).reduce((a,s)=>a+s.length,0)} sets</span></div>`).join('')}</div>`:''}
+</div>`;
+}
+
+// ─── WARM-UP ───────────────────────────────────────────────────────────────
+function renderWarmup(){
+  const day=WK[S.day];
+  const allItems=[...WARMUP_GENERAL,...WARMUP_REHAB];
+  const checked=S.warmupChecked.size;
+  const total=allItems.length;
+  const pct=Math.round(checked/total*100);
+  const mkItem=(item)=>{
+    const done=S.warmupChecked.has(item.id);
+    return`<div class="check-item${done?' checked':''}" onclick="toggleWarmup('${item.id}')">
+      <div class="check-circle">${done?'✓':''}</div>
+      <div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div>
+    </div>`;
+  };
+  return`<div class="top-bar">
+  <div><div style="font-size:0.88rem;font-weight:600">Warm-Up · Day ${S.day} · ${day.name}</div><div style="font-size:0.72rem;color:var(--muted)">${checked}/${total} complete</div></div>
+  <button class="btn btn-outline btn-sm" onclick="startWorkout()">Skip →</button>
+</div>
+<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+<div class="phase-screen">
+  <div class="injury-rehab-note">⚠️ <strong>Back injury active.</strong> Do the full rehab section — it's 5 min and protects you all session.</div>
+  <div class="phase-section">
+    <div class="phase-section-title"><span>General Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${WARMUP_GENERAL.filter(i=>S.warmupChecked.has(i.id)).length}/${WARMUP_GENERAL.length}</span></div>
+    ${WARMUP_GENERAL.map(mkItem).join('')}
+  </div>
+  <div class="phase-section">
+    <div class="phase-section-title"><span>Lower Back Rehab <span style="color:var(--red)">Daily — 5 min</span></span><span style="color:var(--muted)">${WARMUP_REHAB.filter(i=>S.warmupChecked.has(i.id)).length}/${WARMUP_REHAB.length}</span></div>
+    ${WARMUP_REHAB.map(mkItem).join('')}
+  </div>
+  <div style="position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 0;margin:0 -16px;padding-left:16px;padding-right:16px">
+    <button class="btn btn-green" onclick="startWorkout()">${checked===total?'✅ All Done — Start Workout →':'▶ Start Workout'}</button>
+    ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — tap each to check off</p>`:''}
+  </div>
+</div>`;
+}
+
+// ─── COOL-DOWN ─────────────────────────────────────────────────────────────
+function renderCooldown(){
+  const day=WK[S.day];
+  const isLower=S.day==='B'||S.day==='D';
+  const items=isLower?COOLDOWN.lower:COOLDOWN.upper;
+  const checked=S.cooldownChecked.size;
+  const total=items.length;
+  const pct=Math.round(checked/total*100);
+  const mkItem=(item)=>{
+    const done=S.cooldownChecked.has(item.id);
+    return`<div class="check-item${done?' checked':''}" onclick="toggleCooldown('${item.id}')">
+      <div class="check-circle">${done?'✓':''}</div>
+      <div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div>
+    </div>`;
+  };
+  return`<div class="top-bar">
+  <div><div style="font-size:0.88rem;font-weight:600">Cool-Down · Day ${S.day} · ${day.name}</div><div style="font-size:0.72rem;color:var(--muted)">${checked}/${total} complete</div></div>
+  <button class="btn btn-outline btn-sm" onclick="finishAndSave()">Skip →</button>
+</div>
+<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;background:var(--amber)"></div></div>
+<div class="phase-screen">
+  <div class="phase-section">
+    <div class="phase-section-title"><span>${isLower?'Lower Body':'Upper Body'} Stretching <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${checked}/${total}</span></div>
+    <div style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:0.78rem;color:var(--muted);margin-bottom:12px;line-height:1.6">
+      🧠 <strong style="color:var(--text)">Why this matters:</strong> Muscles are warm and pliable right now — best window for flexibility gains. Skipping cool-down increases next-day soreness by ~30% and slows recovery.
+    </div>
+    ${items.map(mkItem).join('')}
+  </div>
+  <div style="position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 0;margin:0 -16px;padding-left:16px;padding-right:16px">
+    <button class="btn btn-green" onclick="finishAndSave()">${checked===total?'✅ Done — Save Session →':'💾 Save Session & Finish'}</button>
+    ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} stretches remaining</p>`:''}
+  </div>
+</div>`;
+}
+
+// ─── REST DAY ──────────────────────────────────────────────────────────────
+function renderRestDay(){
+  const configs={
+    wed:{emoji:'🔄',label:'Wednesday',title:'Active Recovery',desc:'No gym loading today. The goal is blood flow and spinal mobility — nothing that taxes the CNS.'},
+    sat:{emoji:'🚶',label:'Saturday',title:'Walk + Back Rehab',desc:'30 min easy walk (flat ground, comfortable pace) + full back rehab sequence. This is recovery work, not cardio.'},
+    sun:{emoji:'😴',label:'Sunday',title:'Full Rest + Nutrition',desc:"Total rest today. Your body grows on rest days, not training days. Hit your protein target and sleep 8hrs. That's the job."}
+  };
+  const cfg=configs[S.restDayType];
+  const showRehab=S.restDayType!=='sun';
+  const rehabItems=showRehab?REST_DAY_REHAB:[];
+  const checked=S.restDayChecked.size;
+  return`<div class="top-bar">
+  <div><div style="font-size:0.88rem;font-weight:600">${cfg.emoji} ${cfg.label} — ${cfg.title}</div><div style="font-size:0.72rem;color:var(--muted)">Block 1 · Recovery</div></div>
+  <button class="btn btn-outline btn-sm" onclick="goHome()">← Home</button>
+</div>
+<div class="phase-screen">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px">
+    ${['wed','sat','sun'].map(t=>`<button onclick="switchRestDay('${t}')" style="background:${S.restDayType===t?'var(--amber)':'var(--s2)'};color:${S.restDayType===t?'#000':'var(--muted)'};border:1px solid ${S.restDayType===t?'var(--amber)':'var(--border)'};border-radius:10px;padding:8px 4px;font-size:0.75rem;font-weight:600;cursor:pointer">${t==='wed'?'Wed':t==='sat'?'Sat':'Sun'}</button>`).join('')}
+  </div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="font-size:1.6rem;margin-bottom:8px">${cfg.emoji}</div>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:6px">${cfg.title}</div>
+    <div style="font-size:0.85rem;color:var(--muted);line-height:1.6">${cfg.desc}</div>
+  </div>
+  <div class="injury-rehab-note">⚠️ <strong>Lower back recovery:</strong> Ice if inflamed. Sleep on side with pillow between knees. Anti-inflammatory: salmon, sardines, turmeric + black pepper. Avoid alcohol today — it spikes inflammation and tanks recovery.</div>
+  ${showRehab?`
+  <div class="phase-section">
+    <div class="phase-section-title"><span>Daily Back Rehab <span style="color:var(--red)">5 min — every day</span></span><span style="color:var(--muted)">${checked}/${rehabItems.length}</span></div>
+    ${rehabItems.map(item=>{
+      const done=S.restDayChecked.has(item.id);
+      return`<div class="check-item${done?' checked':''}" onclick="toggleRestDay('${item.id}')">
+        <div class="check-circle">${done?'✓':''}</div>
+        <div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div>
+      </div>`;
+    }).join('')}
+  </div>`:`
+  <div class="rest-day-card">
+    <div class="rest-day-header">Sunday Checklist</div>
+    <div style="font-size:0.85rem;line-height:2;color:var(--text)">
+      ☐ Hit 200g protein today<br>
+      ☐ 8+ hours sleep tonight<br>
+      ☐ Hydration — 3L minimum<br>
+      ☐ Prep meals for Monday<br>
+      ☐ Log Sunday check-in dispatch if it's Week 4 or 8
+    </div>
+  </div>
+  <div class="rest-day-card" style="border-color:var(--green)40">
+    <div class="rest-day-header" style="color:var(--green)">Next week preview</div>
+    <div style="font-size:0.82rem;color:var(--muted);line-height:1.7">
+      Mon → Day A Upper Push<br>
+      Tue → Day B Lower Quad<br>
+      Wed → Rest + back rehab<br>
+      Thu → Day C Upper Pull<br>
+      Fri → Day D Posterior Chain
+    </div>
+  </div>`}
+</div>`;
+}
+
+// ─── SETTINGS OVERLAY ──────────────────────────────────────────────────────
+function renderSettings(){
+  return`<div class="overlay" onclick="if(event.target===this)toggleSettings()">
+<div class="overlay-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <strong>Settings — Exercise GIF Demos</strong>
+    <button style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer" onclick="toggleSettings()">✕</button>
+  </div>
+  <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px">Add your free <strong style="color:var(--text)">ExerciseDB API key</strong> to unlock real animated GIFs of human figures for every exercise. Get it free in 30 seconds:</p>
+  <div style="background:var(--s2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:0.8rem;line-height:1.7;color:#ccc">
+    1. Go to <strong>rapidapi.com</strong><br>
+    2. Search "ExerciseDB" → Subscribe (free tier)<br>
+    3. Copy your API key → paste below<br>
+    4. GIFs load automatically and cache offline ✓
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin:8px 0">
+    <input class="api-input" type="text" placeholder="Paste RapidAPI key here..." value="${S.apiKey}" id="api-key-input" autocomplete="off" spellcheck="false" style="margin:0;flex:1"/>
+    <button onclick="pasteApiKey()" style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:0.85rem;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 Paste</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn btn-green" style="flex:2" onclick="saveApiKey()">Save & Enable GIFs</button>
+    <button onclick="testApiKey()" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:12px;padding:14px 8px;color:var(--text);font-size:0.85rem;font-weight:600;cursor:pointer">🔍 Test</button>
+  </div>
+  <div id="api-test-result" style="font-size:0.8rem;margin-top:8px;text-align:center;min-height:18px"></div>
+  ${S.apiKey?`
+  <div style="margin-top:12px;background:var(--s2);border-radius:10px;padding:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:0.82rem;color:var(--text);font-weight:600">GIF Cache Status</span>
+      <span style="font-size:0.78rem;color:var(--green)">${Object.keys(S.gifCache).length} / ${getAllExercises().length} cached</span>
+    </div>
+    <div style="background:var(--s3);border-radius:4px;height:6px;overflow:hidden;margin-bottom:10px">
+      <div style="height:100%;background:var(--green);width:${Math.round(Object.keys(S.gifCache).length/Math.max(getAllExercises().length,1)*100)}%;transition:width .4s"></div>
+    </div>
+    <button class="btn btn-outline" style="margin-bottom:6px;font-size:0.82rem" onclick="preloadAllGifs()" id="preload-btn">⚡ Pre-load All GIFs Now</button>
+    <button class="btn btn-outline" style="font-size:0.82rem" onclick="clearApiKey()">🗑 Remove Key & Clear Cache</button>
+  </div>`:''}
+  <p style="font-size:0.72rem;color:var(--muted);margin-top:12px;text-align:center">Key is stored only on this device. Never sent anywhere except ExerciseDB.</p>
+</div>
+</div>`;
+}
+
+// ─── WORKOUT ───────────────────────────────────────────────────────────────
+function renderWorkout(){
+  const ex=curEx();
+  const day=WK[S.day];
+  const logged=S.loggedSets[ex.id]||[];
+  const prev=getPrevSets(S.day,ex.id);
+  const rir=WEEK_RIR[S.week-1];
+  const pct=Math.round((S.exIdx/totalEx())*100);
+  const gifUrl=S.gifCache[ex.id]||null;
+  return`<div class="top-bar">
+  <div><div style="font-size:0.88rem;font-weight:600">Day ${S.day} · Week ${S.week} · ${day.name}</div><div style="font-size:0.72rem;color:var(--muted)">Exercise ${S.exIdx+1} of ${totalEx()}</div></div>
+  <button class="btn btn-outline btn-sm" onclick="endWorkout()">Finish</button>
+</div>
+<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
+<div class="ex-header">
+  <div class="ex-type-badge ${badgeClass(ex.type)}">${ex.type}</div>
+  <div class="ex-name">${ex.name}</div>
+  <div class="ex-target"><strong>${ex.sets} sets × ${ex.lo}${ex.lo!==ex.hi?'–'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest</div>
+</div>
+<div class="demo-area">
+  <div class="demo-svg-wrap">${ANIM[ex.anim]||ANIM.curl}</div>
+  <div class="demo-overlay">
+    <div class="muscle-tags">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
+    <a class="yt-btn" href="https://www.youtube.com/results?search_query=${ex.yt}" target="_blank" rel="noopener">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21"/></svg>
+      Watch
+    </a>
+  </div>
+</div>
+<div class="cue-box">📋 ${ex.cue}</div>
+${prev.length?`<div class="prev-box"><div class="prev-title">Last session — ${fmt(getPrevSession(S.day).date)}</div><div class="prev-set">${prev.map((s,i)=>`Set ${i+1}: <strong>${s.weight}kg × ${s.reps}</strong>`).join(' &nbsp;·&nbsp; ')}</div></div>`:''}
+<div class="set-logger">
+  <div class="set-row-header"><div>#</div><div>Weight (kg)</div><div>Reps</div><div>Action</div></div>
+  ${Array.from({length:ex.sets},(_,i)=>{
+    const done=logged[i];
+    const prevSet=prev[i];
+    return`<div class="set-row">
+      <div class="set-num${done?' done':''}">${done?'✓':i+1}</div>
+      <input type="number" class="set-input" id="w-${i}" placeholder="${prevSet?prevSet.weight:'kg'}" value="${done?done.weight:''}" step="2.5" min="0" ${done?'readonly':''}/>
+      <input type="number" class="set-input" id="r-${i}" placeholder="${prevSet?prevSet.reps:'reps'}" value="${done?done.reps:''}" min="0" max="60" ${done?'readonly':''}/>
+      <button class="log-btn${done?' done-btn':''}" onclick="logSet(${i})">${done?'✓ Done':'Log'}</button>
+    </div>`;
+  }).join('')}
+  ${logged.length?`<div style="margin-top:10px">
+    ${logged.map((s,i)=>`<div class="logged-set"><span>Set ${i+1}</span><span class="sv">${s.weight}kg × ${s.reps}</span><span style="font-size:0.72rem;color:var(--muted)">${(s.weight*s.reps).toLocaleString()}kg vol</span></div>`).join('')}
+    <div style="text-align:right;font-size:0.78rem;color:var(--muted);margin-top:4px">Volume: <strong style="color:var(--green)">${logged.reduce((a,s)=>a+s.weight*s.reps,0).toLocaleString()}kg</strong></div>
+  </div>`:''}
+</div>
+<div style="padding:0 16px 6px">
+  <div class="card-title">Coming up</div>
+  ${WK[S.day].exercises.slice(S.exIdx+1,S.exIdx+4).map(e=>`
+  <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${e.name} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`).join('')}
+  ${S.exIdx===totalEx()-1?`<div style="font-size:0.85rem;color:var(--green);padding:8px 0">🏁 Last one — nearly there!</div>`:''}
+</div>
+<div class="bottom-actions">
+  ${S.exIdx>0?`<button class="btn btn-outline" style="flex:1" onclick="prevEx()">← Back</button>`:''}
+  <button class="btn btn-green" style="flex:2" onclick="nextEx()">${S.exIdx===totalEx()-1?'Finish Workout →':'Next →'}</button>
+</div>`;
+}
+
+// ─── REST ──────────────────────────────────────────────────────────────────
+function renderRest(){
+  const next=S.exIdx<totalEx()-1?WK[S.day].exercises[S.exIdx+1]:null;
+  const circ=Math.PI*2*91;
+  const dashOff=circ*(1-S.restLeft/S.restTotal);
+  return`<div class="rest-screen">
+  <div style="font-size:1rem;font-weight:500;color:var(--muted)">Rest</div>
+  <div class="rest-circle">
+    <svg viewBox="0 0 198 198"><circle cx="99" cy="99" r="91" stroke="var(--s3)" stroke-width="8" fill="none"/><circle id="rest-circ" cx="99" cy="99" r="91" stroke="var(--green)" stroke-width="4" stroke-dasharray="${circ}" stroke-dashoffset="${dashOff}" fill="none" stroke-linecap="round"/></svg>
+    <div class="rest-time" id="rest-display">${S.restLeft}</div>
+    <div class="rest-label">seconds</div>
+  </div>
+  ${next?`<div class="next-up"><div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px">Next exercise</div><div style="font-size:1rem;font-weight:600">${next.name}</div><div style="font-size:0.75rem;color:var(--muted);margin-top:3px">${next.sets}×${next.lo}${next.lo!==next.hi?'–'+next.hi:''} reps · ${next.rest}s rest</div></div>`
+  :`<div class="next-up"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Next</div><div style="font-size:1rem;font-weight:600">💪 Workout Complete!</div></div>`}
+  <button class="btn btn-outline" onclick="skipRest()" style="max-width:280px;margin-top:8px">Skip Rest</button>
+</div>`;
+}
+
+// ─── COMPLETE ──────────────────────────────────────────────────────────────
+function renderComplete(){
+  const sess=S.history[S.history.length-1];
+  const totalSets=Object.values(sess.sets).reduce((a,s)=>a+s.length,0);
+  const totalVol=Object.values(sess.sets).reduce((a,s)=>a+s.reduce((b,x)=>b+x.weight*x.reps,0),0);
+  let dispatch=`DISPATCH | Day ${sess.day} | Week ${sess.week} | ${fmt(sess.date)}\n`;
+  WK[sess.day].exercises.forEach(e=>{
+    const sets=sess.sets[e.id]||[];
+    dispatch+=`${e.name}: ${sets.length?sets.map(s=>`${s.weight}kg×${s.reps}`).join(', '):'skipped'}\n`;
+  });
+  dispatch+=`\nTotal volume: ${totalVol.toLocaleString()}kg | Sets: ${totalSets}\nEnergy: _/10 | Back pain: _/10 | Notes: ___`;
+  return`<div class="top-bar"><div style="font-size:1rem;font-weight:700">Workout Complete 🏆</div></div>
+<div style="padding:16px">
+  <div style="text-align:center;padding:24px 0 16px">
+    <div style="font-size:3rem">🔥</div>
+    <div style="font-size:1.4rem;font-weight:700;margin-top:8px">Day ${sess.day} Done!</div>
+    <div style="color:var(--muted);font-size:0.85rem;margin-top:4px">${fmt(sess.date)} · Week ${sess.week}</div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px">
+      <div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--green)">${totalSets}</div><div style="font-size:0.72rem;color:var(--muted)">Sets logged</div></div>
+      <div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--blue)">${totalVol.toLocaleString()}</div><div style="font-size:0.72rem;color:var(--muted)">Volume (kg)</div></div>
+    </div>
+  </div>
+  <div class="card-title">Your Dispatch — paste this to Claude on Sunday</div>
+  <div class="dispatch-box" id="dispatch-text">${dispatch}</div>
+  <button class="btn btn-outline" style="margin-bottom:10px" onclick="copyDispatch()">📋 Copy Dispatch</button>
+  <button class="btn btn-green" onclick="goHome()">Back to Home</button>
+</div>`;
+}
+
+// ─── ACTIONS ───────────────────────────────────────────────────────────────
+function selectDay(d){S.day=d;render();}
+function selectWeek(w){S.week=w;render();}
+function toggleSettings(){S.showSettings=!S.showSettings;render();}
+function saveApiKey(){
+  const k=document.getElementById('api-key-input').value.trim();
+  S.apiKey=k;localStorage.setItem('eli_rapid_key',k);
+  S.showSettings=false;render();
+}
+async function testApiKey(){
+  const k=(document.getElementById('api-key-input').value||S.apiKey).trim();
+  const el=document.getElementById('api-test-result');
+  if(!k){if(el)el.innerHTML='<span style="color:var(--amber)">Enter a key first</span>';return;}
+  if(el)el.innerHTML='<span style="color:var(--muted)">Testing…</span>';
+  const target='https://exercisedb.p.rapidapi.com/exercises/name/bench%20press?limit=1';
+  const headers={'X-RapidAPI-Key':k,'X-RapidAPI-Host':'exercisedb.p.rapidapi.com'};
+  const proxies=[
+    ()=>fetch(target,{headers}),
+    ()=>fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,{headers}),
+    ()=>fetch(`https://corsproxy.io/?${encodeURIComponent(target)}`,{headers})
+  ];
+  let res=null;
+  for(const tryFetch of proxies){
+    try{res=await tryFetch();if(res.ok)break;}catch(e){res=null;}
+  }
+  if(!res){
+    if(el)el.innerHTML='<span style="color:var(--red)">❌ Network error — check connection</span>';
+    return;
+  }
+  if(res.ok){
+    try{
+      const d=await res.json();
+      if(Array.isArray(d)&&d.length&&d[0].gifUrl){
+        if(el)el.innerHTML='<span style="color:var(--green)">✅ Key works! GIFs loading now.</span>';
+      } else {
+        if(el)el.innerHTML='<span style="color:var(--amber)">⚠️ API connected — check ExerciseDB subscription</span>';
+      }
+    }catch(e){if(el)el.innerHTML='<span style="color:var(--amber)">⚠️ API responded but data unreadable</span>';}
+  } else if(res.status===403){
+    if(el)el.innerHTML='<span style="color:var(--red)">❌ 403 — Key invalid or wrong API subscribed</span>';
+  } else if(res.status===429){
+    if(el)el.innerHTML='<span style="color:var(--amber)">⚠️ Rate limit — try again in a minute</span>';
+  } else {
+    if(el)el.innerHTML=`<span style="color:var(--red)">❌ Error ${res.status}</span>`;
+  }
+}
+function pasteApiKey(){
+  navigator.clipboard.readText().then(t=>{
+    const el=document.getElementById('api-key-input');
+    if(el){el.value=t.trim();el.focus();}
+  }).catch(()=>{
+    // Clipboard permission denied — focus the field so user can Ctrl+V
+    const el=document.getElementById('api-key-input');
+    if(el){el.focus();el.select();}
+    alert('Click the field and press Ctrl+V (or Cmd+V on Mac) to paste.');
+  });
+}
+function clearApiKey(){
+  S.apiKey='';localStorage.removeItem('eli_rapid_key');
+  S.gifCache={};localStorage.removeItem('eli_gif_cache');
+  S.showSettings=false;render();
+}
+function goToWarmup(){
+  S.warmupChecked=new Set();S.screen='warmup';render();
+}
+function startWorkout(){
+  S.exIdx=0;S.loggedSets={};S.workoutStart=Date.now();S.screen='workout';
+  render();
+  loadGif(curEx());
+}
+function toggleWarmup(id){
+  S.warmupChecked.has(id)?S.warmupChecked.delete(id):S.warmupChecked.add(id);
+  render();
+}
+function toggleCooldown(id){
+  S.cooldownChecked.has(id)?S.cooldownChecked.delete(id):S.cooldownChecked.add(id);
+  render();
+}
+function toggleRestDay(id){
+  S.restDayChecked.has(id)?S.restDayChecked.delete(id):S.restDayChecked.add(id);
+  render();
+}
+function openRestDay(type){S.restDayType=type;S.restDayChecked=new Set();S.screen='restday';render();}
+function switchRestDay(type){S.restDayType=type;S.restDayChecked=new Set();render();}
+function finishAndSave(){S.screen='complete';render();}
+function loadGif(ex){ /* GIF loading disabled — ExerciseDB v2 removed gifUrl field */ }
+function getAllExercises(){
+  return Object.values(WK).flatMap(d=>d.exercises);
+}
+async function preloadAllGifs(){
+  if(!S.apiKey){alert('Save your API key first!');return;}
+  const btn=document.getElementById('preload-btn');
+  if(btn){btn.textContent='⏳ Loading…';btn.disabled=true;}
+  const all=getAllExercises();
+  let loaded=0;
+  for(const ex of all){
+    if(!S.gifCache[ex.id]){
+      await fetchGif(ex.name,ex.id);
+      loaded++;
+      const b=document.getElementById('preload-btn');
+      if(b) b.textContent=`⏳ Loading ${loaded}/${all.filter(e=>!S.gifCache[e.id]).length+loaded}…`;
+      await new Promise(r=>setTimeout(r,300)); // small delay to be nice to the API
+    }
+  }
+  render(); // refresh cache status bar
+  const b=document.getElementById('preload-btn');
+  if(b){b.textContent='✅ All GIFs Cached!';b.disabled=false;}
+}
+function logSet(i){
+  const ex=curEx();
+  const w=parseFloat(document.getElementById('w-'+i).value);
+  const r=parseInt(document.getElementById('r-'+i).value);
+  if(!w||!r){alert('Enter weight and reps!');return;}
+  if(!S.loggedSets[ex.id]) S.loggedSets[ex.id]=[];
+  S.loggedSets[ex.id][i]={weight:w,reps:r};
+  const logged=S.loggedSets[ex.id].filter(Boolean).length;
+  render();
+  if(logged<ex.sets) startRest(ex.rest);
+  try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
+}
+function startRest(sec){
+  S.restLeft=sec;S.restTotal=sec;S.screen='rest';render();
+  S.restInterval=setInterval(()=>{
+    S.restLeft--;
+    const d=document.getElementById('rest-display');
+    if(d) d.textContent=S.restLeft;
+    const c=document.getElementById('rest-circ');
+    if(c){const circ=Math.PI*2*91;c.style.strokeDashoffset=circ*(1-S.restLeft/S.restTotal);}
+    if(S.restLeft<=0){
+      clearInterval(S.restInterval);
+      playDing();
+      try{navigator.vibrate&&navigator.vibrate([120,60,120]);}catch(e){}
+      S.screen='workout';render();
+    }
+  },1000);
+}
+function skipRest(){clearInterval(S.restInterval);S.screen='workout';render();}
+function nextEx(){
+  if(S.exIdx>=totalEx()-1){endWorkout();return;}
+  S.exIdx++;render();window.scrollTo(0,0);
+  loadGif(curEx());
+}
+function prevEx(){if(S.exIdx>0){S.exIdx--;render();window.scrollTo(0,0);}}
+function endWorkout(){
+  clearInterval(S.restInterval);
+  const sess={day:S.day,week:S.week,date:Date.now(),sets:JSON.parse(JSON.stringify(S.loggedSets))};
+  S.history.push(sess);save();
+  S.cooldownChecked=new Set();
+  S.screen='cooldown';render();
+}
+function goHome(){S.screen='home';S.loggedSets={};S.exIdx=0;render();}
+function copyDispatch(){
+  const t=document.getElementById('dispatch-text').textContent;
+  navigator.clipboard.writeText(t).then(()=>alert('Dispatch copied! Paste to Claude for your Sunday check-in.')).catch(()=>{});
+}
+// Auto-persist API key to localStorage on load
+if(S.apiKey) localStorage.setItem('eli_rapid_key', S.apiKey);
+render();
+</script>
+</body>
+</html>

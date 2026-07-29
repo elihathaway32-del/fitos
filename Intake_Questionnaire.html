@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FitOS — Personal Training Intake</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d0d;--s1:#1a1a1a;--s2:#242424;--s3:#2e2e2e;--border:#333;--text:#f0efed;--muted:#888;--green:#1D9E75;--blue:#4a90d9;--amber:#f0a030;--red:#e05050}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;min-height:100vh;padding:0}
+#app{max-width:540px;margin:0 auto;padding:24px 20px 60px}
+
+/* HEADER */
+.logo{font-size:2rem;font-weight:900;letter-spacing:-.04em;margin-bottom:2px}
+.logo span{color:var(--green)}
+.tagline{font-size:0.85rem;color:var(--muted);margin-bottom:28px}
+
+/* PROGRESS */
+.progress-bar{height:4px;background:var(--s3);border-radius:2px;margin-bottom:8px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s ease}
+.step-label{font-size:0.72rem;color:var(--muted);margin-bottom:28px;display:flex;justify-content:space-between}
+
+/* STEP HEADER */
+.step-num{font-size:0.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:6px}
+.step-title{font-size:1.5rem;font-weight:800;line-height:1.2;margin-bottom:6px}
+.step-desc{font-size:0.88rem;color:var(--muted);line-height:1.6;margin-bottom:24px}
+
+/* INPUTS */
+.field{margin-bottom:20px}
+.field-label{font-size:0.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;display:block}
+.field-hint{font-size:0.72rem;color:var(--muted);margin-top:5px;line-height:1.5}
+input[type=text],input[type=number],input[type=email],select,textarea{
+  background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;color:var(--text);font-size:0.95rem;width:100%;
+  font-family:inherit;-webkit-appearance:none;resize:none
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);background:#1D9E7508}
+textarea{min-height:120px;line-height:1.6}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* CHIPS */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{background:var(--s2);border:1.5px solid var(--border);border-radius:20px;padding:9px 16px;font-size:0.85rem;cursor:pointer;transition:all .15s;user-select:none}
+.chip:active{transform:scale(0.97)}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.chip.amber.on{background:var(--amber);border-color:var(--amber);color:#000}
+.chip.red.on{background:var(--red);border-color:var(--red);color:#fff}
+
+/* PHOTO UPLOAD */
+.photo-upload-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px}
+.photo-slot{background:var(--s2);border:2px dashed var(--border);border-radius:14px;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s}
+.photo-slot:hover{border-color:var(--green)}
+.photo-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.photo-slot-label{font-size:0.7rem;color:var(--muted);text-align:center;padding:8px;position:relative;z-index:1}
+.photo-slot-icon{font-size:1.6rem;margin-bottom:4px;position:relative;z-index:1}
+.photo-slot.has-photo{border-color:var(--green);border-style:solid}
+.photo-slot.has-photo .photo-slot-label,.photo-slot.has-photo .photo-slot-icon{display:none}
+
+/* SLIDER */
+.slider-wrap{margin-top:8px}
+.slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--s3);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--green);cursor:pointer;border:3px solid var(--bg)}
+.slider-labels{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-top:6px}
+.slider-val{text-align:center;font-size:1.1rem;font-weight:700;color:var(--green);margin-top:6px}
+
+/* RATING ROW */
+.rating-row{display:flex;gap:6px;margin-top:6px}
+.rating-btn{flex:1;padding:10px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;text-align:center;transition:all .15s}
+.rating-btn.on{background:var(--green);border-color:var(--green);color:#fff}
+
+/* SECTION DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:24px 0}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:10px;margin-top:28px}
+.btn{flex:1;padding:16px;border-radius:14px;border:none;font-size:1rem;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.01em}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--green);color:#fff}
+.btn-secondary{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-full{width:100%;display:block}
+
+/* OUTPUT */
+.output-box{background:var(--s1);border:1px solid var(--green);border-radius:14px;padding:18px;font-family:'Courier New',monospace;font-size:0.78rem;color:#7fff9a;line-height:1.9;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow-y:auto;margin-bottom:16px}
+.copy-btn{background:var(--green);color:#fff;border:none;border-radius:12px;padding:14px 20px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px}
+.copy-btn:active{opacity:.85}
+
+/* ALERT */
+.alert{background:#1D9E7520;border:1px solid #1D9E7540;border-radius:12px;padding:14px 16px;font-size:0.85rem;line-height:1.6;margin-bottom:16px}
+.alert-amber{background:#f0a03015;border-color:#f0a03030;color:#f0c060}
+.alert-red{background:#e0505015;border-color:#e0505030;color:#f08080}
+
+/* FREE BADGE */
+.free-badge{background:linear-gradient(135deg,#1D9E75,#0d6e50);border-radius:14px;padding:18px;text-align:center;margin-bottom:20px}
+.free-badge .big{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:4px}
+.free-badge .sub{font-size:0.82rem;color:rgba(255,255,255,.8)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────
+const TOTAL_STEPS = 9;
+let currentStep = 0;
+
+const Q = {
+  // Step 0 — About You
+  name:'', email:'', age:'', gender:'male', height:'', weight:'', bodyFat:'',
+  // Step 1 — Lifestyle (free text)
+  aboutMe:'', weekLife:'', sleepHours:'7', stressLevel:'5', occupation:'desk',
+  // Step 2 — Goals
+  primaryGoal:'', secondaryGoals:[], targetWeight:'', timeframe:'12',
+  // Step 3 — Fitness Level
+  experienceLevel:'', trainingAge:'', currentActivity:'', athleticBackground:'',
+  // Step 4 — Training Preferences
+  daysPerWeek:4, sessionLength:'60', gymAccess:'commercial', equipment:[],
+  homeEquipment:[], preferredStyle:[],
+  // Step 5 — Strength Baselines (optional)
+  benchKg:'', squatKg:'', deadliftKg:'', pullupReps:'', pushupReps:'',
+  // Step 6 — Health & Medical
+  injuries:[], medicalConditions:'', medications:'', doctorClearance:'yes',
+  allergies:[], dietaryStyle:'',
+  // Step 7 — Photos
+  photoFront:null, photoBack:null, photoSide:null,
+  photoFrontName:'', photoBackName:'', photoSideName:'',
+  // Step 8 — Final
+  expectations:'', commitmentLevel:'5', howHeard:''
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+function toggleChip(arr, val){
+  const i=arr.indexOf(val);
+  if(i>=0) arr.splice(i,1); else arr.push(val);
+}
+function toggleExclusive(field, val){ Q[field]=val; render(); }
+function isQualifiedFree(){
+  const bf=parseFloat(Q.bodyFat);
+  if(!bf) return false;
+  return (Q.gender==='male' && bf>35) || (Q.gender==='female' && bf>42);
+}
+function handlePhoto(slot, input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    Q['photo'+slot]=e.target.result;
+    Q['photo'+slot+'Name']=file.name;
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────
+function render(){
+  document.getElementById('app').innerHTML = buildApp();
+}
+
+function progressHTML(){
+  const pct = Math.round((currentStep / (TOTAL_STEPS-1)) * 100);
+  const stepNames = ['You','Lifestyle','Goals','Fitness','Training','Strength','Health','Photos','Finish'];
+  return`<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  <div class="step-label"><span>Step ${currentStep+1} of ${TOTAL_STEPS}</span><span>${stepNames[currentStep]}</span></div>`;
+}
+
+function buildApp(){
+  const steps=[step0,step1,step2,step3,step4,step5,step6,step7,step8];
+  return`<div class="logo">Fit<span>OS</span></div>
+  <div class="tagline">Your AI Personal Training Intake — takes about 8 minutes</div>
+  ${progressHTML()}
+  ${(steps[currentStep]||step0)()}
+  ${currentStep < TOTAL_STEPS-1 ? navButtons() : ''}`;
+}
+
+function navButtons(){
+  return`<div class="btn-row">
+    ${currentStep>0?`<button class="btn btn-secondary" style="flex:.6" onclick="back()">← Back</button>`:''}
+    <button class="btn btn-primary" onclick="next()">
+      ${currentStep===TOTAL_STEPS-2 ? 'Generate My Plan →' : 'Continue →'}
+    </button>
+  </div>`;
+}
+
+// ─── STEP 0: ABOUT YOU ────────────────────────────────────────────────────
+function step0(){
+  return`<div class="step-num">Step 1 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Let's start with you</div>
+  <div class="step-desc">Basic info so we can personalise every part of your program — from calorie targets to exercise selection.</div>
+
+  <div class="grid-2">
+    <div class="field"><label class="field-label">First name</label>
+      <input type="text" placeholder="e.g. Eli" value="${Q.name}" oninput="Q.name=this.value"/></div>
+    <div class="field"><label class="field-label">Email</label>
+      <input type="email" placeholder="your@email.com" value="${Q.email}" oninput="Q.email=this.value"/></div>
+  </div>
+  <div class="grid-3">
+    <div class="field"><label class="field-label">Age</label>
+      <input type="number" placeholder="35" value="${Q.age}" oninput="Q.age=this.value" min="16" max="80"/></div>
+    <div class="field"><label class="field-label">Height (cm)</label>
+      <input type="number" placeholder="170" value="${Q.height}" oninput="Q.height=this.value"/></div>
+    <div class="field"><label class="field-label">Weight (kg)</label>
+      <input type="number" placeholder="90" value="${Q.weight}" oninput="Q.weight=this.value" step="0.5"/></div>
+  </div>
+  <div class="field"><label class="field-label">Gender</label>
+    <div class="chip-group">
+      ${[['male','Male'],['female','Female'],['other','Other / prefer not to say']].map(([v,l])=>
+        `<div class="chip${Q.gender===v?' on':''}" onclick="Q.gender='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>
+  <div class="field"><label class="field-label">Estimated body fat %
+    <span style="font-size:0.7rem;color:var(--muted);font-weight:400"> (optional — best guess is fine)</span></label>
+    <input type="number" placeholder="e.g. 22" value="${Q.bodyFat}" oninput="Q.bodyFat=this.value" min="5" max="65" step="0.5"/>
+    <div class="field-hint">Males >35% or Females >42% qualify for <strong style="color:var(--green)">4 months FREE</strong>. You'll upload photos next to confirm.</div>
+  </div>
+  ${isQualifiedFree()?`<div class="free-badge">
+    <div class="big">🎉 You qualify for 4 months FREE</div>
+    <div class="sub">No payment needed to get started. Let's build your transformation.</div>
+  </div>`:''}`;
+}
+
+// ─── STEP 1: LIFESTYLE (FREE TEXT) ────────────────────────────────────────
+function step1(){
+  return`<div class="step-num">Step 2 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Tell us about your life</div>
+  <div class="step-desc">The more you tell us, the more tailored your program. Don't hold back — there are no wrong answers here.</div>
+
+  <div class="field">
+    <label class="field-label">Who are you? Tell us about yourself, your life, and why you're here</label>
+    <textarea placeholder="e.g. I'm a 35-year-old tradie, been yo-yo dieting for years, two kids, tired of feeling sluggish. Want to actually commit this time and not just start another gym phase that fizzles out. Sick of being the biggest guy in the room for the wrong reasons..." oninput="Q.aboutMe=this.value">${Q.aboutMe}</textarea>
+    <div class="field-hint">Be real — this text goes directly to your AI trainer to shape your program.</div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Describe your average week — work, family, activity, sleep, stress</label>
+    <textarea placeholder="e.g. I work 7am–5pm in construction, on my feet most of the day. Get home around 6, cook dinner, kids in bed by 8. Try to get to the gym 3–4x a week but often skip the 4th. Sleep is around 6–7 hrs, stress is moderate-high during busy periods..." oninput="Q.weekLife=this.value">${Q.weekLife}</textarea>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Occupation type</label>
+    <div class="chip-group">
+      ${[['desk','Desk / office worker'],['trades','Trades / physical labour'],['retail','Retail / standing'],['medical','Medical / healthcare'],['student','Student'],['home','Stay at home / carer'],['other','Other']].map(([v,l])=>
+        `<div class="chip${Q.occupation===v?' on':''}" onclick="Q.occupation='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label class="field-label">Average sleep (hours/night)</label>
+      <div class="slider-wrap">
+        <input type="range" class="slider" min="4" max="10" step="0.5" value="${Q.sleepHours}"
+          oninput="Q.sleepHours=this.value;document.getElementById('sleep-val').textContent=this.value+'hrs'"/>
+        <div class="slider-val" id="sleep-val">${Q.sleepHours}hrs</div>
+        <div class="slider-labels"><span>4hrs</span><span>7hrs</span><span>10hrs</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Average stress level</label>
+      <div class="slider-wrap">
+        <input type="range" class="slider" min="1" max="10" value="${Q.stressLevel}"
+          oninput="Q.stressLevel=this.value;document.getElementById('stress-val').textContent=this.value+'/10'"/>
+        <div class="slider-val" id="stress-val">${Q.stressLevel}/10</div>
+        <div class="slider-labels"><span>Chill 1</span><span>5</span><span>Maxed 10</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── STEP 2: GOALS ────────────────────────────────────────────────────────
+function step2(){
+  return`<div class="step-num">Step 3 of ${TOTAL_STEPS}</div>
+  <div class="step-title">What are you chasing?</div>
+  <div class="step-desc">Be specific. Vague goals get vague results.</div>
+
+  <div class="field">
+    <label class="field-label">Primary goal — pick one</label>
+    <div class="chip-group">
+      ${[['fat-loss','🔥 Fat Loss'],['recomp','⚖️ Body Recomp (lose fat + build muscle)'],['muscle','💪 Build Muscle'],['strength','🏋️ Get Stronger'],['health','❤️ General Health & Fitness'],['athletic','⚡ Athletic Performance'],['hyrox','🏁 Hyrox / Hybrid Fitness'],['endurance','🏃 Endurance / Cardio']].map(([v,l])=>
+        `<div class="chip${Q.primaryGoal===v?' on':''}" onclick="Q.primaryGoal='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Secondary goals — tick all that apply</label>
+    <div class="chip-group">
+      ${[['posture','Fix posture'],['back-pain','Reduce back pain'],['mobility','Improve mobility'],['energy','More energy'],['confidence','Confidence'],['sleep','Better sleep'],['stress','Manage stress'],['longevity','Long-term health']].map(([v,l])=>
+        `<div class="chip${Q.secondaryGoals.includes(v)?' on':''}" onclick="toggleChip(Q.secondaryGoals,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label class="field-label">Target weight (kg) <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input type="number" placeholder="e.g. 82" value="${Q.targetWeight}" oninput="Q.targetWeight=this.value"/>
+    </div>
+    <div class="field">
+      <label class="field-label">Timeframe (weeks)</label>
+      <select onchange="Q.timeframe=this.value">
+        <option value="8"${Q.timeframe==='8'?' selected':''}>8 weeks</option>
+        <option value="12"${Q.timeframe==='12'?' selected':''}>12 weeks</option>
+        <option value="16"${Q.timeframe==='16'?' selected':''}>16 weeks</option>
+        <option value="24"${Q.timeframe==='24'?' selected':''}>6 months</option>
+        <option value="52"${Q.timeframe==='52'?' selected':''}>12 months</option>
+        <option value="ongoing"${Q.timeframe==='ongoing'?' selected':''}>Ongoing lifestyle</option>
+      </select>
+    </div>
+  </div>`;
+}
+
+// ─── STEP 3: FITNESS LEVEL ────────────────────────────────────────────────
+function step3(){
+  return`<div class="step-num">Step 4 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Where are you right now?</div>
+  <div class="step-desc">Be honest — the program only works if it matches where you actually are, not where you wish you were.</div>
+
+  <div class="field">
+    <label class="field-label">Training experience level</label>
+    <div class="chip-group" style="flex-direction:column">
+      ${[
+        ['never','🥚 Complete beginner — never trained consistently'],
+        ['some','🌱 Some experience — tried gym a few times, no real program'],
+        ['consistent-1','📈 1 year consistent — know the basics, decent technique'],
+        ['intermediate','💪 Intermediate (1–3 years) — solid technique, training regularly'],
+        ['advanced','🔥 Advanced (3+ years) — strong foundations, tracking progressive overload'],
+        ['athlete','⚡ Competitive / elite athlete — sport-specific training background']
+      ].map(([v,l])=>
+        `<div class="chip${Q.experienceLevel===v?' on':''}" onclick="Q.experienceLevel='${v}';render()" style="border-radius:10px;padding:12px 16px">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Current weekly activity (outside the gym)</label>
+    <div class="chip-group">
+      ${[['none','Mostly sedentary'],['light','Light — occasional walks'],['moderate','Moderate — active job or daily exercise'],['high','High — sport, trade, or heavy physical work']].map(([v,l])=>
+        `<div class="chip${Q.currentActivity===v?' on':''}" onclick="Q.currentActivity='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Any athletic background? <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+    <input type="text" placeholder="e.g. Played footy until 28, did CrossFit for 6 months, ex-swimmer..." value="${Q.athleticBackground}" oninput="Q.athleticBackground=this.value"/>
+    <div class="field-hint">Helps us understand your movement patterns and what your body is already adapted to.</div>
+  </div>`;
+}
+
+// ─── STEP 4: TRAINING PREFERENCES ────────────────────────────────────────
+function step4(){
+  return`<div class="step-num">Step 5 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Training setup</div>
+  <div class="step-desc">What you have access to determines what we program. Let's build around your reality.</div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label class="field-label">Days per week</label>
+      <div class="chip-group">
+        ${[2,3,4,5,6].map(v=>`<div class="chip${Q.daysPerWeek===v?' on':''}" onclick="Q.daysPerWeek=${v};render()">${v}</div>`).join('')}
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Session length</label>
+      <div class="chip-group">
+        ${[['30','30 min'],['45','45 min'],['60','60 min'],['75','75 min'],['90','90+ min']].map(([v,l])=>
+          `<div class="chip${Q.sessionLength===v?' on':''}" onclick="Q.sessionLength='${v}';render()">${l}</div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Gym / equipment access</label>
+    <div class="chip-group">
+      ${[['commercial','Commercial gym (full equipment)'],['budget-gym','Budget gym (basic equipment)'],['home-full','Home gym (full setup)'],['home-basic','Home gym (dumbbells + bands)'],['outdoor','Outdoor / calisthenics only'],['mixed','Mix of gym + home']].map(([v,l])=>
+        `<div class="chip${Q.gymAccess===v?' on':''}" onclick="Q.gymAccess='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  ${Q.gymAccess==='commercial'||Q.gymAccess==='budget-gym'?`
+  <div class="field">
+    <label class="field-label">Available gym equipment — tick what's at your gym</label>
+    <div class="chip-group">
+      ${[['barbell','Barbell + rack'],['dumbbells','Dumbbells'],['cables','Cable machines'],['smith','Smith machine'],['hack-squat','Hack squat machine'],['leg-press','Leg press'],['chest-press-machine','Chest press machine'],['shoulder-press-machine','Shoulder press machine'],['technogym','Technogym equipment'],['panata','Panata equipment'],['kettlebells','Kettlebells'],['battle-ropes','Battle ropes'],['sled','Sled / prowler'],['cardio','Cardio machines']].map(([v,l])=>
+        `<div class="chip${Q.equipment.includes(v)?' on':''}" onclick="toggleChip(Q.equipment,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>`:''}
+
+  ${Q.gymAccess==='home-full'||Q.gymAccess==='home-basic'||Q.gymAccess==='mixed'?`
+  <div class="field">
+    <label class="field-label">Home equipment available</label>
+    <div class="chip-group">
+      ${[['dumbbells-home','Dumbbells'],['barbell-home','Barbell'],['pullup-bar','Pull-up bar'],['bands','Resistance bands'],['bench','Adjustable bench'],['kettlebell-home','Kettlebell'],['bodyweight-only','Bodyweight only']].map(([v,l])=>
+        `<div class="chip${Q.homeEquipment.includes(v)?' on':''}" onclick="toggleChip(Q.homeEquipment,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>`:''}
+
+  <div class="field">
+    <label class="field-label">Preferred training style — tick all that apply</label>
+    <div class="chip-group">
+      ${[['weights','Weight training'],['hiit','HIIT / conditioning'],['cardio-steady','Steady-state cardio'],['yoga','Yoga / mobility'],['sports','Sport-specific'],['circuits','Circuit training'],['powerlifting','Powerlifting style'],['bodybuilding','Bodybuilding / hypertrophy']].map(([v,l])=>
+        `<div class="chip${Q.preferredStyle.includes(v)?' on':''}" onclick="toggleChip(Q.preferredStyle,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── STEP 5: STRENGTH BASELINES ───────────────────────────────────────────
+function step5(){
+  return`<div class="step-num">Step 6 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Strength baselines</div>
+  <div class="step-desc">Optional but very useful. Best estimate at 8 reps — not your max, your working weight for 8 solid reps.</div>
+
+  <div class="alert alert-amber">These tell us where you sit so we can set your starting weights and progression targets accurately. If you're a beginner, leave them blank.</div>
+
+  <div class="grid-2">
+    <div class="field"><label class="field-label">Bench press (kg × 8 reps)</label>
+      <input type="number" placeholder="e.g. 80" value="${Q.benchKg}" oninput="Q.benchKg=this.value" step="2.5"/></div>
+    <div class="field"><label class="field-label">Back squat (kg × 8 reps)</label>
+      <input type="number" placeholder="e.g. 100" value="${Q.squatKg}" oninput="Q.squatKg=this.value" step="2.5"/></div>
+    <div class="field"><label class="field-label">Deadlift (kg × 8 reps)</label>
+      <input type="number" placeholder="e.g. 140" value="${Q.deadliftKg}" oninput="Q.deadliftKg=this.value" step="2.5"/></div>
+    <div class="field"><label class="field-label">Pull-ups (max reps)</label>
+      <input type="number" placeholder="e.g. 8" value="${Q.pullupReps}" oninput="Q.pullupReps=this.value"/></div>
+  </div>
+  <div class="field"><label class="field-label">Push-ups (max reps)</label>
+    <input type="number" placeholder="e.g. 20" value="${Q.pushupReps}" oninput="Q.pushupReps=this.value" style="max-width:160px"/>
+  </div>`;
+}
+
+// ─── STEP 6: HEALTH & MEDICAL ─────────────────────────────────────────────
+function step6(){
+  return`<div class="step-num">Step 7 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Health & dietary</div>
+  <div class="step-desc">This shapes your exercise selection, exercise modifications, and nutrition plan.</div>
+
+  <div class="field">
+    <label class="field-label">Current injuries or physical limitations</label>
+    <div class="chip-group">
+      ${[['lower-back','Lower back'],['knee','Knee'],['shoulder','Shoulder'],['hip','Hip'],['neck','Neck'],['wrist','Wrist / elbow'],['ankle','Ankle / foot'],['none','No injuries']].map(([v,l])=>
+        `<div class="chip${Q.injuries.includes(v)?' on':''}" onclick="toggleChip(Q.injuries,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Medical conditions or health notes <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+    <textarea placeholder="e.g. Type 2 diabetes (managed), high blood pressure, previous knee surgery (2021), chronic fatigue..." style="min-height:80px" oninput="Q.medicalConditions=this.value">${Q.medicalConditions}</textarea>
+    <div class="field-hint">Your AI trainer will adjust program intensity and exercise selection accordingly.</div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Has a doctor cleared you for exercise?</label>
+    <div class="chip-group">
+      ${[['yes','Yes, all clear'],['no-needed','Not needed — I\'m healthy'],['unsure','Unsure'],['no','No — I should check first']].map(([v,l])=>
+        `<div class="chip${Q.doctorClearance===v?' on':''}" onclick="Q.doctorClearance='${v}';render()">${l}</div>`).join('')}
+    </div>
+    ${Q.doctorClearance==='no'?`<div class="alert alert-red" style="margin-top:10px">⚠️ Please get medical clearance before starting any new training program.</div>`:''}
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label class="field-label">Food allergies or intolerances</label>
+    <div class="chip-group">
+      ${[['crustacean','🦐 Shellfish / Crustacean'],['gluten','🌾 Gluten'],['dairy','🥛 Dairy'],['nuts','🥜 Nuts'],['eggs','🥚 Eggs'],['soy','🫘 Soy'],['none','None']].map(([v,l])=>
+        `<div class="chip${Q.allergies.includes(v)?' on':''}" onclick="toggleChip(Q.allergies,'${v}');render()">${l}</div>`).join('')}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Dietary style</label>
+    <div class="chip-group">
+      ${[['omnivore','Omnivore (eat everything)'],['flexitarian','Flexitarian'],['vegetarian','Vegetarian'],['vegan','Vegan'],['keto','Keto / low carb'],['paleo','Paleo'],['other','Other']].map(([v,l])=>
+        `<div class="chip${Q.dietaryStyle===v?' on':''}" onclick="Q.dietaryStyle='${v}';render()">${l}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── STEP 7: PHOTOS ───────────────────────────────────────────────────────
+function step7(){
+  return`<div class="step-num">Step 8 of ${TOTAL_STEPS}</div>
+  <div class="step-title">Starting point photos</div>
+  <div class="step-desc">These become your baseline. Your AI trainer will reference these to track your transformation over time and confirm your free access eligibility.</div>
+
+  <div class="alert">📸 <strong>How to take good progress photos:</strong><br>
+  • Wear fitted clothing or activewear (nothing baggy)<br>
+  • Same lighting each time — natural light near a window is best<br>
+  • Stand 1–2 metres from camera, full body in frame<br>
+  • Neutral expression, arms slightly away from body<br>
+  • Same time of day each week (morning, after bathroom)</div>
+
+  <div class="field">
+    <label class="field-label">Upload your starting photos</label>
+    <div class="photo-upload-row">
+      ${['Front','Back','Side'].map(slot=>{
+        const hasPhoto=!!Q['photo'+slot];
+        return`<div class="photo-slot${hasPhoto?' has-photo':''}">
+          <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${slot}',this)"/>
+          ${hasPhoto?`<img src="${Q['photo'+slot]}" alt="${slot}"/>`:''}
+          <div class="photo-slot-icon">📷</div>
+          <div class="photo-slot-label"><strong>${slot}</strong><br>Tap to add</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="field-hint">Photos are stored only on your device. They are never uploaded to any server.</div>
+  </div>
+
+  ${isQualifiedFree()?`<div class="free-badge">
+    <div class="big">🎉 Free access confirmed!</div>
+    <div class="sub">Your photos will be reviewed by your AI trainer to confirm eligibility. 4 months free — no credit card required.</div>
+  </div>`:''}
+
+  ${!Q.photoFront&&!Q.photoBack&&!Q.photoSide?`<div class="alert alert-amber">⚠️ Photos are optional but strongly recommended — they're the most powerful tool for tracking real progress.</div>`:''}`;
+}
+
+// ─── STEP 8: FINAL + OUTPUT ───────────────────────────────────────────────
+function step8(){
+  const prompt = generatePrompt();
+  return`<div class="step-num">Step 9 of ${TOTAL_STEPS}</div>
+  <div class="step-title">You're done, ${Q.name||'Champion'}! 🎉</div>
+  <div class="step-desc">Your personalised Claude AI prompt is ready below. Copy it and paste it into Claude to receive your complete training and nutrition plan.</div>
+
+  ${isQualifiedFree()?`<div class="free-badge" style="margin-bottom:20px">
+    <div class="big">🎉 4 Months FREE</div>
+    <div class="sub">Body fat % qualifies you for free access — welcome to FitOS.</div>
+  </div>`:''}
+
+  <div class="alert" style="margin-bottom:16px">
+    <strong>How to use this:</strong><br>
+    1. Tap <strong>Copy Prompt</strong> below<br>
+    2. Open <strong>Claude.ai</strong> in a new tab<br>
+    3. Paste and send — Claude will generate your full personalised program<br>
+    4. Save the response as your training and nutrition bible
+  </div>
+
+  <div class="output-box" id="prompt-output">${prompt}</div>
+  <button class="copy-btn" onclick="copyPrompt()">📋 Copy My Claude Prompt</button>
+  <div id="copy-confirm" style="text-align:center;font-size:0.82rem;color:var(--green);min-height:20px;margin-bottom:16px"></div>
+
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;font-size:0.85rem;line-height:1.8;color:var(--muted)">
+    <strong style="color:var(--text)">What happens next:</strong><br>
+    📱 Download <strong style="color:var(--text)">FitOS App</strong> to track your workouts, meals, and habits daily<br>
+    📅 Set a Sunday check-in reminder in your phone<br>
+    🔄 After Week 4 — paste your Sunday dispatch to Claude for a progress review<br>
+    🏆 After Week 8 — your AI trainer generates your next training block
+  </div>`;
+}
+
+// ─── PROMPT GENERATOR ─────────────────────────────────────────────────────
+function generatePrompt(){
+  const injuries = Q.injuries.filter(i=>i!=='none').join(', ') || 'None';
+  const allergies = Q.allergies.filter(a=>a!=='none').join(', ') || 'None';
+  const secondaryGoals = Q.secondaryGoals.join(', ') || 'None specified';
+  const equipment = [...Q.equipment, ...Q.homeEquipment].join(', ') || Q.gymAccess;
+  const preferredStyle = Q.preferredStyle.join(', ') || 'Not specified';
+
+  return `You are an elite Australian personal trainer and sports nutritionist. I need you to build me a complete, personalised 8-week training and nutrition program based on my intake below. Be specific, science-backed, and practical. Use metric measurements (kg, cm).
+
+═══════════════════════════════════════
+PERSONAL PROFILE
+═══════════════════════════════════════
+Name: ${Q.name || 'Client'}
+Age: ${Q.age || 'Not provided'}
+Gender: ${Q.gender}
+Height: ${Q.height ? Q.height + 'cm' : 'Not provided'}
+Weight: ${Q.weight ? Q.weight + 'kg' : 'Not provided'}
+Estimated Body Fat %: ${Q.bodyFat ? Q.bodyFat + '%' : 'Not provided'}
+Occupation: ${Q.occupation}
+
+═══════════════════════════════════════
+LIFESTYLE & BACKGROUND
+═══════════════════════════════════════
+About me (in their own words):
+"${Q.aboutMe || 'Not provided'}"
+
+Typical week (in their own words):
+"${Q.weekLife || 'Not provided'}"
+
+Average sleep: ${Q.sleepHours} hours/night
+Stress level: ${Q.stressLevel}/10
+Athletic background: ${Q.athleticBackground || 'None specified'}
+Current activity level outside gym: ${Q.currentActivity || 'Not specified'}
+
+═══════════════════════════════════════
+GOALS
+═══════════════════════════════════════
+Primary goal: ${Q.primaryGoal || 'Not specified'}
+Secondary goals: ${secondaryGoals}
+Target weight: ${Q.targetWeight ? Q.targetWeight + 'kg' : 'Not specified'}
+Timeframe: ${Q.timeframe} weeks
+
+═══════════════════════════════════════
+TRAINING SETUP
+═══════════════════════════════════════
+Experience level: ${Q.experienceLevel || 'Not specified'}
+Days per week: ${Q.daysPerWeek}
+Session length: ${Q.sessionLength} minutes
+Gym/equipment access: ${Q.gymAccess}
+Equipment available: ${equipment}
+Preferred training style: ${preferredStyle}
+
+═══════════════════════════════════════
+STRENGTH BASELINES (8-rep working weight)
+═══════════════════════════════════════
+Bench Press: ${Q.benchKg ? Q.benchKg + 'kg × 8' : 'Not tested / beginner'}
+Back Squat: ${Q.squatKg ? Q.squatKg + 'kg × 8' : 'Not tested / beginner'}
+Deadlift: ${Q.deadliftKg ? Q.deadliftKg + 'kg × 8' : 'Not tested / beginner'}
+Pull-ups: ${Q.pullupReps ? Q.pullupReps + ' reps' : 'Not tested / beginner'}
+Push-ups: ${Q.pushupReps ? Q.pushupReps + ' reps max' : 'Not tested / beginner'}
+
+═══════════════════════════════════════
+HEALTH & DIETARY
+═══════════════════════════════════════
+Injuries/limitations: ${injuries}
+Medical conditions: ${Q.medicalConditions || 'None reported'}
+Doctor clearance: ${Q.doctorClearance}
+Food allergies/intolerances: ${allergies}
+Dietary style: ${Q.dietaryStyle || 'Not specified'}
+
+═══════════════════════════════════════
+PHOTOS
+═══════════════════════════════════════
+${Q.photoFront || Q.photoBack || Q.photoSide ?
+  'Starting point photos have been taken (front/back/side). Please acknowledge these as the baseline for tracking transformation progress.' :
+  'No photos uploaded at this stage.'}
+
+═══════════════════════════════════════
+WHAT I NEED FROM YOU
+═══════════════════════════════════════
+Please generate the following, all tailored specifically to this individual:
+
+1. TDEE CALCULATION
+   - BMR using Mifflin-St Jeor formula
+   - Activity multiplier based on their lifestyle
+   - Calorie target for their primary goal
+
+2. MACRO TARGETS
+   - Daily protein, carbs, fat targets in grams
+   - Justify each based on their goal and body composition
+   - Flag any adjustments needed for allergies/dietary style
+
+3. 8-WEEK TRAINING BLOCK
+   - Full weekly schedule (which days, what sessions)
+   - Each session: exercise name, sets × rep range, rest period, RIR target per phase
+   - Progressive overload plan across all 8 weeks (Volume → Intensity → Peak)
+   - Week 4 deload built in
+   - All exercises modified for any injuries listed above
+   - Use only equipment they have access to
+
+4. WARM-UP PROTOCOL (tailored to their injuries/limitations)
+
+5. COOL-DOWN / MOBILITY PROTOCOL
+
+6. 6-MEAL NUTRITION PLAN (one representative day)
+   - Timed around their training schedule
+   - Hits macro targets
+   - Zero foods from allergy list
+   - Practical, affordable, Australian grocery staples
+
+7. SUPPLEMENT STACK RECOMMENDATIONS (evidence-based only)
+
+8. WEEKLY CHECK-IN QUESTIONS
+   - 5 questions to ask themselves every Sunday to track progress
+   - What metrics to log (weight, energy, performance, adherence)
+
+9. MOTIVATIONAL FRAMEWORK
+   - 1–2 paragraphs: identity-based framing of who they're becoming
+   - Tailored to what they shared about their life and goals
+
+Please be specific with weights, sets, reps, and timings. This is not a generic program — it should feel like it was built only for ${Q.name || 'this person'}.`;
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────
+function next(){
+  if(currentStep < TOTAL_STEPS-1){ currentStep++; render(); window.scrollTo(0,0); }
+}
+function back(){
+  if(currentStep > 0){ currentStep--; render(); window.scrollTo(0,0); }
+}
+function copyPrompt(){
+  const text=document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(text)
+    .then(()=>{
+      const el=document.getElementById('copy-confirm');
+      if(el){ el.textContent='✅ Copied! Paste into Claude.ai now.'; setTimeout(()=>{if(el)el.textContent='';},4000); }
+    })
+    .catch(()=>{ alert('Copy failed — manually select and copy the text above.'); });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
