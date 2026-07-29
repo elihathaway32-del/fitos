@@ -2846,33 +2846,55 @@ async function startStepTracking(){
 // ═══════════════════════════════════════════════════════════════════════════
 // RENDER ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
+// Track render context to know when scroll should be preserved vs reset
+var _renderCtx={tab:null,trainScreen:null,intakeStep:null,showIntake:false,showCheckin:false};
 function render(){
   try{
+    var screenEl=document.getElementById('screen');
+    // Save scroll position before any rebuild
+    var savedScroll=screenEl?screenEl.scrollTop:0;
+    // Determine if this is a same-context render (preserve scroll) or a new screen (reset)
+    var sameCtx=(
+      _renderCtx.tab===S.tab&&
+      _renderCtx.trainScreen===S.trainScreen&&
+      _renderCtx.intakeStep===S.intakeStep&&
+      _renderCtx.showIntake===S.showIntake&&
+      _renderCtx.showCheckin===S.showCheckin
+    );
+
     // coach orb is in tab bar — no FAB to show/hide
     if(S.showIntake){
       document.getElementById('screen').innerHTML=renderIntake();
       document.getElementById('tab-bar').innerHTML='';
+      // Restore wizard scroll only if same intake step
+      if(sameCtx&&screenEl) screenEl.scrollTop=savedScroll;
+      _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:true,showCheckin:false};
       return;
     }
     if(S.showCheckin){
       document.getElementById('screen').innerHTML=renderCheckin();
       document.getElementById('tab-bar').innerHTML='';
+      if(sameCtx&&screenEl) screenEl.scrollTop=savedScroll;
+      _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:true};
       return;
     }
     if(S.showGleam){
       document.getElementById('screen').innerHTML=renderGleam();
       document.getElementById('tab-bar').innerHTML='';
+      _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:false};
       return;
     }
     if(S.showPhotoGallery){
       document.getElementById('screen').innerHTML=renderPhotoGallery();
       document.getElementById('tab-bar').innerHTML='';
+      _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:false};
       return;
     }
     // Check paywall (after trial period)
     if(S.showPaywall){
       document.getElementById('screen').innerHTML=renderPaywall();
       document.getElementById('tab-bar').innerHTML='';
+      _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:false};
       return;
     }
     if(typeof checkPaywall==='function') checkPaywall();
@@ -2880,6 +2902,9 @@ function render(){
     const screens={today:renderToday,train:renderTrain,eat:renderEat,habits:renderHabits};
     const mainHTML=(screens[S.tab]||renderToday)()+(S.showFoodPanel?renderFoodPanel():'')+(S.showSettings?renderSettings():'')+(S.showSwapSheet?renderSwapSheet():'')+(S.swapSheetDay?renderDaySwapSheet():'')+(S.addDaySheet?renderAddDaySheet():'')+(S.showDevPanel?renderDevPanel():'');
     document.getElementById('screen').innerHTML=mainHTML;
+    // Restore scroll if same tab/screen context; otherwise stays at 0 (natural reset)
+    if(sameCtx&&screenEl) screenEl.scrollTop=savedScroll;
+    _renderCtx={tab:S.tab,trainScreen:S.trainScreen,intakeStep:S.intakeStep,showIntake:false,showCheckin:false};
     // Rest sheet rendered directly on body to avoid position:fixed bug inside CSS-transformed #screen
     var _rb=document.getElementById('fitos-rest-root');
     if(!_rb){_rb=document.createElement('div');_rb.id='fitos-rest-root';document.body.appendChild(_rb);}
@@ -9503,7 +9528,7 @@ function renderSettings(){
                 +'<div style="margin-bottom:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Voice Profile</div>'
                 +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+profilesHtml+'</div></div>'
                 +voicePickerHtml
-                +'<button onclick="speakOracle(\'Hey '+(S.profile&&S.profile.name?S.profile.name:'champ')+'! This is how your Fit Oracle sounds. Let\'s get after it.\')" '
+                +'<button onclick="testOracleVoice()" '
                   +'style="width:100%;margin-top:12px;background:rgba(140,80,255,0.12);border:1px solid rgba(140,80,255,0.35);border-radius:10px;padding:10px;color:#c8a8ff;font-size:0.85rem;font-weight:600;cursor:pointer">▶ Test Voice</button>'
               :'<div style="font-size:0.78rem;color:var(--muted)">Enable voice to configure Oracle speech settings.</div>')
             +'</div>';
@@ -10075,7 +10100,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v131';
+  window.APP_VERSION='v132';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -10362,6 +10387,29 @@ function toggleOracleVoice(){
   if(!S.oracleVoiceOn) window.speechSynthesis.cancel();
   refreshCoach();
 }
+function testOracleVoice(){
+  _primeAudio();
+  var name=(S.profile&&S.profile.name)?S.profile.name:'champ';
+  speakOracle('Hey '+name+'! This is how your Fit Oracle sounds. Ready to train?');
+}
+function _primeAudio(){
+  // Called synchronously from user gesture to keep iOS audio session alive
+  // through subsequent async TTS calls
+  try{
+    if(window.speechSynthesis&&S.oracleVoiceOn){
+      // Pause+resume keeps the speech synthesis context warm on iOS
+      if(!window.speechSynthesis.speaking) window.speechSynthesis.resume();
+    }
+    // Silent AudioContext pulse — tells iOS the app wants audio
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    var ctx=new AC();
+    var buf=ctx.createBuffer(1,1,22050);
+    var src=ctx.createBufferSource();
+    src.buffer=buf;src.connect(ctx.destination);
+    src.start(0);src.onended=function(){ctx.close();};
+  }catch(e){}
+}
 
 function _updateMicBtn(){
   // Light update — just swap the mic button state without rebuilding the full overlay
@@ -10403,7 +10451,7 @@ function startVoiceInput(){
       if(inp) inp.value=transcript;
       if(e.results[e.results.length-1].isFinal){
         _oracleSTT=null;S.oracleListening=false;_updateMicBtn();
-        sendCoachMessage();
+        _primeAudio();sendCoachMessage();
       }
     };
     _oracleSTT.onerror=function(ev){
@@ -10640,8 +10688,8 @@ function renderCoach(){
       (hasSR?'<button id="oracle-mic-btn" onclick="startVoiceInput()" style="width:42px;height:42px;border-radius:50%;border:1.5px solid;flex-shrink:0;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;'+micStyle+'">'+micIcon+'</button>':'')+
       '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask your Oracle anything..." '+
         'style="border-color:rgba(100,80,200,0.3)" '+
-        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"/>'+
-      '<button class="coach-send" onclick="sendCoachMessage()" style="background:linear-gradient(135deg,#6040c0,#8c78ff)">➤</button>'+
+        'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();_primeAudio();sendCoachMessage();}"/>'+
+      '<button class="coach-send" onclick="_primeAudio();sendCoachMessage()" style="background:linear-gradient(135deg,#6040c0,#8c78ff)">➤</button>'+
     '</div>'+
   '</div>';
 }
