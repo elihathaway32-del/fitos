@@ -8809,7 +8809,7 @@ function abandonWorkout(){
 }
 function skipRest(){stopRest();}
 function extendRest(secs){S.restLeft=Math.max(3,S.restLeft+secs);S.restTotal=Math.max(3,S.restTotal+secs);render();}
-function selectWeek(w){S.week=w;render();}
+function selectWeek(w){S.week=w;try{localStorage.setItem('fitos_week',String(w));}catch(e){}render();}
 function finishAndSave(){completeWorkout();}
 function resumeSession(gIdx){
   var h=S.gymHistory[gIdx];if(!h)return;
@@ -9606,7 +9606,7 @@ async function syncToCloud(){
       gym_history:S.gymHistory,
       checkin_history:S.checkinHistory,
       food_log:S.foodLog,
-      habit_data:{streak:S.streak,addictionData:S.addictionData},
+      habit_data:{streak:S.streak,addictionData:S.addictionData,week:S.week,macroBlock:S.macroBlock},
       updated_at:new Date().toISOString()
     };
     // Use fetch directly so the auth token is explicitly in the header — no session management issues
@@ -9810,7 +9810,16 @@ async function wizSignup(){
     var result=isSignin
       ?await client.auth.signInWithPassword({email:email,password:pass})
       :await client.auth.signUp({email:email,password:pass});
-    if(result.error){S.wizAuthError=result.error.message;S.wizAuthLoading=false;render();return;}
+    if(result.error){
+      var errMsg=result.error.message||'';
+      // Existing email during signup → auto-switch to sign-in with friendly message
+      if(!isSignin&&(/already registered|already exists|already in use/i.test(errMsg))){
+        S.wizAuthMode='signin';
+        S.wizAuthError='Looks like you already have an account — signing you in instead.';
+        S.wizAuthLoading=false;render();return;
+      }
+      S.wizAuthError=errMsg;S.wizAuthLoading=false;render();return;
+    }
     S.supaUser=result.data.user;
     S.supaSession=result.data.session?.access_token||null;
     localStorage.setItem('fitos_supa_user',JSON.stringify(S.supaUser));
@@ -9840,6 +9849,8 @@ async function wizSignup(){
             if(d.habit_data){
               if(d.habit_data.streak!=null) S.streak=d.habit_data.streak;
               if(d.habit_data.addictionData) S.addictionData=d.habit_data.addictionData;
+              if(d.habit_data.week){S.week=d.habit_data.week;try{localStorage.setItem('fitos_week',String(S.week));}catch(e){}}
+              if(d.habit_data.macroBlock){S.macroBlock=d.habit_data.macroBlock;try{localStorage.setItem('fitos_macro_block',String(S.macroBlock));}catch(e){}}
             }
             S.lastCloudSync=new Date().toISOString();
             localStorage.setItem('fitos_last_sync',S.lastCloudSync);
@@ -9958,7 +9969,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v128';
+  window.APP_VERSION='v129';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
