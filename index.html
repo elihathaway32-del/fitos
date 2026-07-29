@@ -2621,6 +2621,9 @@ let S={
   coachTyping: false,
   coachInput: '',
   oracleVoiceOn: localStorage.getItem('fitos_oracle_voice')!=='off',
+  oracleProfile: localStorage.getItem('fitos_oracle_profile')||'energetic',
+  oracleVoiceLang: localStorage.getItem('fitos_oracle_lang')||'en-AU',
+  oracleVoiceName: localStorage.getItem('fitos_oracle_voice_name')||'',
   oracleListening: false,
   foodQuery: '',
   foodResults: [],
@@ -2629,6 +2632,8 @@ let S={
   expandedRecipe: null,
   showSettings: false,
   showDevPanel: false,
+  showTour: false,
+  tourStep: 0,
   _verTaps: 0,
   showRestSheet: false,
   showSwapSheet: false,
@@ -2879,6 +2884,10 @@ function render(){
     var _rb=document.getElementById('fitos-rest-root');
     if(!_rb){_rb=document.createElement('div');_rb.id='fitos-rest-root';document.body.appendChild(_rb);}
     _rb.innerHTML=S.showRestSheet?renderRestSheet():'';
+    // Onboarding tour overlay
+    var _tour=document.getElementById('fitos-tour-root');
+    if(!_tour){_tour=document.createElement('div');_tour.id='fitos-tour-root';document.body.appendChild(_tour);}
+    _tour.innerHTML=S.showTour?renderTour():'';
     // Coach orb is now in the tab bar — no floating FAB needed
     // YouTube demo replaces Three.js animation — no canvas hook needed
   }catch(err){
@@ -4391,9 +4400,7 @@ function renderDayPreviewCard(d){
   var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
   var isSwapped=!!sw[d];
   var isLocked=!!lk[d];
-  var swapBtnHtml=isLocked?
-    '<div style="font-size:0.72rem;display:flex;align-items:center;gap:5px"><span style="color:'+curDay.color+'">\u2713 Swapped</span>&nbsp;<span style="color:var(--muted)">\ud83d\udd12 Locked</span></div>':
-    '<button onclick="S.swapSheetDay=\''+d+'\';render()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;color:rgba(255,255,255,0.65);font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap">\u21c4 Swap Out</button>';
+  var swapBtnHtml='<button onclick="S.swapSheetDay=\''+d+'\';render()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;color:rgba(255,255,255,0.65);font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap">'+(isLocked?'\u21c4 Change Split':'\u21c4 Swap Out')+'</button>';
   return '<div class="card" style="border-color:'+curDay.color+'40;margin-bottom:14px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
       '<div class="card-title" style="margin:0">Day '+d+' \u2014 '+curDay.name+'</div>'+
@@ -4424,7 +4431,7 @@ function renderDaySwapSheet(){
     var isCurrent=(item.isOrig&&!currentKey)||(item.key===currentKey);
     var sp=item.sp;
     var label=item.isOrig?'\u21a9 Keep Original: '+sp.name:sp.name;
-    var clickable=!isLocked&&!isCurrent;
+    var clickable=!isCurrent;
     var action=clickable?'onclick="confirmDaySwap(\''+d+'\',\''+item.key+'\');"':'';
     var exPreview=sp.exercises.slice(0,3).map(function(e){return e.name;}).join(' \u00b7 ')+(sp.exercises.length>3?' +'+(sp.exercises.length-3)+' more':'');
     return '<div '+action+' style="text-align:left;background:'+(isCurrent?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)')+';border:'+(isCurrent?'1.5px solid rgba(255,255,255,0.28)':'1px solid rgba(255,255,255,0.08)')+';border-radius:14px;padding:14px;margin-bottom:8px;cursor:'+(clickable?'pointer':'default')+'">'+
@@ -4444,8 +4451,7 @@ function renderDaySwapSheet(){
       '<div ontouchstart="sheetDragStart(event,\'sds-panel\')" ontouchmove="sheetDragMove(event,\'sds-panel\')" ontouchend="sheetDragEnd(event,\'sds-panel\',closeDaySwapSheet)" onclick="closeDaySwapSheet()" style="padding:8px 0 4px;touch-action:none;cursor:grab"><div style="width:48px;height:5px;background:rgba(255,255,255,0.25);border-radius:3px;margin:0 auto 12px"></div></div>'+
       '<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.35);margin-bottom:2px">Swap Out Workout</div>'+
       '<div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:12px">Day '+d+' \u2014 '+origDay.name+'</div>'+
-      (isLocked?'<div style="background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.22);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:0.78rem;color:var(--amber)">\ud83d\udd12 Locked for this cycle. This split is now your Day '+d+' for the rest of the 8-week block. Your coach tracks this for progress assessment.</div>':
-       '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.5">Select a replacement split. Once chosen, it locks in for the rest of this training cycle so your coach can properly track your progress.</div>')+
+      '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.5">Select a replacement split for Day '+d+'. Your Oracle will track your progress with the chosen split.</div>'+
       '<div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Choose Your Split</div>'+
     '</div>'+
     '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px 8px">'+
@@ -4458,7 +4464,6 @@ function renderDaySwapSheet(){
 function confirmDaySwap(d,key){
   var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
   var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
-  if(lk[d])return;
   if(key!=='__original__'){
     sw[d]=key;
     lk[d]=true;
@@ -9447,6 +9452,62 @@ function renderSettings(){
           '</div>'+
         '</div>'+
         renderThemePicker()+'\n'+
+
+        (function(){
+          var langs=[
+            {code:'en-AU',label:'🇦🇺 English (Australian)'},
+            {code:'en-US',label:'🇺🇸 English (American)'},
+            {code:'en-GB',label:'🇬🇧 English (British)'},
+            {code:'en-IN',label:'🇮🇳 English (Indian)'},
+            {code:'es-ES',label:'🇪🇸 Spanish'},
+            {code:'fr-FR',label:'🇫🇷 French'},
+            {code:'de-DE',label:'🇩🇪 German'}
+          ];
+          var curLang=S.oracleVoiceLang||'en-AU';
+          var curProf=S.oracleProfile||'energetic';
+          var voiceOn=S.oracleVoiceOn;
+          // Get available voices for current lang (rendered at call time)
+          var availVoices=(window.speechSynthesis?window.speechSynthesis.getVoices():[]).filter(function(v){return v.lang.startsWith(curLang.split('-')[0]);});
+          var curVoiceName=S.oracleVoiceName||'';
+          var profilesHtml=Object.keys(ORACLE_PROFILES).map(function(k){
+            var p=ORACLE_PROFILES[k];
+            var active=curProf===k;
+            return '<button onclick="S.oracleProfile=\''+k+'\';localStorage.setItem(\'fitos_oracle_profile\',\''+k+'\');render()" '
+              +'style="background:'+(active?'rgba(140,80,255,0.25)':'var(--s3)')+';border:'+(active?'1.5px solid rgba(140,80,255,0.6)':'1px solid var(--border)')+';border-radius:10px;padding:10px 8px;color:'+(active?'#c8a8ff':'var(--text)')+';cursor:pointer;text-align:center">'
+              +'<div style="font-size:1rem">'+p.label.split(' ')[0]+'</div>'
+              +'<div style="font-size:0.72rem;font-weight:700;margin-top:2px">'+p.label.split(' ').slice(1).join(' ')+'</div>'
+              +'<div style="font-size:0.62rem;color:'+(active?'rgba(200,168,255,0.7)':'var(--muted)')+'">'+p.desc+'</div>'
+              +'</button>';
+          }).join('');
+          var voicePickerHtml=availVoices.length>1
+            ?'<div style="margin-top:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:5px">Voice</div>'
+              +'<select class="wizard-input" onchange="S.oracleVoiceName=this.value;localStorage.setItem(\'fitos_oracle_voice_name\',this.value)" style="margin-bottom:0">'
+              +'<option value="">Auto-select best voice</option>'
+              +availVoices.map(function(v){return'<option value="'+v.name+'"'+(curVoiceName===v.name?' selected':'')+'>'+v.name+(v.localService?' (offline)':'')+'</option>';}).join('')
+              +'</select></div>'
+            :'';
+          return '<div style="background:var(--s2);border-radius:14px;padding:16px">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+              +'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">🔮 Oracle Voice</div>'
+              +'<div onclick="S.oracleVoiceOn=!S.oracleVoiceOn;localStorage.setItem(\'fitos_oracle_voice\',S.oracleVoiceOn?\'on\':\'off\');if(!S.oracleVoiceOn)window.speechSynthesis.cancel();render()" '
+                +'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'
+                +'<div style="position:absolute;inset:0;background:'+(voiceOn?'var(--green)':'var(--s3)')+';border:1px solid '+(voiceOn?'var(--green)':'var(--border)')+';border-radius:13px;transition:.2s"></div>'
+                +'<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(voiceOn?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'
+              +'</div>'
+            +'</div>'
+            +(voiceOn
+              ?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:5px">Language & Accent</div>'
+                +'<select class="wizard-input" onchange="S.oracleVoiceLang=this.value;S.oracleVoiceName=\'\';localStorage.setItem(\'fitos_oracle_lang\',this.value);localStorage.removeItem(\'fitos_oracle_voice_name\');render()" style="margin-bottom:0">'
+                +langs.map(function(l){return'<option value="'+l.code+'"'+(curLang===l.code?' selected':'')+'>'+l.label+'</option>';}).join('')
+                +'</select></div>'
+                +'<div style="margin-bottom:10px"><div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Voice Profile</div>'
+                +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+profilesHtml+'</div></div>'
+                +voicePickerHtml
+                +'<button onclick="speakOracle(\'Hey '+(S.profile&&S.profile.name?S.profile.name:'champ')+'! This is how your Fit Oracle sounds. Let\'s get after it.\')" '
+                  +'style="width:100%;margin-top:12px;background:rgba(140,80,255,0.12);border:1px solid rgba(140,80,255,0.35);border-radius:10px;padding:10px;color:#c8a8ff;font-size:0.85rem;font-weight:600;cursor:pointer">▶ Test Voice</button>'
+              :'<div style="font-size:0.78rem;color:var(--muted)">Enable voice to configure Oracle speech settings.</div>')
+            +'</div>';
+        })()+
         '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
           '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Data Backup</div>'+
           '<button onclick="backupData()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:8px">'+
@@ -10014,7 +10075,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v130';
+  window.APP_VERSION='v131';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -10133,6 +10194,44 @@ function checkPhotoReminder(){
   }
   return true;
 }
+function renderTour(){
+  var steps=[
+    {icon:'📊',tab:'TODAY',title:'Your Daily HQ',body:'Every morning starts here. Track calories, protein, water, steps, and your streak. Your Oracle greets you here with a daily game plan.'},
+    {icon:'🏋️',tab:'TRAIN',title:'Your Training Block',body:'8-week progressive overload program, personalised to you. Pick your day, watch the form animation, log your sets. Swap out any exercise or entire day split.'},
+    {icon:'🥗',tab:'EAT',title:'Meal Plan + Food Log',body:'Your custom calorie and macro targets, with a weekly meal plan and barcode scanner. Tap any meal to log it or swap it out.'},
+    {icon:'✅',tab:'HABITS',title:'Habits + Lifestyle',body:'Daily habit checklist, step counter, water tracker, and sleep log. Your streak keeps you accountable — don\'t break the chain.'},
+    {icon:'🔮',tab:'ORACLE',title:'Your Fit Oracle',body:'This is the main event. Ask your Oracle anything — form, food, how to break a plateau. It knows your program, your history, your goals. Use it constantly.'}
+  ];
+  var n=steps.length;
+  var i=Math.min(S.tourStep||0,n-1);
+  var step=steps[i];
+  var dotsHtml=steps.map(function(_,j){
+    return '<div style="width:'+(j===i?'20px':'7px')+';height:7px;border-radius:4px;background:'+(j===i?'var(--green)':'rgba(255,255,255,0.2)')+';transition:all .25s"></div>';
+  }).join('');
+  var isLast=i===n-1;
+  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:980;display:flex;align-items:flex-end;justify-content:center;padding:0 0 32px">'
+    +'<div style="width:100%;max-width:400px;background:linear-gradient(160deg,#1a1a2e 0%,#0d0d1a 100%);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:28px 24px;margin:0 16px;animation:slideUp 0.3s cubic-bezier(.22,1,.36,1)">'
+      // Tab badge
+      +'<div style="display:inline-block;background:rgba(29,158,117,0.2);border:1px solid rgba(29,158,117,0.4);border-radius:20px;padding:3px 12px;font-size:0.65rem;font-weight:800;letter-spacing:.1em;color:var(--green);margin-bottom:14px">'+step.tab+' TAB</div>'
+      // Icon + title
+      +'<div style="font-size:3rem;margin-bottom:8px">'+step.icon+'</div>'
+      +'<div style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:10px">'+step.title+'</div>'
+      +'<div style="font-size:0.88rem;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:22px">'+step.body+'</div>'
+      // Dots
+      +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:20px">'+dotsHtml+'</div>'
+      // Buttons
+      +'<div style="display:flex;gap:10px">'
+        +(i>0?'<button onclick="S.tourStep=S.tourStep-1;render()" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:13px;color:rgba(255,255,255,0.6);font-size:0.9rem;font-weight:600;cursor:pointer">← Back</button>':'')
+        +'<button onclick="'+(isLast?'S.showTour=false;localStorage.setItem(\'fitos_tour_seen\',\'1\');render()':'S.tourStep=S.tourStep+1;render()')+'" '
+          +'style="flex:2;background:var(--green);border:none;border-radius:12px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer">'
+          +(isLast?'Let\'s Go 🔥':'Next →')
+        +'</button>'
+      +'</div>'
+      // Skip
+      +(isLast?'':'<div onclick="S.showTour=false;localStorage.setItem(\'fitos_tour_seen\',\'1\');render()" style="text-align:center;margin-top:12px;font-size:0.72rem;color:rgba(255,255,255,0.25);cursor:pointer">Skip tour</div>')
+    +'</div>'
+  +'</div>';
+}
 function closeGleam(){
   S.showGleam=false;
   try{saveProfile();}catch(e){}
@@ -10140,6 +10239,11 @@ function closeGleam(){
   if(!S.trialStart){
     S.trialStart=new Date().toISOString();
     localStorage.setItem('fitos_trial_start',S.trialStart);
+  }
+  // Show app tour for first-time users only
+  if(!localStorage.getItem('fitos_tour_seen')){
+    S.showTour=true;
+    S.tourStep=0;
   }
   // Check if photos were skipped — set reminder flag
   var p=S.profile||{};
@@ -10210,17 +10314,46 @@ function getCoachName(){return 'Fit Oracle';}
 function getCoachEmoji(){return '🔮';}
 
 // ── FIT ORACLE VOICE ─────────────────────────────────────────────────────────
+var ORACLE_PROFILES={
+  energetic:{label:'🔥 Energetic',rate:1.15,pitch:1.08,desc:'Fast & pumped up'},
+  calm:     {label:'🧘 Calm',     rate:0.88,pitch:0.95,desc:'Relaxed & steady'},
+  natural:  {label:'💬 Natural',  rate:1.0, pitch:1.0, desc:'Neutral & clear'},
+  sergeant: {label:'💀 Sergeant', rate:1.2, pitch:0.85,desc:'No excuses, let\'s go'}
+};
 function speakOracle(text){
   if(!S.oracleVoiceOn||!window.speechSynthesis) return;
+  var cleanText=text.replace(/<[^>]+>/g,'').replace(/[*_#`]/g,'').substring(0,600);
+  if(!cleanText.trim()) return;
+  var profile=ORACLE_PROFILES[S.oracleProfile||'energetic']||ORACLE_PROFILES.energetic;
+  var lang=S.oracleVoiceLang||'en-AU';
+  // Cancel any in-progress speech, then wait 50ms (iOS stuck-queue fix)
   window.speechSynthesis.cancel();
-  var utt=new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g,'').substring(0,400));
-  utt.rate=1.05;utt.pitch=1.0;utt.volume=1.0;
-  var voices=window.speechSynthesis.getVoices();
-  var preferred=voices.find(function(v){return/Samantha|Daniel|Karen|Moira|Rishi/i.test(v.name);})||
-    voices.find(function(v){return/en-AU|en-GB|en-US/i.test(v.lang);})||
-    voices.find(function(v){return v.lang.startsWith('en');});
-  if(preferred) utt.voice=preferred;
-  window.speechSynthesis.speak(utt);
+  setTimeout(function(){
+    if(!window.speechSynthesis) return;
+    var utt=new SpeechSynthesisUtterance(cleanText);
+    utt.rate=profile.rate;
+    utt.pitch=profile.pitch;
+    utt.volume=1.0;
+    // Pick a voice: user-selected > lang match > any English
+    var voices=window.speechSynthesis.getVoices();
+    var savedVoiceName=S.oracleVoiceName||'';
+    var preferred=
+      (savedVoiceName&&voices.find(function(v){return v.name===savedVoiceName;}))||
+      voices.find(function(v){return v.lang===lang;})||
+      voices.find(function(v){return v.lang.startsWith(lang.split('-')[0]);})||
+      voices.find(function(v){return/Samantha|Karen|Daniel|Moira|Rishi/i.test(v.name);})||
+      voices.find(function(v){return v.lang.startsWith('en');});
+    if(preferred) utt.voice=preferred;
+    utt.lang=lang;
+    // iOS watchdog: resume synthesis if it gets paused mid-utterance
+    var watchdog=setInterval(function(){
+      if(!window.speechSynthesis.speaking){clearInterval(watchdog);return;}
+      if(window.speechSynthesis.paused) window.speechSynthesis.resume();
+    },3000);
+    utt.onend=function(){clearInterval(watchdog);};
+    utt.onerror=function(){clearInterval(watchdog);};
+    window.speechSynthesis.speak(utt);
+  },60);
 }
 
 function toggleOracleVoice(){
@@ -10260,7 +10393,7 @@ function startVoiceInput(){
     _oracleSTT=new SR();
     _oracleSTT.continuous=false;
     _oracleSTT.interimResults=true;
-    _oracleSTT.lang='en-AU';
+    _oracleSTT.lang=S.oracleVoiceLang||'en-AU';
     // audiostart fires once the mic is actually open (after permission granted)
     _oracleSTT.onaudiostart=function(){S.oracleListening=true;_updateMicBtn();};
     _oracleSTT.onstart=function(){S.oracleListening=true;_updateMicBtn();};
