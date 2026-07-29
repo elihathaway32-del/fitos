@@ -9391,6 +9391,47 @@ function renderSettings(){
       '</div>'+
       '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px">'+
 
+        (function(){
+          var p=S.profile||{};
+          return '<div style="background:var(--s2);border-radius:14px;padding:16px">'+
+            '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px">👤 My Profile</div>'+
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
+              '<div style="grid-column:1/-1">'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Name</div>'+
+                '<input class="wizard-input" type="text" placeholder="Your name" value="'+(p.name||'')+'" oninput="S.profile.name=this.value" style="margin-bottom:0"/>'+
+              '</div>'+
+              '<div>'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Age</div>'+
+                '<input class="wizard-input" type="number" placeholder="Age" value="'+(p.age||'')+'" oninput="S.profile.age=this.value" style="margin-bottom:0"/>'+
+              '</div>'+
+              '<div>'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Weight (kg)</div>'+
+                '<input class="wizard-input" type="number" placeholder="kg" value="'+(p.weight||'')+'" oninput="S.profile.weight=this.value" style="margin-bottom:0"/>'+
+              '</div>'+
+              '<div>'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Height (cm)</div>'+
+                '<input class="wizard-input" type="number" placeholder="cm" value="'+(p.height||'')+'" oninput="S.profile.height=this.value" style="margin-bottom:0"/>'+
+              '</div>'+
+              '<div>'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Steps Goal</div>'+
+                '<input class="wizard-input" type="number" placeholder="8000" value="'+(S.stepsGoal||8000)+'" oninput="S.stepsGoal=parseInt(this.value)||8000;localStorage.setItem(\'fitos_steps_goal\',S.stepsGoal)" style="margin-bottom:0"/>'+
+              '</div>'+
+              '<div>'+
+                '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">Gender</div>'+
+                '<select class="wizard-input" onchange="S.profile.gender=this.value" style="margin-bottom:0">'+
+                  '<option value="male" '+(p.gender==='male'?'selected':'')+'>Male</option>'+
+                  '<option value="female" '+(p.gender==='female'?'selected':'')+'>Female</option>'+
+                  '<option value="other" '+(p.gender==='other'?'selected':'')+'>Other</option>'+
+                '</select>'+
+              '</div>'+
+            '</div>'+
+            '<button onclick="saveProfile();localStorage.setItem(\'fitos_profile\',JSON.stringify(S.profile));var btn=document.getElementById(\'profile-save-btn\');if(btn){btn.textContent=\'Saved ✓\';setTimeout(function(){btn.textContent=\'Save Changes\';},1800)}" '+
+              'id="profile-save-btn" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer">'+
+              'Save Changes'+
+            '</button>'+
+          '</div>';
+        })()+
+
         '<div style="background:var(--s2);border-radius:14px;padding:16px;margin-bottom:0">'+
           '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">Coaching Style</div>'+
           '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px">How do you want Coach to speak to you?</div>'+
@@ -9473,22 +9514,26 @@ function renderSettings(){
             '</div>'+
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
               '<span style="font-size:0.78rem;color:var(--muted);white-space:nowrap">Remind at</span>'+
-              '<input type="time" value="'+S.notifGymTime+'" onchange="S.notifGymTime=this.value;localStorage.setItem(\'fitos_notif_gym_time\',this.value)" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
+              '<input type="time" value="'+S.notifGymTime+'" onchange="S.notifGymTime=this.value;localStorage.setItem(\'fitos_notif_gym_time\',this.value);scheduleNotifications()" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
+            '</div>'+
+            '<div style="font-size:0.7rem;color:var(--amber);background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.25);border-radius:8px;padding:8px 10px;line-height:1.5;margin-bottom:12px">'+
+              '⚠️ Reminders only fire while the app is open. Background push notifications are coming in a future update.'+
             '</div>'+
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
               '<div>'+
                 '<div style="font-size:0.78rem;color:var(--text);font-weight:600">Sunday Check-in Nudge</div>'+
                 '<div style="font-size:0.7rem;color:var(--muted)">Remind me to do my weekly check-in</div>'+
               '</div>'+
-              '<label style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0">'+
-                '<input type="checkbox" '+(S.notifCheckinEnabled?'checked':'')+' onchange="S.notifCheckinEnabled=this.checked;localStorage.setItem(\'fitos_notif_checkin\',this.checked)" style="opacity:0;width:0;height:0"/>'+
-                '<span style="position:absolute;inset:0;background:'+(S.notifCheckinEnabled?'var(--green)':'var(--s3)')+';border:1px solid '+(S.notifCheckinEnabled?'var(--green)':'var(--border)')+';border-radius:13px;cursor:pointer;transition:.2s"><span style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:'+(S.notifCheckinEnabled?'22px':'2px')+';transition:.2s"></span></span>'+
-              '</label>'+
+              '<div onclick="S.notifCheckinEnabled=!S.notifCheckinEnabled;localStorage.setItem(\'fitos_notif_checkin\',S.notifCheckinEnabled);scheduleNotifications();render()" '+
+                'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'+
+                '<div style="position:absolute;inset:0;background:'+(S.notifCheckinEnabled?'var(--green)':'var(--s3)')+';border:1px solid '+(S.notifCheckinEnabled?'var(--green)':'var(--border)')+';border-radius:13px;transition:.2s"></div>'+
+                '<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(S.notifCheckinEnabled?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'+
+              '</div>'+
             '</div>'+
             (S.notifCheckinEnabled?
               '<div style="display:flex;align-items:center;gap:10px">'+
                 '<span style="font-size:0.78rem;color:var(--muted);white-space:nowrap">Remind at</span>'+
-                '<input type="time" value="'+S.notifCheckinTime+'" onchange="S.notifCheckinTime=this.value;localStorage.setItem(\'fitos_notif_checkin_time\',this.value)" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
+                '<input type="time" value="'+S.notifCheckinTime+'" onchange="S.notifCheckinTime=this.value;localStorage.setItem(\'fitos_notif_checkin_time\',this.value);scheduleNotifications()" style="flex:1;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:0.85rem"/>'+
               '</div>':'')+
           '</div>';
         })()+
@@ -9969,7 +10014,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v129';
+  window.APP_VERSION='v130';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
