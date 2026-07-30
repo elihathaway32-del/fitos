@@ -4140,7 +4140,7 @@ function renderTrainHome(){
 <div class="week-row">${[1,2,3,4,5,6,7,8].map(w=>`
   <div class="week-pill${S.week===w?' selected':''}" onclick="selectWeek(${w})"${S.week===w?` style="background:${WEEK_CLR[w-1]};border-color:${WEEK_CLR[w-1]}"`:''}><span style="font-size:0.78rem;font-weight:600">W${w}</span><br><span style="font-size:0.62rem;opacity:.8">${WEEK_PHASE[w-1]}</span></div>`).join('')}
 </div>
-${S.day?renderDayPreviewCard(S.day)+`<button class="btn btn-green" onclick="goToWarmup()">▶ Start Day ${S.day} — Week ${S.week}</button>`
+${S.day?`<div id="day-preview-section">`+renderDayPreviewCard(S.day)+`<button class="btn btn-green" style="margin-top:4px" onclick="goToWarmup()">▶ Start Day ${S.day} — Week ${S.week}</button></div>`
 :`<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.9rem">Select a training day above to begin</div>`}
 <div style="margin-top:16px">
   <div class="card-title">Rest Day / Recovery</div>
@@ -8692,6 +8692,11 @@ function selectDay(d){
   render();
   var el=document.getElementById('screen');
   if(el){el.classList.remove('day-zoom-in');void el.offsetWidth;el.classList.add('day-zoom-in');}
+  // Scroll to preview card so start button + swap button are visible
+  setTimeout(function(){
+    var preview=document.getElementById('day-preview-section');
+    if(preview) preview.scrollIntoView({behavior:'smooth',block:'start'});
+  },120);
 }
 function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.workoutStart=Date.now();S.exIdx=0;S.editingSet=null;render();}
 
