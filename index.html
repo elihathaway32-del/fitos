@@ -4978,8 +4978,8 @@ function renderRestSheet(){
           <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(140,110,255,0.8);margin-bottom:3px">Fit Oracle</div>
           <div id="rest-coach-text" style="font-size:0.82rem;line-height:1.45;color:var(--text)">${S.lastSetCoaching}</div>
         </div>
-        <button id="rest-mic-btn" onclick="_primeAudio();startRestVoiceInput()" style="width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(29,158,117,0.35);background:rgba(29,158,117,0.12);color:#1D9E75;font-size:1rem;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center">🎤</button>
       </div>
+      <button id="rest-mic-btn" onclick="_primeAudio();startRestVoiceInput()" style="width:100%;margin-top:10px;padding:9px 14px;border-radius:10px;border:1.5px solid rgba(29,158,117,0.35);background:rgba(29,158,117,0.12);color:#1D9E75;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center">🎤 Tap to reply</button>
     </div>`:''}
   </div>
 </div>`;
@@ -9321,7 +9321,7 @@ function startRestVoiceInput(){
 function _updateRestMicBtn(listening){
   var btn=document.getElementById('rest-mic-btn');
   if(!btn) return;
-  btn.innerHTML=listening?'🔴':'🎤';
+  btn.innerHTML=listening?'🔴 Listening...':'🎤 Tap to reply';
   btn.style.borderColor=listening?'rgba(255,60,60,0.6)':'rgba(29,158,117,0.35)';
   btn.style.background=listening?'rgba(255,60,60,0.2)':'rgba(29,158,117,0.12)';
   btn.style.color=listening?'#ff5e57':'#1D9E75';
