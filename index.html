@@ -385,7 +385,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .upcoming-ex{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:.5}
 .upcoming-ex:last-child{border:none}
 .ex-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
-.bottom-actions{position:fixed;bottom:var(--tab-h);left:50%;transform:translateX(-50%);width:100%;max-width:480px;box-sizing:border-box;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
+.bottom-actions{background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;margin-top:auto}
 .rest-sheet-overlay{position:fixed;inset:0;z-index:900;pointer-events:none}
 .rest-sheet{position:fixed;bottom:var(--tab-h);left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 20px 20px;z-index:901;pointer-events:all;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -2621,6 +2621,7 @@ let S={
   coachTyping: false,
   coachInput: '',
   oracleVoiceOn: localStorage.getItem('fitos_oracle_voice')!=='off',
+  liveCoachingOn: localStorage.getItem('fitos_live_coaching')!=='off',
   oracleProfile: localStorage.getItem('fitos_oracle_profile')||'au_female',
   oracleVoiceLang: localStorage.getItem('fitos_oracle_lang')||'en-AU',
   oracleVoiceName: localStorage.getItem('fitos_oracle_voice_name')||'',
@@ -4364,7 +4365,8 @@ function renderWorkout(){
   const prev=getPrevSets(S.day,ex.id);
   const rir=WEEK_RIR[S.week-1];
   const progPct=Math.round((S.exIdx/totalEx())*100);
-  return`<div class="top-bar">
+  return`<div style="display:flex;flex-direction:column;min-height:calc(100svh - var(--tab-h))">
+<div class="top-bar">
   <div><div style="font-size:0.88rem;font-weight:600">Day ${S.day} · Week ${S.week} · ${day.name}</div><div class="top-sub">Exercise ${S.exIdx+1} of ${totalEx()}</div></div>
   <div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="S.swapSheetDay=S.day;render()" style="font-size:0.72rem">⇄ Split</button><button class="btn btn-outline btn-sm" onclick="abandonWorkout()" style="color:var(--muted);font-size:0.72rem">✕</button><button class="btn btn-outline btn-sm" onclick="endWorkout()">Finish ✓</button></div>
 </div>
@@ -4434,7 +4436,7 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
     style="width:100%;min-height:72px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:0.82rem;padding:10px 12px;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box"
   >${S.exerciseNotes[ex.id]||''}</textarea>
 </div>
-<div style="padding:0 16px 80px">
+<div style="padding:0 16px 16px">
   <div class="card-title">Coming up</div>
   ${getSessionExercises().slice(S.exIdx+1,S.exIdx+4).map((e,i)=>{var idx=S.exIdx+1+i;var nm=(function(){try{return((S.exSwaps&&S.exSwaps[S.day+'_'+idx])||e).name;}catch(er){return e.name;}})();return`
   <div class="upcoming-ex"><div class="ex-dot"></div><div style="font-size:0.85rem">${nm} <span style="color:var(--muted)">· ${e.sets}×${e.lo}${e.lo!==e.hi?'–'+e.hi:''}</span></div></div>`;}).join('')}
@@ -4444,6 +4446,7 @@ ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68
 <div class="bottom-actions">
   <button class="btn btn-outline" style="flex:1;opacity:${S.exIdx>0?1:0.3};pointer-events:${S.exIdx>0?'auto':'none'}" onclick="prevEx()">← Back</button>
   <button class="btn btn-green" style="flex:2" onclick="nextEx()">${S.exIdx===totalEx()-1?'Finish Workout →':'Next →'}</button>
+</div>
 </div>
 ${renderAddExSheet()}`;
 }
@@ -9079,19 +9082,17 @@ function setYTCache(exId,videoId){
 }
 
 function tryResumeMedia(btn){
-  // Stop the YouTube iframe — removing src releases audio focus so the OS
-  // can hand playback back to whatever the user was listening to (Spotify, etc.)
+  // Set iframe.src='' — this tears down the YouTube audio session and hands
+  // control back to the OS so Spotify/Apple Music can resume.
+  // We do NOT call resetYTVideo here — that would wipe the embed and remove buttons.
+  // The "Wrong video?" button stays visible so the user can manually reload if needed.
   try{
     var wrap=btn?btn.closest('[data-yt-exid]'):document.querySelector('[data-yt-exid]');
     if(wrap){
       var iframe=wrap.querySelector('iframe');
-      if(iframe) iframe.src=''; // kills audio immediately
-      var exId=wrap.dataset.ytExid;
-      // Reset to placeholder state after a short delay
-      setTimeout(function(){resetYTVideo(exId);},400);
+      if(iframe) iframe.src='';
     }
   }catch(e){}
-  // Do NOT create a new AudioContext here — that would take audio focus instead of releasing it
 }
 
 function embedYTVideo(wrap, videoId){
@@ -9347,28 +9348,76 @@ function startRest(secs){
   S.restInterval=setInterval(tickRest,1000);
   // Oracle post-set coaching is triggered by postSetOracle() in logSet()
 }
-function postSetOracle(ex,kg,reps){
-  if(!S.oracleVoiceOn||!window.speechSynthesis) return;
+async function postSetOracle(ex,kg,reps){
+  if(!S.liveCoachingOn) return;
+  // Show something immediately so the rest sheet isn't blank while we wait for API
   var target=ex.lo||8;var hi=ex.hi||12;
-  var name=ex.name||'that exercise';
-  var cue=ex.cue?ex.cue.split('.')[0]:'';
-  var coaching='';
-  if(reps>=hi+2){
-    coaching=reps+' reps at '+kg+'kg on '+name+' — you\'re smashing it above target. Consider bumping weight next set.';
-  } else if(reps>=target){
-    coaching='Solid — '+reps+' reps at '+kg+'kg on '+name+'. Right in the zone.'+
-      (cue?' Keep '+cue.toLowerCase().replace(/^(keep|maintain|focus on)\s*/i,'')+' locked in.':'');
-  } else if(reps>=target-2){
-    coaching=reps+' of '+target+' reps on '+name+' — almost there.'+
-      (cue?' '+cue+' on the next set to grind out those last reps.':' Push through on the next one.');
-  } else {
-    coaching=reps+' reps on '+name+' — below target. Check your form or drop the weight slightly next set.';
-  }
-  S.lastSetCoaching=coaching;
-  // Update rest sheet coaching text without full render (rest sheet is in fitos-rest-root)
+  var immediate=reps>=target?'Nice work. Dialling in your coaching...':reps>=target-2?'Almost there. One sec...':'Noted. Loading coaching...';
+  S.lastSetCoaching=immediate;
   var coachEl=document.getElementById('rest-coach-text');
-  if(coachEl) coachEl.textContent=coaching;
-  speakOracle(coaching);
+  if(coachEl) coachEl.textContent=immediate;
+  // Build full set history for this exercise
+  var allSets=S.loggedSets[ex.id]||[];
+  var setNum=allSets.length;
+  var setHistory=allSets.map(function(s,i){return 'Set '+(i+1)+': '+s.weight+'kg x '+s.reps+' reps';}).join(' | ');
+  var trend='';
+  if(allSets.length>=2){
+    var prev=allSets[allSets.length-2];
+    if(prev){
+      var repDiff=reps-prev.reps;
+      var wtDiff=kg-prev.weight;
+      trend=wtDiff!==0?'Weight changed '+( wtDiff>0?'+':'')+wtDiff+'kg from last set. ':'' ;
+      trend+=repDiff!==0?'Reps '+(repDiff>0?'up':'down')+' '+Math.abs(repDiff)+' from last set. ':'';
+    }
+  }
+  var name=ex.name||'the exercise';
+  var ctx='Set '+setNum+' just logged on '+name+'.\n'+
+    'Weight: '+kg+'kg | Reps: '+reps+' | Target: '+target+(target!==hi?'–'+hi:'')+' reps\n'+
+    (setHistory?'Full session history for this exercise: '+setHistory+'\n':'')+
+    (trend?trend+'\n':'')+
+    'Cue for this movement: '+(ex.cue||'none')+'\n'+
+    (S.profile&&S.profile.injury?'Athlete note: '+S.profile.injury+'\n':'')+
+    'Week '+S.week+' of the program.\n\n'+
+    'Give exactly ONE post-set coaching response. Max 2 sentences. '+
+    'Reference the specific numbers — weight, reps, which set number. '+
+    'If they have multiple sets logged, comment on the trend (improving, dropping, holding). '+
+    'If below target: give one specific technique cue OR suggest dropping weight (be direct about which). '+
+    'If on target: confirm it and add one micro-cue for next set. '+
+    'If above target: acknowledge it and tell them to bump weight by a specific amount next set. '+
+    'Do NOT use generic phrases. Do NOT repeat the same structure as previous sets. '+
+    'Australian PT tone — direct, confident, zero waffle.';
+  try{
+    var resp=await fetch(FITOS_WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:100,
+        system:'You are an elite Australian strength coach — precise, analytical, no-bullshit. You read the data and give specific coaching based on exactly what just happened, set by set. You never repeat the same phrasing twice in a session. You sound like Sebastian Oreb coaching a serious athlete.',
+        messages:[{role:'user',content:ctx}]
+      })
+    });
+    if(resp.ok){
+      var data=await resp.json();
+      if(data.content&&data.content[0]){
+        var coaching=data.content[0].text.trim();
+        S.lastSetCoaching=coaching;
+        var el=document.getElementById('rest-coach-text');
+        if(el) el.textContent=coaching;
+        if(S.oracleVoiceOn&&window.speechSynthesis) speakOracle(coaching);
+      }
+    }
+  }catch(e){
+    // Fallback — at least something useful if API fails
+    var fb=reps>=hi+2?reps+' reps — you\'re above target. Add weight next set.':
+           reps>=target?'On target. '+reps+' reps at '+kg+'kg — stay consistent.':
+           reps>=target-2?reps+' of '+target+' — close. Drive through the sticking point next set.':
+           'Below target at '+reps+' reps. Either drop '+Math.ceil(kg*0.05*2)/2+'kg or check your form before the next set.';
+    S.lastSetCoaching=fb;
+    var el2=document.getElementById('rest-coach-text');
+    if(el2) el2.textContent=fb;
+    if(S.oracleVoiceOn&&window.speechSynthesis) speakOracle(fb);
+  }
 }
 var _restSTT=null;
 function startRestVoiceInput(){
@@ -9614,6 +9663,18 @@ function renderOracleVoiceSettings(){
           +'style="width:100%;background:rgba(140,80,255,0.12);border:1px solid rgba(140,80,255,0.35);border-radius:10px;padding:10px;color:#c8a8ff;font-size:0.85rem;font-weight:600;cursor:pointer">▶ Test Active Voice</button>'
         +'<div style="font-size:0.68rem;color:var(--muted);margin-top:8px;line-height:1.4">Voices use your device speech engine. To install more, go to iOS Settings → Accessibility → Spoken Content → Voices.</div>'
       :'<div style="font-size:0.78rem;color:var(--muted)">Enable voice to pick your Oracle style.</div>')
+    +'</div>'
+    // Live coaching toggle — always visible, separate from voice on/off
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">'
+      +'<div>'
+        +'<div style="font-size:0.82rem;font-weight:600">Live Set Coaching</div>'
+        +'<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">AI coaching after each logged set</div>'
+      +'</div>'
+      +'<div onclick="S.liveCoachingOn=!S.liveCoachingOn;localStorage.setItem(\'fitos_live_coaching\',S.liveCoachingOn?\'on\':\'off\');render()" '
+        +'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'
+        +'<div style="position:absolute;inset:0;background:'+(S.liveCoachingOn?'var(--green)':'var(--s3)')+';border:1px solid '+(S.liveCoachingOn?'var(--green)':'var(--border)')+';border-radius:13px"></div>'
+        +'<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(S.liveCoachingOn?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'
+      +'</div>'
     +'</div>';
 }
 function renderThemePicker(){
@@ -10275,7 +10336,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v134';
+  window.APP_VERSION='v135';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
