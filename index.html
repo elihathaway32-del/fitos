@@ -385,7 +385,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .upcoming-ex{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:.5}
 .upcoming-ex:last-child{border:none}
 .ex-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
-.bottom-actions{position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px}
+.bottom-actions{position:fixed;bottom:var(--tab-h);left:50%;transform:translateX(-50%);width:100%;max-width:480px;box-sizing:border-box;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:150}
 .rest-sheet-overlay{position:fixed;inset:0;z-index:900;pointer-events:none}
 .rest-sheet{position:fixed;bottom:var(--tab-h);left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 20px 20px;z-index:901;pointer-events:all;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -4128,11 +4128,12 @@ function renderTrainHome(){
 </div>
 <div style="padding:16px">
 <div class="card-title">Select Day</div>
-<div class="day-grid">${getAllDays().map(d=>{const wd=getWorkoutDay(d);return`
-  <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')">
+<div class="day-grid">${getAllDays().map(d=>{const wd=getWorkoutDay(d);const sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');const isSwapped=!!sw[d];return`
+  <div class="day-btn${S.day===d?' selected':''}" onclick="selectDay('${d}')" style="position:relative">
     <div class="day-letter" style="color:${wd.color}">Day ${d}</div>
     <div class="day-name">${wd.name}</div>
     <div class="day-tag" style="color:${wd.color}">${wd.tag}</div>
+    <button onclick="event.stopPropagation();S.swapSheetDay='${d}';render()" style="position:absolute;top:5px;right:5px;background:none;border:none;font-size:0.65rem;color:rgba(255,255,255,0.35);cursor:pointer;padding:2px 4px;line-height:1">${isSwapped?'⇄✓':'⇄'}</button>
   </div>`;}
 ).join('')}<div class="day-btn" onclick="S.addDaySheet=true;render()" style="border-style:dashed;text-align:center;padding:18px 8px;opacity:0.6"><div style="font-size:1.6rem;line-height:1">+</div><div style="font-size:0.72rem;font-weight:700;margin-top:6px">Add Day</div><div style="font-size:0.62rem;color:var(--muted);margin-top:3px">from library</div></div></div>
 <div style="margin-bottom:12px;padding:10px 14px;background:var(--s2);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:12px"><div style="font-size:1.6rem">${getMacroPhaseIcon(S.macroBlock||1)}</div><div><div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Current Macro Phase</div><div style="font-size:0.9rem;font-weight:700">${getMacroPhaseName(S.macroBlock||1)}</div><div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${getMacroPhaseDesc(S.macroBlock||1)}</div></div></div>
