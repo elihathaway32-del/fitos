@@ -27,7 +27,9 @@ Save `FitOS_App.html` to disk every ~60,000 characters during any build session.
 
 ## Business model (updated 2026-07-16)
 - 7-day free trial for ALL users (no BF% gating)
-- Subscription: $28.99 AUD/month after trial
+- Subscription: $39.99 AUD/month | ~$319–349 AUD/year annual
+- TWO RAILS: Web traffic/referrals → Stripe (~98% kept). App Store organic → Apple IAP (15% cut, worth it for frictionless conversion on cold traffic)
+- Referrals always go through web/Stripe — warm leads, never waste 15% on Apple
 - Referral: +7 days free per successful referred purchase, no cap
 - No prompt packs, no plugins for sale — **the app IS the product**
 - Revenue streams: subscription + Skool community + YouTube funnel
