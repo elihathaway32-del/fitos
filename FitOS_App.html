@@ -132,6 +132,7 @@
 .targets-card{background:linear-gradient(135deg,#0a1a10 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;margin:12px 16px 0}
 .checkin-cta{background:linear-gradient(135deg,#0d1a2a 0%,#0d0d0d 100%);border-radius:14px;padding:16px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .checkin-cta-sunday{background:linear-gradient(135deg,#1a0a1a 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;cursor:pointer}
+@keyframes pulseAmber{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.3)}50%{box-shadow:0 0 0 8px rgba(245,166,35,0)}}
 [data-theme="light-clean"] .devo-card{background:linear-gradient(135deg,#fffbf0 0%,#ffffff 100%);border:1px solid rgba(192,119,0,0.25)!important}
 [data-theme="light-clean"] .targets-card{background:linear-gradient(135deg,#f0faf5 0%,#ffffff 100%);border:1px solid rgba(0,168,107,0.2)!important}
 [data-theme="light-clean"] .checkin-cta{background:linear-gradient(135deg,#f0f5ff 0%,#ffffff 100%);border:1px solid rgba(41,121,213,0.2)!important}
@@ -2627,6 +2628,7 @@ let S={
   oracleVoiceName: localStorage.getItem('fitos_oracle_voice_name')||'',
   oracleListening: false,
   lastSetCoaching: '',
+  showCheckinNudge: false,
   foodQuery: '',
   foodResults: [],
   foodSearching: false,
@@ -2920,6 +2922,19 @@ function render(){
     var _tour=document.getElementById('fitos-tour-root');
     if(!_tour){_tour=document.createElement('div');_tour.id='fitos-tour-root';document.body.appendChild(_tour);}
     _tour.innerHTML=S.showTour?renderTour():'';
+    // Check-in day nudge popup — auto-trigger once per check-in day if not done + not dismissed today
+    (function(){
+      if(!S.showIntake&&!S.showGleam&&isCheckinDay&&isCheckinDay()&&!thisWeekCheckinDone()){
+        var dismissed=localStorage.getItem('fitos_checkin_nudge_dismissed');
+        var todayStr=new Date().toDateString();
+        if(dismissed!==todayStr&&!S.showCheckinNudge){
+          S.showCheckinNudge=true;
+        }
+      }
+      var _nudge=document.getElementById('fitos-nudge-root');
+      if(!_nudge){_nudge=document.createElement('div');_nudge.id='fitos-nudge-root';document.body.appendChild(_nudge);}
+      _nudge.innerHTML=S.showCheckinNudge&&typeof renderCheckinNudgePopup==='function'?renderCheckinNudgePopup():'';
+    })();
     // Coach orb is now in the tab bar — no floating FAB needed
     // YouTube demo replaces Three.js animation — no canvas hook needed
   }catch(err){
@@ -3925,29 +3940,60 @@ function renderCoachAdjustments(){
     +'</div>';
 }
 
+var CHECKIN_DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function getCheckinDay(){return (S.profile&&S.profile.checkinDay!=null)?S.profile.checkinDay:0;}
+function isCheckinDay(){return new Date().getDay()===getCheckinDay();}
+function isDayAfterCheckin(){return new Date().getDay()===(getCheckinDay()+1)%7;}
+function thisWeekCheckinDone(){
+  var wk=S.week||1;
+  return !!(S.checkinHistory&&S.checkinHistory.find(function(h){return h.week===wk;}));
+}
+function renderCheckinNudgePopup(){
+  if(!S.showCheckinNudge) return '';
+  var day=CHECKIN_DAY_NAMES[getCheckinDay()];
+  var wk=S.week||1;
+  var blk=S.macroBlock||1;
+  return '<div style="position:fixed;inset:0;z-index:950;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:20px">'
+    +'<div style="width:100%;max-width:448px;background:linear-gradient(160deg,#1a0a2e 0%,#0d0d1a 100%);border:2px solid rgba(245,166,35,0.5);border-radius:24px 24px 16px 16px;padding:28px 24px 32px;text-align:center">'
+      +'<div style="font-size:2.8rem;margin-bottom:10px">🔮</div>'
+      +'<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--amber);font-weight:700;margin-bottom:8px">'+day+' Check-in · Week '+wk+' · Block '+blk+' of 4</div>'
+      +'<div style="font-size:1.25rem;font-weight:800;line-height:1.3;margin-bottom:10px">Your weekly review is waiting.</div>'
+      +'<div style="font-size:0.82rem;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:24px">This is how you build momentum. Your coach needs this week’s data — weight, lifts, how you felt — to dial in your next block. Skip it and you’re flying blind.</div>'
+      +'<button onclick="S.showCheckinNudge=false;openCheckin()" style="width:100%;background:var(--amber);border:none;border-radius:14px;padding:16px;color:#0d0d0d;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:12px">Do My '+day+' Check-in →</button>'
+      +'<button onclick="S.showCheckinNudge=false;localStorage.setItem(\'fitos_checkin_nudge_dismissed\',new Date().toDateString());render()" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:12px;color:rgba(255,255,255,0.45);font-size:0.85rem;cursor:pointer">Remind me later</button>'
+    +'</div>'
+  +'</div>';
+}
 function renderCheckinCTA(){
-  var now=new Date();
-  var isSunday=now.getDay()===0;
-  var isMonday=now.getDay()===1;
+  var todayIsCheckinDay=isCheckinDay();
+  var todayIsDayAfter=isDayAfterCheckin();
   var lastWk=(S.week||1)-1;
-  var alreadyDone=S.checkinHistory&&S.checkinHistory.find(function(h){return h.week===lastWk;});
-  var missedLastWeek=isMonday&&lastWk>0&&!alreadyDone;
+  var alreadyDoneLastWk=S.checkinHistory&&S.checkinHistory.find(function(h){return h.week===lastWk;});
+  var missedLast=todayIsDayAfter&&lastWk>0&&!alreadyDoneLastWk;
   var html='';
-  if(missedLastWeek){
+  if(missedLast){
     html+='<div style="margin:0 16px 12px;background:rgba(245,166,35,0.09);border:1px solid rgba(245,166,35,0.35);border-radius:14px;padding:14px 16px;cursor:pointer" onclick="openCheckin('+lastWk+')">';
-    html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">&#9194;&#65039; Missed Sunday Check-in</div>';
+    html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">⏮️ Missed '+CHECKIN_DAY_NAMES[getCheckinDay()]+' Check-in</div>';
     html+='<div style="font-size:0.9rem;font-weight:700">Log Week '+lastWk+' Review now</div>';
-    html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Tap to log it as last week\u2019s EOW check-in &#8594;</div>';
+    html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Tap to log it as last week’s check-in →</div>';
     html+='</div>';
   }
-  if(isSunday){
+  if(todayIsCheckinDay){
     var blk=S.macroBlock||1;
     var phase=typeof getMacroPhaseName==='function'?getMacroPhaseName(blk):'Phase '+blk;
-    html+='<div class="checkin-cta-sunday" style="margin:0 16px 12px;border:1px solid rgba(245,166,35,0.31)" onclick="openCheckin()">';
-    html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">&#9728;&#65039; Sunday Check-in — Block '+blk+' of 4 ('+phase+')</div>';
-    html+='<div style="font-size:0.9rem;font-weight:700">Week '+(S.week||1)+' Review is ready</div>';
-    html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week\u2019s plan &#8594;</div>';
-    html+='</div>';
+    var done=thisWeekCheckinDone();
+    if(done){
+      html+='<div style="margin:0 16px 12px;background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.3);border-radius:14px;padding:14px 16px">';
+      html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:4px">✓ Check-in Complete · Week '+(S.week||1)+'</div>';
+      html+='<div style="font-size:0.85rem;color:var(--muted)">Nice work. Next plan is locked in. See you next '+CHECKIN_DAY_NAMES[getCheckinDay()]+'.</div>';
+      html+='</div>';
+    } else {
+      html+='<div class="checkin-cta-sunday" style="margin:0 16px 12px;border:2px solid rgba(245,166,35,0.7);cursor:pointer" onclick="openCheckin()">';
+      html+='<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);font-weight:700;margin-bottom:4px">⭐ '+CHECKIN_DAY_NAMES[getCheckinDay()]+' Check-in · Block '+blk+' of 4 ('+phase+')</div>';
+      html+='<div style="font-size:0.9rem;font-weight:700">Week '+(S.week||1)+' Review is ready</div>';
+      html+='<div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Log your progress, photos + generate next week’s plan →</div>';
+      html+='</div>';
+    }
   }
   return html;
 }
@@ -4084,13 +4130,17 @@ function renderToday(){
     ${renderCheckinCTA()}
 ${renderWeekSummary()}
     ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">💪</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
-    <div class="checkin-cta" style="border:1px solid var(--blue)40" onclick="openCheckin()">
-      <div>
-        <div style="font-weight:700;font-size:0.95rem">📋 Weekly Check-in</div>
-        <div style="font-size:0.75rem;color:var(--muted);margin-top:3px">Review your week · get next week dialled</div>
-      </div>
-      <div style="background:var(--blue);color:#fff;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:700">Start →</div>
-    </div>
+    ${(function(){
+      // Only show prominent check-in card on check-in day. All other days: subtle small link only.
+      if(isCheckinDay()&&!thisWeekCheckinDone()){
+        return ''; // renderCheckinCTA() above already shows the big card on check-in day
+      }
+      // Non-check-in day: show a quiet link so it's still accessible but not a distraction
+      return '<div style="margin:0 16px 12px;padding:10px 14px;background:transparent;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;opacity:0.55" onclick="openCheckin()">'
+        +'<div style="font-size:0.78rem;color:var(--muted)">📋 Weekly Check-in <span style="font-size:0.7rem">(available · check-in day is '+CHECKIN_DAY_NAMES[getCheckinDay()]+')</span></div>'
+        +'<div style="font-size:0.75rem;color:var(--muted)">→</div>'
+      +'</div>';
+    })()}
 
     <!-- Daily Devotional (Christian faith feature) -->
     ${renderDevotional()}
@@ -5045,7 +5095,7 @@ function renderRestSheet(){
         <div style="font-size:1.1rem;flex-shrink:0">🔮</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(140,110,255,0.8);margin-bottom:3px">Fit Oracle</div>
-          <div id="rest-coach-text" style="font-size:0.82rem;line-height:1.45;color:var(--text)">${S.lastSetCoaching}</div>
+          <div id="rest-coach-text" style="font-size:0.82rem;line-height:1.45;color:rgba(255,255,255,0.88)">${S.lastSetCoaching}</div>
         </div>
       </div>
       <button id="rest-mic-btn" onclick="_primeAudio();startRestVoiceInput()" style="width:100%;margin-top:10px;padding:9px 14px;border-radius:10px;border:1.5px solid rgba(29,158,117,0.35);background:rgba(29,158,117,0.12);color:#1D9E75;font-size:0.82rem;font-weight:600;cursor:pointer;text-align:center">🎤 Tap to reply</button>
@@ -5155,15 +5205,76 @@ function renderComplete(){
     dispatch+=`${e.name}: ${sets.length?sets.filter(Boolean).map(s=>`${s.weight}kg×${s.reps}`).join(', '):'skipped'}\n`;
   });
   dispatch+=`\nTotal volume: ${totalVol.toLocaleString()}kg | Sets: ${totalSets}\nEnergy: _/10 | Back pain: _/10 | Notes: ___`;
-  return`<div class="top-bar"><div class="top-title">Session Complete 🏆</div></div>
+  return`<div class="top-bar"><div class="top-title">Session Complete</div></div>
+<style>
+@keyframes oracleEntrance{0%{transform:translateY(60px) scale(0.7);opacity:0}60%{transform:translateY(-8px) scale(1.04);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes orbPulse{0%,100%{filter:drop-shadow(0 0 8px #8b5cf6) drop-shadow(0 0 20px #7c3aed)}50%{filter:drop-shadow(0 0 18px #a78bfa) drop-shadow(0 0 40px #8b5cf6)}}
+@keyframes fistPump{0%,100%{transform:translateY(0) rotate(-8deg)}40%{transform:translateY(-14px) rotate(8deg)}70%{transform:translateY(-6px) rotate(0deg)}}
+@keyframes sparkle{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(1.8) rotate(180deg);opacity:0}}
+@keyframes statIn{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+</style>
 <div style="padding:16px">
-  <div style="text-align:center;padding:24px 0 16px">
-    <div style="font-size:3rem">🔥</div>
-    <div style="font-size:1.4rem;font-weight:700;margin-top:8px">Day ${sess.day} Done, ${userName()}!</div>
-    <div style="color:var(--muted);font-size:0.85rem;margin-top:4px">${fmt(sess.date)} · Week ${sess.week}</div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px">
-      <div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--green)">${totalSets}</div><div style="font-size:0.72rem;color:var(--muted)">Sets logged</div></div>
-      <div style="background:var(--s2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--blue)">${totalVol.toLocaleString()}</div><div style="font-size:0.72rem;color:var(--muted)">Volume (kg)</div></div>
+  <div style="text-align:center;padding:20px 0 8px;position:relative;overflow:hidden">
+    <!-- Glow backdrop -->
+    <div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,92,246,0.25) 0%,transparent 70%);pointer-events:none"></div>
+    <!-- Oracle character SVG -->
+    <div style="display:inline-block;animation:oracleEntrance 0.7s cubic-bezier(.22,1,.36,1) forwards">
+      <svg width="140" height="170" viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+        <!-- Robe body -->
+        <path d="M35 90 Q28 130 25 165 L115 165 Q112 130 105 90 Q85 102 70 102 Q55 102 35 90Z" fill="#1a0a2e" stroke="rgba(139,92,246,0.6)" stroke-width="1.5"/>
+        <!-- Robe highlight -->
+        <path d="M70 102 Q60 115 55 165 L85 165 Q80 115 70 102Z" fill="rgba(139,92,246,0.08)"/>
+        <!-- Cloak shoulders -->
+        <ellipse cx="70" cy="92" rx="38" ry="14" fill="#2d1456" stroke="rgba(139,92,246,0.5)" stroke-width="1"/>
+        <!-- Hood -->
+        <path d="M42 70 Q40 40 70 32 Q100 40 98 70 Q90 85 70 88 Q50 85 42 70Z" fill="#1a0a2e" stroke="rgba(139,92,246,0.7)" stroke-width="1.5"/>
+        <!-- Hood shadow -->
+        <path d="M50 72 Q50 52 70 46 Q90 52 90 72 Q80 80 70 82 Q60 80 50 72Z" fill="#0d0520"/>
+        <!-- Eyes glow -->
+        <ellipse cx="62" cy="66" rx="4" ry="3" fill="rgba(167,139,250,0.9)"/>
+        <ellipse cx="78" cy="66" rx="4" ry="3" fill="rgba(167,139,250,0.9)"/>
+        <ellipse cx="62" cy="66" rx="2" ry="1.5" fill="#fff"/>
+        <ellipse cx="78" cy="66" rx="2" ry="1.5" fill="#fff"/>
+        <!-- LEFT arm — raised fist pump -->
+        <g style="animation:fistPump 1.1s ease-in-out 0.4s infinite;transform-origin:38px 92px">
+          <path d="M38 92 Q20 72 22 50" stroke="#2d1456" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <!-- Fist -->
+          <rect x="12" y="36" width="20" height="18" rx="5" fill="#2d1456" stroke="rgba(139,92,246,0.6)" stroke-width="1.5"/>
+          <line x1="16" y1="36" x2="16" y2="30" stroke="rgba(167,139,250,0.6)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="22" y1="36" x2="22" y2="28" stroke="rgba(167,139,250,0.6)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="36" x2="28" y2="30" stroke="rgba(167,139,250,0.6)" stroke-width="2.5" stroke-linecap="round"/>
+        </g>
+        <!-- RIGHT arm — holding orb out -->
+        <path d="M102 92 Q118 80 116 65" stroke="#2d1456" stroke-width="12" stroke-linecap="round" fill="none"/>
+        <!-- Orb -->
+        <g style="animation:orbPulse 2s ease-in-out infinite">
+          <circle cx="118" cy="56" r="16" fill="radial-gradient(circle,#c4b5fd,#7c3aed)" stroke="rgba(167,139,250,0.8)" stroke-width="1.5"/>
+          <circle cx="118" cy="56" r="16" fill="rgba(124,58,237,0.85)"/>
+          <circle cx="118" cy="56" r="10" fill="rgba(196,181,253,0.3)"/>
+          <circle cx="113" cy="51" r="4" fill="rgba(255,255,255,0.5)"/>
+          <circle cx="118" cy="56" r="16" fill="none" stroke="rgba(167,139,250,0.4)" stroke-width="3"/>
+        </g>
+        <!-- Sparkles -->
+        <g style="animation:sparkle 1.4s ease-out 0.3s infinite">
+          <text x="8" y="25" font-size="12" fill="rgba(245,166,35,0.9)">✦</text>
+        </g>
+        <g style="animation:sparkle 1.4s ease-out 0.8s infinite">
+          <text x="120" y="18" font-size="10" fill="rgba(167,139,250,0.9)">✦</text>
+        </g>
+        <g style="animation:sparkle 1.4s ease-out 1.1s infinite">
+          <text x="128" y="80" font-size="8" fill="rgba(29,158,117,0.9)">✦</text>
+        </g>
+      </svg>
+    </div>
+    <div style="animation:statIn 0.5s ease 0.6s both">
+      <div style="font-size:1.4rem;font-weight:800;margin-top:6px">Day ${sess.day} done, ${userName()}.</div>
+      <div style="font-size:0.88rem;color:rgba(167,139,250,0.9);margin-top:3px;font-style:italic">"That's what separates the committed from the curious."</div>
+      <div style="color:var(--muted);font-size:0.78rem;margin-top:4px">${fmt(sess.date)} · Week ${sess.week}</div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;animation:statIn 0.5s ease 0.8s both">
+      <div style="background:var(--s2);border:1px solid rgba(29,158,117,0.25);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--green)">${totalSets}</div><div style="font-size:0.72rem;color:var(--muted)">Sets logged</div></div>
+      <div style="background:var(--s2);border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--blue)">${totalVol.toLocaleString()}</div><div style="font-size:0.72rem;color:var(--muted)">Volume (kg)</div></div>
+      ${sess.duration?`<div style="background:var(--s2);border:1px solid rgba(245,166,35,0.2);border-radius:12px;padding:12px 18px;text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--amber)">${sess.duration}</div><div style="font-size:0.72rem;color:var(--muted)">Minutes</div></div>`:''}
     </div>
   </div>
   <div id="session-review-wrap" style="margin-bottom:10px">
@@ -8989,6 +9100,24 @@ function getYTApiKey(){return localStorage.getItem('fitos_yt_apikey')||YT_DEFAUL
 var FITOS_DEFAULT_KEY='AAgFQAx_-gWarUhG-XAd19v-UYEO-HmXvabGPUw0jyY3uDQfhxFH64s-MsKcKmBauRIhUdNb6cGmekAGUK6qsWRFYr85pfg-30ipa-tna-ks'.split('').reverse().join('');
 function getClaudeKey(){return localStorage.getItem('fitos_claude_key')||FITOS_DEFAULT_KEY;}
 var FITOS_WORKER_URL='https://fitos-proxy.elihathaway32.workers.dev';
+// Returns the best estimate of the user's actual program week.
+// S.week only advances via check-ins, so if check-ins are missed it lags behind.
+// We cross-check against calendar weeks since program start and take the higher value.
+function getEffectiveWeek(){
+  var sw=S.week||1;
+  // Try calendar-based calculation from program start date
+  var startStr=localStorage.getItem('fitos_program_start');
+  if(!startStr&&S.gymHistory&&S.gymHistory.length>0) startStr=S.gymHistory[0].date;
+  if(startStr){
+    var startMs=new Date(startStr).getTime();
+    if(!isNaN(startMs)){
+      var calWeeks=Math.floor((Date.now()-startMs)/(7*24*3600*1000))+1;
+      // Use the larger of stored week and calendar week, capped at 8
+      return Math.min(8,Math.max(sw,calWeeks));
+    }
+  }
+  return sw;
+}
 function buildCoachSystemPrompt(){
   var p=S.profile||{};
   var injuries=(p.injuries&&p.injuries.length)?p.injuries.join(', '):'None';
@@ -9377,7 +9506,7 @@ async function postSetOracle(ex,kg,reps){
     (trend?trend+'\n':'')+
     'Cue for this movement: '+(ex.cue||'none')+'\n'+
     (S.profile&&S.profile.injury?'Athlete note: '+S.profile.injury+'\n':'')+
-    'Week '+S.week+' of the program.\n\n'+
+    'Week '+getEffectiveWeek()+' of the program.\n\n'+
     'Give exactly ONE post-set coaching response. Max 2 sentences. '+
     'Reference the specific numbers — weight, reps, which set number. '+
     'If they have multiple sets logged, comment on the trend (improving, dropping, holding). '+
@@ -9670,7 +9799,7 @@ function renderOracleVoiceSettings(){
         +'<div style="font-size:0.82rem;font-weight:600">Live Set Coaching</div>'
         +'<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">AI coaching after each logged set</div>'
       +'</div>'
-      +'<div onclick="S.liveCoachingOn=!S.liveCoachingOn;localStorage.setItem(\'fitos_live_coaching\',S.liveCoachingOn?\'on\':\'off\');render()" '
+      +'<div onclick="S.liveCoachingOn=!S.liveCoachingOn;localStorage.setItem(\'fitos_live_coaching\',S.liveCoachingOn?\'on\':\'off\');if(S.liveCoachingOn&&S.lastSetCoaching&&S.oracleVoiceOn&&window.speechSynthesis){_primeAudio();speakOracle(S.lastSetCoaching);}render()" '
         +'style="position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer">'
         +'<div style="position:absolute;inset:0;background:'+(S.liveCoachingOn?'var(--green)':'var(--s3)')+';border:1px solid '+(S.liveCoachingOn?'var(--green)':'var(--border)')+';border-radius:13px"></div>'
         +'<div style="position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:'+(S.liveCoachingOn?'23px':'3px')+';transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>'
@@ -9745,8 +9874,14 @@ function renderSettings(){
                 '</select>'+
               '</div>'+
             '</div>'+
+            '<div style="margin-top:12px">'+
+              '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Weekly Check-in Day</div>'+
+              '<select class="wizard-input" onchange="S.profile.checkinDay=parseInt(this.value);localStorage.setItem(\'fitos_checkin_nudge_dismissed\',\'\');render()" style="margin-bottom:0">'+
+                ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(function(d,i){return '<option value="'+i+'" '+((p.checkinDay!=null?p.checkinDay:0)===i?'selected':'')+'>'+d+'</option>';}).join('')+
+              '</select>'+
+            '</div>'+
             '<button onclick="saveProfile();localStorage.setItem(\'fitos_profile\',JSON.stringify(S.profile));var btn=document.getElementById(\'profile-save-btn\');if(btn){btn.textContent=\'Saved ✓\';setTimeout(function(){btn.textContent=\'Save Changes\';},1800)}" '+
-              'id="profile-save-btn" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer">'+
+              'id="profile-save-btn" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:12px">'+
               'Save Changes'+
             '</button>'+
           '</div>';
@@ -10143,6 +10278,8 @@ function wizNext(){
   else{
     try{saveProfile();}catch(e){}
     try{localStorage.setItem('fitos_steps_goal',S.stepsGoal);}catch(e){}
+    // Record program start date once (never overwrite so week calc stays accurate)
+    if(!localStorage.getItem('fitos_program_start')) localStorage.setItem('fitos_program_start',new Date().toISOString());
     S.showIntake=false;
     try{generateAndSaveBlock();}catch(e){}
     // Always show Gleam scan (universal 7-day trial, no BF% gating)
@@ -10336,7 +10473,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v135';
+  window.APP_VERSION='v136';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
