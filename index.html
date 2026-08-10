@@ -24,6 +24,8 @@
   --glass-card:rgba(255,255,255,0.045);
   --glass-border:rgba(255,255,255,0.1);
   --glass-hi:rgba(255,255,255,0.08);
+  --ring-track:rgba(255,255,255,0.08);
+  --num-primary:#ffffff;
 }
 [data-theme="dark-adrenaline"]{
   --bg:#070d1a;--s1:#0c1528;--s2:#111d38;--s3:#162348;
@@ -33,6 +35,8 @@
   --glass-card:rgba(255,255,255,0.03);
   --glass-border:rgba(255,255,255,0.08);
   --glass-hi:rgba(255,255,255,0.06);
+  --ring-track:rgba(255,255,255,0.08);
+  --num-primary:#ffffff;
 }
 [data-theme="light-clean"]{
   --bg:#f0f0f7;--s1:#ffffff;--s2:#f5f5fc;--s3:#e8e8f0;
@@ -42,6 +46,8 @@
   --glass-card:rgba(255,255,255,0.82);
   --glass-border:rgba(0,0,0,0.08);
   --glass-hi:rgba(255,255,255,0.95);
+  --ring-track:rgba(0,0,0,0.1);
+  --num-primary:#1c1c1e;
 }
 /* THEME OVERRIDES */
 /* GLASS MORPHISM - dark-electric */
@@ -2990,10 +2996,35 @@ function render(){
     // Safe fallback — never leave the user with a broken screen
     try{
       var el=document.getElementById('screen');
-      if(el) el.innerHTML='<div style="padding:30px 20px;text-align:center"><div style="font-size:2rem;margin-bottom:12px">⚠️</div><div style="color:#fff;font-weight:700;margin-bottom:8px">Something went wrong</div><div style="color:#888;font-size:0.85rem;margin-bottom:20px">'+err.message+'</div><button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px 24px;font-size:1rem;font-weight:700;cursor:pointer">Reload App</button></div>';
+      if(el) el.innerHTML='<div style="padding:30px 20px;text-align:center"><div style="margin-bottom:12px;color:#f0a030">'+ico('alert',40,'#f0a030')+'</div><div style="color:#fff;font-weight:700;margin-bottom:8px">Something went wrong</div><div style="color:#888;font-size:0.85rem;margin-bottom:20px">'+err.message+'</div><button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px 24px;font-size:1rem;font-weight:700;cursor:pointer">Reload App</button></div>';
       document.getElementById('tab-bar').innerHTML='';
     }catch(e2){}
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ICON SYSTEM — clean SVG icons replacing emoji in UI chrome
+// ═══════════════════════════════════════════════════════════════════════════
+const _ICONS={
+  flame:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  trophy:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H17l-1 7a5 5 0 01-10 0L7 4z"/><path d="M5 9H3a2 2 0 000 4h2"/><path d="M19 9h2a2 2 0 010 4h-2"/></svg>`,
+  dumbbell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14"/><path d="M2 7h4M18 7h4M2 17h4M18 17h4"/><line x1="6" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="18" y2="14"/></svg>`,
+  zap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  clipboard:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  'check-circle':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+  'bar-chart':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  'book-open':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`,
+  target:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+};
+// ico(name, sizePx, cssColor) — returns inline SVG string
+function ico(name,sz,col){
+  var s=_ICONS[name]||'';
+  if(!s) return '';
+  sz=sz||18; col=col||'currentColor';
+  return s.replace('viewBox','style="width:'+sz+'px;height:'+sz+'px;vertical-align:middle;flex-shrink:0;color:'+col+'" viewBox');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4146,7 +4177,7 @@ function renderToday(){
       <button onclick="S.viewDate=todayStr();render()" style="background:var(--amber);border:none;border-radius:7px;padding:4px 10px;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer">Jump to Today</button>
     </div>
     <button onclick="openFoodPanel('${vd}')" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 12px;color:#fff;font-size:0.75rem;font-weight:600;cursor:pointer;width:100%">
-      📋 Add missed food to ${viewDateLabel(vd)}
+      ${ico('clipboard',13,'currentColor')} Add missed food to ${viewDateLabel(vd)}
     </button>
   </div>`:''}
 
@@ -4155,52 +4186,65 @@ function renderToday(){
   <div class="streak-card">
     <div class="streak-num">${S.streak}</div>
     <div class="streak-info">
-      <div class="streak-title">Day Streak 🔥</div>
+      <div class="streak-title" style="display:flex;align-items:center;gap:6px">${ico('flame',16,'var(--amber)')} Day Streak</div>
       <div class="streak-sub">Keep showing up. Your future self is watching.</div>
     </div>
   </div></div>`:''}
 
-  <!-- Achievement rings: TRAIN · FUEL · HABITS -->
-  <div style="padding:20px 16px 16px;display:flex;justify-content:space-around;align-items:flex-start;border-bottom:1px solid var(--border)">
-    <div style="text-align:center">
+  <!-- Achievement rings: TRAIN · FUEL · HABITS — tappable pill cards -->
+  <div style="padding:14px 12px 16px;display:flex;gap:8px;align-items:stretch;border-bottom:1px solid var(--border)">
+
+    <!-- TRAIN ring pill -->
+    <div onclick="switchTab('train')" onpointerdown="this.style.transform='scale(0.95)';this.style.opacity='0.8'" onpointerup="this.style.transform='';this.style.opacity=''" onpointercancel="this.style.transform='';this.style.opacity=''"
+      style="flex:1;text-align:center;background:var(--glass-card);border:1px solid ${trainPct>=1?trainRingColor+'55':' var(--glass-border)'};border-radius:22px;padding:16px 6px 13px;cursor:pointer;transition:transform .12s,opacity .12s,border-color .2s;box-shadow:0 2px 16px rgba(0,0,0,0.2),inset 0 1px 0 var(--glass-hi)${trainPct>=1?',0 0 20px '+trainRingColor+'18':''}">
       <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
         <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
-          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="var(--ring-track)" stroke-width="8"/>
           <circle cx="48" cy="48" r="36" fill="none" stroke="${trainRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${trainDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${weekSessions}</div>
-          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">/ ${trainTarget}</div>
+          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${weekSessions}</div>
+          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">/ ${trainTarget}</div>
         </div>
       </div>
-      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${trainRingColor};font-weight:700">TRAIN</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${trainRingColor};font-weight:800">TRAIN</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">sessions</div>
     </div>
-    <div style="text-align:center">
+
+    <!-- FUEL ring pill -->
+    <div onclick="switchTab('eat')" onpointerdown="this.style.transform='scale(0.95)';this.style.opacity='0.8'" onpointerup="this.style.transform='';this.style.opacity=''" onpointercancel="this.style.transform='';this.style.opacity=''"
+      style="flex:1;text-align:center;background:var(--glass-card);border:1px solid ${fuelPct>=0.7?fuelRingColor+'55':'var(--glass-border)'};border-radius:22px;padding:16px 6px 13px;cursor:pointer;transition:transform .12s,opacity .12s,border-color .2s;box-shadow:0 2px 16px rgba(0,0,0,0.2),inset 0 1px 0 var(--glass-hi)${fuelPct>=0.7?',0 0 20px '+fuelRingColor+'18':''}">
       <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
         <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
-          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="var(--ring-track)" stroke-width="8"/>
           <circle cx="48" cy="48" r="36" fill="none" stroke="${fuelRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${fuelDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${fuelHit}</div>
-          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">/ 7 days</div>
+          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${fuelHit}</div>
+          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">/ 7 days</div>
         </div>
       </div>
-      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${fuelRingColor};font-weight:700">FUEL</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${fuelRingColor};font-weight:800">FUEL</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">protein days</div>
     </div>
-    <div style="text-align:center">
+
+    <!-- HABITS ring pill -->
+    <div onclick="switchTab('habits')" onpointerdown="this.style.transform='scale(0.95)';this.style.opacity='0.8'" onpointerup="this.style.transform='';this.style.opacity=''" onpointercancel="this.style.transform='';this.style.opacity=''"
+      style="flex:1;text-align:center;background:var(--glass-card);border:1px solid ${recoverPct>=1?recoverRingColor+'55':'var(--glass-border)'};border-radius:22px;padding:16px 6px 13px;cursor:pointer;transition:transform .12s,opacity .12s,border-color .2s;box-shadow:0 2px 16px rgba(0,0,0,0.2),inset 0 1px 0 var(--glass-hi)${recoverPct>=1?',0 0 20px '+recoverRingColor+'18':''}">
       <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
         <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
-          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="var(--ring-track)" stroke-width="8"/>
           <circle cx="48" cy="48" r="36" fill="none" stroke="${recoverRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${recoverDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${Math.min((S.streak||0),7)}</div>
-          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">day streak</div>
+          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${Math.min((S.streak||0),7)}</div>
+          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">day streak</div>
         </div>
       </div>
-      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${recoverRingColor};font-weight:700">HABITS</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${recoverRingColor};font-weight:800">HABITS</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">consistency</div>
     </div>
+
   </div>
 
   <!-- Oracle directive card -->
@@ -4212,39 +4256,42 @@ function renderToday(){
     </div>
   </div>
 
-  <!-- Big 3 numbers (Step.co style) -->
+  <!-- Big 3 numbers (Step.co style) — tappable rows -->
   <div style="padding:0 16px">
-    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div onclick="switchTab('eat')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
+      style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .1s">
       <div>
-        <div style="font-size:3rem;font-weight:900;line-height:1;color:${calRem>0?'#ffffff':'var(--green)'};letter-spacing:-2px">${calRem>0?calRem:'✓'}</div>
-        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${calRem>0?'calories to go':'calories — nailed it'}</div>
+        <div style="font-size:3rem;font-weight:900;line-height:1;color:${calRem>0?'var(--num-primary)':'var(--green)'};letter-spacing:-2px">${calRem>0?calRem:'✓'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${calRem>0?'calories to go':'calories — nailed it'} <span style="opacity:0.5">›</span></div>
       </div>
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${calEaten}</div>
         <div style="font-size:0.65rem;color:var(--muted)">eaten of ${T.cal}</div>
-        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(calEaten,T.cal))}%;background:var(--green);border-radius:3px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:var(--ring-track);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(calEaten,T.cal))}%;background:var(--green);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
-    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div onclick="switchTab('eat')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
+      style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .1s">
       <div>
         <div style="font-size:3rem;font-weight:900;line-height:1;color:${protRem>0?'var(--blue)':'var(--green)'};letter-spacing:-2px">${protRem>0?protRem+'g':'✓'}</div>
-        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${protRem>0?'protein to go':'protein — target hit'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${protRem>0?'protein to go':'protein — target hit'} <span style="opacity:0.5">›</span></div>
       </div>
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${protEaten}g</div>
         <div style="font-size:0.65rem;color:var(--muted)">of ${T.protein}g target</div>
-        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:3px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:var(--ring-track);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
-    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div onclick="switchTab('habits')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
+      style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .1s">
       <div>
-        <div style="font-size:3rem;font-weight:900;line-height:1;color:${stepsRem>0?'#ffffff':'var(--green)'};letter-spacing:-2px" id="step-val">${stepsRem>0?stepsRem.toLocaleString():'✓'}</div>
-        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${stepsRem>0?'steps to go':'steps goal — smashed'}</div>
+        <div style="font-size:3rem;font-weight:900;line-height:1;color:${stepsRem>0?'var(--num-primary)':'var(--green)'};letter-spacing:-2px" id="step-val">${stepsRem>0?stepsRem.toLocaleString():'✓'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${stepsRem>0?'steps to go':'steps goal — smashed'} <span style="opacity:0.5">›</span></div>
       </div>
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${data.steps.toLocaleString()}</div>
         <div style="font-size:0.65rem;color:var(--muted)">of ${(S.stepsGoal/1000).toFixed(0)}K</div>
-        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:3px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:var(--ring-track);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
     <!-- Water compact row -->
@@ -4260,29 +4307,44 @@ function renderToday(){
     </div>
   </div>
 
-  <!-- Today's workout status -->
+  <!-- Today's Training + Habits -->
   <div class="today-section">
-    <div class="card-title">Today's Training</div>
-    ${todayWorkout?`<div class="card" style="border-color:var(--green)40">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:1.8rem">✅</div>
-        <div><div style="font-weight:700">Day ${todayWorkout.day} Complete!</div><div style="font-size:0.78rem;color:var(--muted)">${WK[todayWorkout.day].name} · Week ${todayWorkout.week} · ${Object.values(todayWorkout.sets).reduce((a,s)=>a+s.length,0)} sets logged</div></div>
-      </div>
-    </div>`:
-    `<div class="card" style="cursor:pointer" onclick="switchTab('train')">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div><div style="font-weight:700">Ready to train?</div><div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Tap to open your workout</div></div>
-        <div style="font-size:1.8rem">💪</div>
-      </div>
-    </div>`}
 
-    <!-- Habits summary -->
-    <div class="card-title" style="margin-top:8px">Habits — ${habitsDone}/${habitsTotal} done</div>
-    <div class="card" style="cursor:pointer" onclick="switchTab('habits')">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
-        ${_todayHabits.slice(0,6).map((h,i)=>`<div style="width:36px;height:36px;border-radius:8px;background:${i<habitsDone?'var(--green)':'var(--s3)'};display:flex;align-items:center;justify-content:center;font-size:1.05rem;transition:background .3s">${h.icon}</div>`).join('')}
+    <!-- Training block -->
+    ${todayWorkout?
+      `<div class="card" style="border-color:rgba(0,232,122,0.35);background:rgba(0,232,122,0.05);cursor:pointer" onclick="switchTab('train')">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:800;margin-bottom:4px">Training Done ✓</div>
+            <div style="font-size:1rem;font-weight:800;color:var(--text)">Day ${todayWorkout.day} — ${WK[todayWorkout.day].name}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Week ${todayWorkout.week} · ${Object.values(todayWorkout.sets).reduce((a,s)=>a+s.length,0)} sets logged</div>
+          </div>
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,232,122,0.15);border:1.5px solid rgba(0,232,122,0.35);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">✓</div>
+        </div>
+      </div>`
+    :
+      `<button class="btn btn-green" onclick="switchTab('train')" style="width:100%;margin-bottom:10px;font-size:1rem;letter-spacing:0.02em">
+        ▶ Train — Day ${S.day||'A'} · Week ${S.week||1}
+      </button>`
+    }
+
+    <!-- Habits block -->
+    <div class="card" onclick="switchTab('habits')" onpointerdown="this.style.opacity='0.75'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
+      style="cursor:pointer;transition:opacity .1s${habitsDone===habitsTotal?';border-color:rgba(0,232,122,0.3);background:rgba(0,232,122,0.04)':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700">Habits</div>
+          <div style="font-size:1.4rem;font-weight:900;line-height:1;margin-top:3px;color:${habitsDone===habitsTotal?'var(--green)':'var(--text)'}">${habitsDone}<span style="font-size:0.9rem;font-weight:600;color:var(--muted)"> / ${habitsTotal}</span></div>
+        </div>
+        <div style="font-size:0.8rem;color:var(--muted);opacity:0.6">›</div>
       </div>
-      <div style="font-size:0.78rem;color:var(--muted)">Tap to log your habits →</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${_todayHabits.slice(0,6).map((h,i)=>`<div style="width:38px;height:38px;border-radius:10px;background:${i<habitsDone?'var(--green)':'var(--s3)'};border:1px solid ${i<habitsDone?'transparent':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:background .3s,border .3s">${h.icon}</div>`).join('')}
+      </div>
+      ${habitsDone===habitsTotal
+        ?`<div style="font-size:0.72rem;color:var(--green);font-weight:700;margin-top:10px">All done today ✓</div>`
+        :`<div style="font-size:0.72rem;color:var(--muted);margin-top:10px">${habitsTotal-habitsDone} remaining — tap to log</div>`
+      }
     </div>
 
     <!-- Active coach adjustments banner -->
@@ -4297,7 +4359,7 @@ function renderToday(){
       if(swapCount>0) b+='<span style="background:rgba(100,180,255,0.12);border:1px solid rgba(100,180,255,0.25);border-radius:5px;padding:2px 7px;font-size:0.68rem;font-weight:700;color:#64b4ff">\u21c4 '+swapCount+' swap'+(swapCount>1?'s':'')+'</span>';
       return '<div style="margin:0 16px 10px;background:rgba(29,158,117,0.07);border:1px solid rgba(29,158,117,0.28);border-radius:12px;padding:12px 14px">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
-        +'<div><div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--green);font-weight:700;margin-bottom:3px">\ud83d\udd27 Coach adjustments active</div>'
+        +'<div><div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--green);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px">'+ico('zap',12,'var(--green)')+' Coach adjustments active</div>'
         +'<div style="font-size:0.78rem;color:var(--text)">Week '+(ov.weekApplied||'?')+' check-in applied to your training</div></div>'
         +(b?'<div>'+b+'</div>':'')
         +'</div></div>';
@@ -4305,7 +4367,7 @@ function renderToday(){
     <!-- Weekly check-in CTA -->
     ${renderCheckinCTA()}
 ${renderWeekSummary()}
-    ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">💪</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
+    ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="margin-bottom:12px;color:var(--muted)">${ico('dumbbell',36,'var(--muted)')}</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
     ${(function(){
       // Only show prominent check-in card on check-in day. All other days: subtle small link only.
       if(isCheckinDay()&&!thisWeekCheckinDone()){
@@ -4313,7 +4375,7 @@ ${renderWeekSummary()}
       }
       // Non-check-in day: show a quiet link so it's still accessible but not a distraction
       return '<div style="margin:0 16px 12px;padding:10px 14px;background:transparent;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;opacity:0.55" onclick="openCheckin()">'
-        +'<div style="font-size:0.78rem;color:var(--muted)">📋 Weekly Check-in <span style="font-size:0.7rem">(available · check-in day is '+CHECKIN_DAY_NAMES[getCheckinDay()]+')</span></div>'
+        +'<div style="font-size:0.78rem;color:var(--muted);display:flex;align-items:center;gap:5px">'+ico('clipboard',13,'var(--muted)')+' Weekly Check-in <span style="font-size:0.7rem">(available · check-in day is '+CHECKIN_DAY_NAMES[getCheckinDay()]+')</span></div>'
         +'<div style="font-size:0.75rem;color:var(--muted)">→</div>'
       +'</div>';
     })()}
@@ -4330,7 +4392,7 @@ ${renderWeekSummary()}
 
     <!-- Consequence card (only if habits not fully done and it's after 8pm) -->
     ${hour>=20&&habitsDone<habitsTotal?`<div class="consequence-card">
-      <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:8px">⚠️ Check in</div>
+      <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:5px">${ico('alert',14,'var(--red)')} Check in</div>
       <div class="consequence-msg">Your <strong>future self</strong> is being built by what you do tonight. Not tomorrow. <strong>Tonight.</strong><br><br>Every glass of water. Every protein hit. Every hour of sleep. It all compounds.<br><br>You didn't come this far to come this far.</div>
     </div>`:''}
   </div>`;
@@ -4553,7 +4615,7 @@ function renderWarmup(){
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
 <div class="phase-screen">
-  ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color}">${p.note}</div>`).join('')}
+  ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   <div class="phase-section">
     <div class="phase-section-title"><span>${day.name} Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${dayItems.filter(i=>S.warmupChecked.has(i.id)).length}/${dayItems.length}</span></div>
     ${dayItems.map(mkItem).join('')}
@@ -4563,7 +4625,7 @@ function renderWarmup(){
     ${p.items.map(mkItem).join('')}
   </div>`).join('')}
   <div style="position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px">
-    <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'✅ All Done — Start Workout →':'▶ Start Workout'}</button>
+    <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'All Done — Start Workout →':'▶ Start Workout'}</button>
     ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — ${injuryRehab.length?'injury prehab is important, don\'t skip it':'get to it'}</p>`:''}
   </div>
 </div>`;
@@ -4618,7 +4680,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
     </div>
   </div>
 </div>
-<div class="cue-box">📋 ${ex.cue}</div>
+<div class="cue-box" style="display:flex;align-items:flex-start;gap:8px">${ico('book-open',14,'var(--muted)')} <span>${ex.cue}</span></div>
 
 ${ex.startWeight?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(99,102,241,0.12);border-left:3px solid var(--blue);border-radius:8px;font-size:0.76rem;color:var(--blue);font-weight:600">🎯 Suggested start: <strong>${ex.startWeight}kg</strong> <span style="font-weight:400;opacity:0.8">based on your last session</span></div>`:''}
 ${ex.stalled?`<div style="margin:0 0 8px;padding:7px 12px;background:rgba(239,68,68,0.1);border-left:3px solid var(--red);border-radius:8px;font-size:0.76rem;color:var(--red);font-weight:600">📉 Weight trending down — consider dropping 5–10% and rebuilding</div>`:''}
@@ -5313,7 +5375,7 @@ function renderCooldown(){
     ${items.map(mkItem).join('')}
   </div>
   <div style="position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px">
-    <button class="btn btn-green" onclick="finishAndSave()">${checked===total?'✅ Done — Save Session →':'💾 Save & Finish'}</button>
+    <button class="btn btn-green" onclick="finishAndSave()">${checked===total?'Done — Save Session →':'Save & Finish'}</button>
   </div>
 </div>`;
 }
@@ -5345,9 +5407,9 @@ function renderBlockComplete(){
     Object.values(WK||{}).forEach(function(day){if(day&&day.exercises)day.exercises.forEach(function(e){if(e.id===id)nm=e.name;});});
     return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:0.82rem">'+nm+'</span><span style="font-size:0.88rem;font-weight:700;color:var(--green)">'+d.best+'kg</span></div>';
   }).join('');
-  return '<div class="top-bar"><div class="top-title">Block Complete 🏆</div></div>'+
+  return '<div class="top-bar"><div class="top-title" style="display:flex;align-items:center;gap:8px">'+ico('trophy',22,'var(--amber)')+' Block Complete</div></div>'+
   '<div style="padding:20px 16px;text-align:center">'+
-    '<div style="font-size:4rem;margin-bottom:12px">🏆</div>'+
+    '<div style="margin-bottom:16px;color:var(--amber)">'+ico('trophy',64,'var(--amber)')+'</div>'+
     '<div style="font-size:1.6rem;font-weight:800;margin-bottom:6px">8 Weeks Done, '+userName()+'!</div>'+
     '<div style="font-size:0.88rem;color:var(--muted);line-height:1.6;margin-bottom:20px">You just completed a full 8-week block. That’s not nothing— that’s everything.</div>'+
     '<div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px">'+
@@ -5715,7 +5777,7 @@ function renderRestDay(){
     <div style="font-size:1rem;font-weight:700;margin-bottom:6px">${cfg.title}</div>
     <div style="font-size:0.85rem;color:var(--muted);line-height:1.6">${cfg.desc}</div>
   </div>
-  ${getInjuryRehab(S.profile).map(p=>`<div class="injury-rehab-note" style="border-color:${p.color}">${p.note}</div>`).join('')}
+  ${getInjuryRehab(S.profile).map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   ${showRehab?`<div class="phase-section">
     <div class="phase-section-title"><span>Daily Back Rehab <span style="color:var(--red)">5 min — every day</span></span><span style="color:var(--muted)">${checked}/${items.length}</span></div>
     ${items.map(item=>{const done=S.restDayChecked.has(item.id);return`<div class="check-item${done?' checked':''}" onclick="toggleRestDay('${item.id}')"><div class="check-circle">${done?'✓':''}</div><div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div></div>`;}).join('')}
@@ -6169,7 +6231,7 @@ ${!isToday?`<div style="margin:8px 16px 0;padding:8px 12px;background:${isFuture
 </div>`:''}
 ${hasProfile&&tdeeData?`
 <div class="targets-card" style="border:1px solid var(--green)30">
-  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:10px">⚡ Your Personalised Targets</div>
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:5px">${ico('zap',12,'var(--green)')} Your Personalised Targets</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
     <div style="text-align:center"><div style="font-size:1.35rem;font-weight:800;color:var(--green)">${tdeeData.tdee}</div><div style="font-size:0.65rem;color:var(--muted)">TDEE kcal</div></div>
     <div style="text-align:center"><div style="font-size:1.35rem;font-weight:800;color:${tdeeData.deficit<0?'var(--amber)':'var(--blue)'}">${tdeeData.targetCal}</div><div style="font-size:0.65rem;color:var(--muted)">Target kcal</div></div>
@@ -6283,7 +6345,7 @@ ${hasProfile&&tdeeData?`
     + ${isToday?'Log Food / Scan Barcode':'Add Food to '+eatDateLabel(eatDate)}
   </button>
     <button onclick="copyMealsFromDate('${eatDate}')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:0.7rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3" title="Copy food from previous day">
-      📋 Copy<br>${isToday?'Yesterday':'Prev Day'}
+      ${ico('clipboard',14,'currentColor')}<br>${isToday?'Yesterday':'Prev Day'}
     </button>
   </div>
 
@@ -6315,10 +6377,10 @@ ${hasProfile&&tdeeData?`
           <div style="font-size:0.85rem;font-weight:600;color:var(--green)">${item.cal} cal</div>
         </div>`).join('')}
         ${m.recipe?`<div class="recipe-box">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:8px">📋 How to Cook</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px">${ico('book-open',12,'var(--green)')} How to Cook</div>
           <div class="recipe-meta">
             ${m.prepTime?`<span>⏱ Prep ${m.prepTime}</span>`:''}
-            ${m.cookTime&&m.cookTime!=='0 min'?`<span>🔥 Cook ${m.cookTime}</span>`:''}
+            ${m.cookTime&&m.cookTime!=='0 min'?`<span style="display:inline-flex;align-items:center;gap:3px">${ico('flame',12,'var(--amber)')} Cook ${m.cookTime}</span>`:''}
             ${m.serves?`<span>🍽 ${m.serves} serve</span>`:''}
           </div>
           ${m.recipe.map((r,ri)=>`<div class="recipe-step"><div class="step-num">${ri+1}</div><div class="recipe-step-text">${r.s}</div></div>`).join('')}
@@ -6422,7 +6484,7 @@ ${mealIngredients.length?`
   }).join('')}
 </div>
 <div style="margin:0 16px 12px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.72rem;color:var(--muted)">
-  💡 Swap a meal in the Eat tab → this list updates automatically
+  Swap a meal in the Eat tab → this list updates automatically
 </div>`:''}
 ${ACTIVE_GROCERY.map(cat=>`
 <div class="shop-category">
@@ -6610,7 +6672,7 @@ function renderHabits(){
   const done=habits.filter(h=>S.habitsChecked.has(h.id)).length;
   const stepPct=pct(S.stepsToday,S.stepsGoal);
   return`<div class="top-bar">
-  <div><div class="top-title">Habits</div><div class="top-sub">${done}/${habits.length} done · ${S.streak} day streak 🔥</div></div>
+  <div><div class="top-title">Habits</div><div class="top-sub">${done}/${habits.length} done · ${S.streak} day streak</div></div>
 </div>
 ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
   <div class="streak-num">${S.streak}</div>
@@ -6679,7 +6741,7 @@ ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
   </div>
   ${renderAddictions()}
   ${hour>=20&&done<4?`<div class="consequence-card">
-    <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:8px">⚠️ Evening Check-in</div>
+    <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:5px">${ico('alert',14,'var(--red)')} Evening Check-in</div>
     <div class="consequence-msg">Your <strong>future self</strong> is being built by what you do tonight. Not tomorrow. <strong>Tonight.</strong><br><br>Every glass of water. Every protein hit. Every hour of sleep. It all compounds.<br><br>You didn't come this far to come this far.</div>
   </div>`:''}
 </div>`;
@@ -10763,7 +10825,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v142';
+  window.APP_VERSION='v146';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
