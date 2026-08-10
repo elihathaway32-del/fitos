@@ -196,9 +196,12 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .chip-row{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:0.85rem;cursor:pointer;transition:all .15s}
 .chip.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
-.wizard-progress{display:flex;gap:6px;margin-bottom:28px}
-.wiz-dot{height:3px;flex:1;border-radius:2px;background:var(--s3);transition:background .3s}
+.wizard-progress{display:flex;gap:7px;margin-bottom:32px;justify-content:center}
+.wiz-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all .3s}
 .wiz-dot.done{background:var(--green)}
+.wiz-dot.current{width:22px;border-radius:4px;box-shadow:0 0 8px rgba(0,232,122,0.5)}
+@keyframes wizSlide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.wiz-body-anim{animation:wizSlide .28s ease}
 
 /* ── TODAY TAB ── */
 .today-hero{background:linear-gradient(135deg,#1a2a1a 0%,#0d1a12 100%);border-bottom:1px solid var(--border);padding:20px 16px}
@@ -3101,7 +3104,9 @@ function renderWizSigninModal(){
 function renderIntake(){
   const p=S.profile;
   const step=S.intakeStep;
-  const dots=INTAKE_STEPS.map((_,i)=>`<div class="wiz-dot${i<=step?' done':''}"></div>`).join('');
+  const STEP_ICONS=['👤','🏃','🎯','💪','🏋️','📊','🥗','📸','✨','🚀'];
+  const STEP_SUBS=['Name, age, height & weight','Lifestyle, sleep & stress','What are we building toward?','How long have you trained?','Days, sessions & gym type','Your current strength baselines','Food approach & any limits','Your starting point (optional)','Coach style & Oracle voice','You\'re set — let\'s go.'];
+  const dots=INTAKE_STEPS.map((_,i)=>`<div class="wiz-dot${i<step?' done':i===step?' done current':''}"></div>`).join('');
   let body='';
 
   // ── Step 0: About You ──
@@ -3435,14 +3440,22 @@ function renderIntake(){
   else body=renderAllSet(p);
 
   return`<div class="wizard-overlay">
-    <div class="wizard-logo">Fit<span>OS</span></div>
-    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px">Your AI Personal Trainer</div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="wizard-logo" style="margin-bottom:2px">Fit<span>OS</span></div>
+      <div style="font-size:0.63rem;color:var(--muted);letter-spacing:.13em;text-transform:uppercase">Your AI Personal Trainer</div>
+    </div>
     <div class="wizard-progress">${dots}</div>
-    <div style="font-size:1.2rem;font-weight:700;margin-bottom:20px">${INTAKE_STEPS[step]}</div>
-    ${body}
-    <div style="margin-top:28px;display:flex;gap:10px">
-      ${step>0?`<button class="btn btn-outline" style="flex:1" onclick="wizBack()">← Back</button>`:''}
-      <button class="btn btn-green" style="flex:2" onclick="wizNext()">${step===INTAKE_STEPS.length-1?'Start Training →':'Next →'}</button>
+    <div class="wiz-body-anim">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:3rem;margin-bottom:12px;line-height:1">${STEP_ICONS[step]}</div>
+        <div style="font-size:1.75rem;font-weight:900;letter-spacing:-.03em;line-height:1.15;margin-bottom:8px">${INTAKE_STEPS[step]}</div>
+        <div style="font-size:0.8rem;color:var(--muted)">${STEP_SUBS[step]}</div>
+      </div>
+      ${body}
+    </div>
+    <div style="margin-top:32px;display:flex;gap:10px">
+      ${step>0?`<button class="btn btn-outline" style="flex:1;height:54px;font-size:0.95rem" onclick="wizBack()">← Back</button>`:''}
+      <button class="btn btn-green" style="flex:2;height:54px;font-size:1rem;font-weight:800;letter-spacing:-.01em" onclick="wizNext()">${step===INTAKE_STEPS.length-1?'Launch FitOS 🚀':'Continue →'}</button>
     </div>
     ${step===0?`<div style="text-align:center;margin-top:20px"><span style="font-size:0.82rem;color:var(--muted)">Already have an account? </span><span style="font-size:0.82rem;color:var(--green);font-weight:600;cursor:pointer" onclick="S.wizAuthMode='signin';S.showWizSigninModal=true;S.wizAuthError='';render()">Sign in →</span></div><p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">Your data stays on your device only.</p>`:''}
   </div>
@@ -8204,7 +8217,76 @@ function swipeEnd(e,id){
   }
 }
 
+function renderWeekAchievementSummary(){
+  var T=getTargets();
+  var today=new Date();
+  var weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());weekStart.setHours(0,0,0,0);
+  var sessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=weekStart;}).length;
+  var trainTarget=parseInt((S.profile||{}).daysPerWeek)||4;
+  // Total volume this week
+  var totalVol=0;
+  (S.gymHistory||[]).forEach(function(h){
+    if(new Date(h.date)<weekStart) return;
+    var logged=h.loggedSets||{};
+    Object.values(logged).forEach(function(setArr){
+      if(!Array.isArray(setArr)) return;
+      setArr.forEach(function(s){if(s&&s.w&&s.r) totalVol+=parseFloat(s.w)*parseInt(s.r);});
+    });
+  });
+  // Protein days hit this week (last 7 days)
+  var last7=[...Array(7)].map(function(_,i){var d=new Date();d.setDate(d.getDate()-i);return d.toDateString();});
+  var ml=S.mealLog||{};
+  var protDays=last7.filter(function(d){
+    var entries=ml[d]||[];
+    var tot=entries.reduce(function(s,e){return s+(e.p||0);},0);
+    return T&&tot>=T.protein*0.9;
+  }).length;
+  // Streak
+  var streak=S.streak||0;
+  // Oracle interpretation sentence
+  var oracleLine='';
+  if(sessions>=trainTarget&&protDays>=5){oracleLine='You showed up and you fuelled the work. That\'s the formula — keep stacking it.';}
+  else if(sessions>=trainTarget){oracleLine='Training was on point. Get the protein locked in next week and the adaptations will accelerate.';}
+  else if(protDays>=5&&sessions>0){oracleLine='You fed the muscle — now you need to stress it more. Aim for '+(trainTarget)+' sessions next week.';}
+  else if(sessions===0){oracleLine='Life happened. This check-in is where you reset. Log it, commit to next week, and go.';}
+  else{oracleLine='Consistency compounds — this check-in sets the tone for the next block. Let\'s dial it in.';}
+  // Volume display string
+  var volStr=totalVol>0?(totalVol>=1000?(totalVol/1000).toFixed(1)+'t':Math.round(totalVol).toLocaleString()+'kg'):'–';
+  var wkNum=S.checkinWeekOverride||(S.week||1);
+  return '<div style="min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:40px 24px 32px;text-align:center">'
+    +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.15em;color:var(--green);font-weight:700;margin-bottom:32px">Week '+wkNum+' complete</div>'
+    +'<div style="font-size:2.8rem;font-weight:900;letter-spacing:-.04em;line-height:1;margin-bottom:6px">Your Week</div>'
+    +'<div style="font-size:2.8rem;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--green);margin-bottom:8px">in Numbers</div>'
+    +'<div style="font-size:0.82rem;color:var(--muted);margin-bottom:44px">'+today.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:36px">'
+      +'<div style="background:var(--s2);border-radius:20px;padding:22px 16px;border:1px solid var(--border)">'
+        +'<div style="font-size:2.8rem;font-weight:900;color:var(--green);line-height:1;margin-bottom:7px">'+sessions+'</div>'
+        +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Sessions</div>'
+      +'</div>'
+      +'<div style="background:var(--s2);border-radius:20px;padding:22px 16px;border:1px solid var(--border)">'
+        +'<div style="font-size:2.8rem;font-weight:900;color:var(--blue);line-height:1;margin-bottom:7px">'+volStr+'</div>'
+        +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Volume Lifted</div>'
+      +'</div>'
+      +'<div style="background:var(--s2);border-radius:20px;padding:22px 16px;border:1px solid var(--border)">'
+        +'<div style="font-size:2.8rem;font-weight:900;color:var(--amber);line-height:1;margin-bottom:7px">'+protDays+'/7</div>'
+        +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Protein Days</div>'
+      +'</div>'
+      +'<div style="background:var(--s2);border-radius:20px;padding:22px 16px;border:1px solid var(--border)">'
+        +'<div style="font-size:2.8rem;font-weight:900;color:'+(streak>=7?'var(--green)':'rgba(255,255,255,0.5)')+';line-height:1;margin-bottom:7px">'+streak+'</div>'
+        +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Day Streak</div>'
+      +'</div>'
+    +'</div>'
+    +'<div style="background:linear-gradient(135deg,rgba(0,232,122,0.07),rgba(0,232,122,0.02));border:1px solid rgba(0,232,122,0.18);border-radius:18px;padding:18px 20px;margin-bottom:36px;text-align:left">'
+      +'<div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:.13em;color:var(--green);font-weight:700;margin-bottom:8px">🔮 Oracle</div>'
+      +'<div style="font-size:0.93rem;color:var(--text);line-height:1.65;font-weight:500">'+oracleLine+'</div>'
+    +'</div>'
+    +'<button class="btn btn-green" style="height:58px;font-size:1.05rem;font-weight:800;letter-spacing:-.01em;margin-bottom:12px" onclick="S.showCheckinSummary=false;render();window.scrollTo(0,0)">Do the Check-In →</button>'
+    +'<button style="background:transparent;border:none;padding:12px;color:var(--muted);font-size:0.85rem;cursor:pointer;opacity:0.7" onclick="closeCheckin()">← Close</button>'
+  +'</div>';
+}
+
 function renderCheckin(){
+  if(S.showCheckinSummary) return '<div class="checkin-overlay">'+renderWeekAchievementSummary()+'</div>';
   const c=S.checkin;
   const weekNum=S.checkinWeekOverride||(S.week||1);
 
@@ -8863,11 +8945,12 @@ function openCheckin(weekOverride){
     }
   }
 
+  S.showCheckinSummary=true;
   S.showCheckin=true;
   render();
   window.scrollTo(0,0);
 }
-function closeCheckin(){S.showCheckin=false;render();}
+function closeCheckin(){S.showCheckin=false;S.showCheckinSummary=false;render();}
 function setCheckinPhoto(field,file){
   if(!file)return;
   var r=new FileReader();
@@ -10643,7 +10726,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v140';
+  window.APP_VERSION='v141';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
