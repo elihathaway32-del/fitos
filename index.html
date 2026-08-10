@@ -1510,36 +1510,359 @@ function getSmartWeight(exId){
   return Math.round(suggestion*4)/4; // round to nearest 0.25kg
 }
 
+// ─── DATA COMPLETENESS SCORE ──────────────────────────────────────────────────
+function getDataCompleteness(){
+  var score=0; var missing=[];
+  var hist=S.gymHistory||[];
+  var ci=S.checkinHistory||[];
+  if(hist.length>=5){score+=25;}else if(hist.length>=2){score+=15;missing.push('more training sessions');}else if(hist.length>=1){score+=8;missing.push('more training sessions');}else{missing.push('training sessions');}
+  var foodDays=0;
+  try{Object.keys(localStorage).filter(function(k){return k.startsWith('fitos_day_');}).forEach(function(k){try{var d=JSON.parse(localStorage.getItem(k)||'{}');if(d.cal&&d.cal>200) foodDays++;}catch(e){}});}catch(e){}
+  if(foodDays>=10){score+=25;}else if(foodDays>=4){score+=15;missing.push('more food logging');}else if(foodDays>=1){score+=8;missing.push('consistent food logging');}else{missing.push('food tracking');}
+  var habitLog=S.habitHistory||S.habitLog||{};
+  var habitDays=Object.keys(habitLog).length;
+  if(habitDays>=14){score+=20;}else if(habitDays>=5){score+=12;missing.push('more habit check-ins');}else if(habitDays>=1){score+=5;}else{missing.push('habit tracking');}
+  if(ci.length>=4){score+=20;}else if(ci.length>=2){score+=12;missing.push('more weekly check-ins');}else if(ci.length>=1){score+=6;missing.push('weekly check-ins');}else{missing.push('weekly check-ins');}
+  var p=S.profile||{};
+  var filled=[p.name,p.age,p.weight,p.height,p.goal,p.experience].filter(Boolean).length;
+  score+=Math.round((filled/6)*10);
+  if(filled<4) missing.push('profile details');
+  var pct=Math.min(100,score);
+  var label=pct>=80?'Strong data — analysis is solid':pct>=55?'Good foundation — getting sharper':'Limited data — working with what you\'ve given me';
+  return {pct:pct,label:label,missing:missing};
+}
+
+// ─── COACH PROGRESS CARD (replaces Strength Progress) ─────────────────────────
 function renderProgressionCard(){
-  var prog=getProgressionData();
-  var keys=Object.keys(prog);
-  if(keys.length===0) return '';
-  // Top 5 lifts by best weight
-  var top=keys.sort(function(a,b){return prog[b].best-prog[a].best;}).slice(0,6);
-  var rows=top.map(function(id){
-    var d=prog[id];
-    var trend=d.trend==='up'?'<span style="color:var(--green)">↑</span>':
-              d.trend==='down'?'<span style="color:var(--red)">↓</span>':'<span style="color:var(--muted)">→</span>';
-    var exName=id.replace(/-/g,' ').replace(/\w/g,function(c){return c.toUpperCase();});
-    // Try to get name from WK
-    Object.values(WK||{}).forEach(function(day){
-      if(day&&day.exercises) day.exercises.forEach(function(e){if(e.id===id) exName=e.name;});
-    });
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:0.82rem;color:var(--text)">'+exName+'</div>'+
-      '<div style="display:flex;align-items:center;gap:10px">'+
-        '<div style="font-size:0.75rem;color:var(--muted)">'+d.sessions.length+' sessions</div>'+
-        '<div style="font-size:0.9rem;font-weight:700;color:var(--blue)">'+d.best+'kg</div>'+
-        '<div style="font-size:1.0rem">'+trend+'</div>'+
+  var hist=S.gymHistory||[];
+  var ci=S.checkinHistory||[];
+  if(hist.length===0&&ci.length===0) return '';
+
+  var dc=getDataCompleteness();
+
+  // 1. Training frequency
+  var sessPerWeek='—'; var freqColor='var(--muted)';
+  if(hist.length>=1){
+    var weeksSince=Math.max(1,Math.round((Date.now()-new Date(hist[0].date).getTime())/(7*86400000)));
+    var avg=hist.length/weeksSince;
+    sessPerWeek=avg.toFixed(1)+'×/wk';
+    freqColor=avg>=3?'var(--green)':avg>=2?'var(--amber)':'var(--muted)';
+  }
+
+  // 2. Protein adherence (last 14 days)
+  var protDays=0,protTotal=0;
+  try{
+    var Tp=getTargets();
+    for(var dd=0;dd<14;dd++){
+      var dObj=new Date(); dObj.setDate(dObj.getDate()-dd);
+      var ds=dObj.toISOString().slice(0,10);
+      var dayD=getDateData(ds);
+      if(dayD.cal||dayD.protein){protTotal++;if((dayD.protein||0)>=Tp.protein*0.85) protDays++;}
+    }
+  }catch(e){}
+  var protLabel=protTotal>0?(protDays+'/'+protTotal+' days'):' — ';
+  var protColor=protTotal>0&&protDays/protTotal>=0.7?'var(--green)':protTotal>0&&protDays/protTotal>=0.4?'var(--amber)':'var(--muted)';
+
+  // 3. Volume trend (last 4 vs prev 4 sessions)
+  var volLabel='—'; var volTrend=''; var volColor='var(--muted)';
+  if(hist.length>=4){
+    function sessVol(h){return Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.filter(Boolean).reduce(function(b,s){return b+(s.weight||0)*(s.reps||0);},0);},0);}
+    var recent=hist.slice(-4).reduce(function(a,h){return a+sessVol(h);},0)/4;
+    var prev=hist.length>=8?hist.slice(-8,-4).reduce(function(a,h){return a+sessVol(h);},0)/4:null;
+    volLabel=Math.round(recent).toLocaleString()+'kg avg';
+    if(prev){var delta=Math.round((recent-prev)/prev*100);volTrend=(delta>=3?'↑':delta<=-3?'↓':'→');volColor=delta>=3?'var(--green)':delta<=-3?'var(--red)':'var(--muted)';if(Math.abs(delta)>=3) volLabel+=' ('+delta+'%)';}
+  }
+
+  // 4. Weight trend
+  var wtLabel='—'; var wtTrend=''; var wtColor='var(--muted)';
+  if(ci.length>=2){
+    var w1=parseFloat(ci[0].weight)||0;
+    var w2=parseFloat(ci[ci.length-1].weight)||0;
+    if(w1&&w2){
+      var wtDelta=(w2-w1).toFixed(1);
+      var wtWks=Math.max(1,ci.length-1);
+      var perWk=((w2-w1)/wtWks).toFixed(2);
+      wtLabel=(parseFloat(wtDelta)>0?'+':'')+wtDelta+'kg total · '+(parseFloat(perWk)>=0?'+':'')+perWk+'/wk';
+      var goal=(S.profile&&S.profile.goal)||'';
+      wtTrend=parseFloat(wtDelta)>0?'↑':parseFloat(wtDelta)<0?'↓':'→';
+      if(/lose|fat|cut/i.test(goal)) wtColor=parseFloat(wtDelta)<0?'var(--green)':parseFloat(wtDelta)>0?'var(--amber)':'var(--muted)';
+      else if(/muscle|gain|build|bulk/i.test(goal)) wtColor=parseFloat(wtDelta)>0?'var(--green)':'var(--muted)';
+    }
+  }else if(ci.length===1){wtLabel=(ci[0].weight||'?')+'kg — 1 check-in';}
+
+  // 5. Habit streak
+  var strk=S.streak||0;
+  var strkColor=strk>=7?'var(--green)':strk>=3?'var(--amber)':'var(--muted)';
+
+  var barCol=dc.pct>=80?'var(--green)':dc.pct>=55?'var(--amber)':'var(--red)';
+
+  function row(lbl,val,trend,col){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="font-size:0.8rem;color:var(--muted)">'+lbl+'</div>'+
+      '<div style="display:flex;align-items:center;gap:5px">'+
+        '<span style="font-size:0.85rem;font-weight:700;color:'+col+'">'+val+'</span>'+
+        (trend?'<span style="font-size:0.82rem;color:'+col+'">'+trend+'</span>':'')+
       '</div>'+
     '</div>';
-  }).join('');
-  return '<div class="card-title" style="margin-top:8px">Strength Progress</div>'+
-    '<div class="card" style="padding:10px 14px">'+
-      '<div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Top set per exercise — across all logged sessions</div>'+
-      rows+
-    '</div>';
+  }
+
+  var rows=
+    row('Training frequency',sessPerWeek,'',freqColor)+
+    row('Protein adherence',protLabel,'',protColor)+
+    row('Session volume',volLabel,volTrend,volColor)+
+    row('Weight trend',wtLabel,wtTrend,wtColor)+
+    row('Habit streak',strk+' day'+(strk===1?'':'s'),'',strkColor);
+
+  var reportHTML='';
+  if(S.progressReport){
+    reportHTML='<div style="margin-top:14px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:12px;font-size:0.84rem;color:var(--text);line-height:1.75">'+
+      S.progressReport.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>')+
+    '</div>'+
+    '<button onclick="S.progressReport=null;render()" style="font-size:0.72rem;color:var(--muted);background:none;border:none;cursor:pointer;margin-top:6px;padding:0">↺ Refresh</button>';
+  }
+
+  return '<div class="card" style="margin:0 16px 12px;padding:14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+      '<div style="display:flex;align-items:center;gap:7px">'+
+        ico('target',15,'var(--green)')+
+        '<span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--text)">Coach\'s Report</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:5px">'+
+        '<div style="width:44px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden">'+
+          '<div style="height:100%;width:'+dc.pct+'%;background:'+barCol+';transition:width .6s"></div>'+
+        '</div>'+
+        '<span style="font-size:0.62rem;color:var(--muted)">'+dc.pct+'% data</span>'+
+      '</div>'+
+    '</div>'+
+    rows+
+    reportHTML+
+    (S.progressReportLoading?
+      '<div style="display:flex;align-items:center;gap:8px;padding:12px 0;color:var(--muted);font-size:0.82rem">'+
+        '<div style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0"></div>Your coach is thinking...'+
+      '</div>'
+    :(!S.progressReport?
+      '<button onclick="generateProgressReport()" class="btn btn-outline" style="width:100%;margin-top:12px;font-size:0.85rem;padding:12px;display:flex;align-items:center;justify-content:center;gap:7px">'+
+        ico('zap',14,'var(--green)')+'<span>Hear your coach\'s take</span>'+
+      '</button>'
+    :''))+
+  '</div>';
 }
+
+// ─── GENERATE PROGRESS REPORT ─────────────────────────────────────────────────
+function generateProgressReport(){
+  if(S.progressReportLoading) return;
+  var dc=getDataCompleteness();
+  S.progressReportLoading=true; S.progressReport=null; render();
+  var hist=S.gymHistory||[];
+  var ci=S.checkinHistory||[];
+  var prompt='Give me an honest, direct progress read. What\'s actually working, what isn\'t, and one thing to focus on this week. Max 130 words — talk to me directly, no lists.\n\n';
+  prompt+='DATA: '+dc.pct+'% complete. ';
+  if(dc.pct<60) prompt+='Limited data — be upfront about gaps and tell me what data would help you coach me better. Still give your best read.\n';
+  else if(dc.pct<80) prompt+='Good but incomplete picture — factor that into your confidence.\n';
+  else prompt+='Strong data to work from.\n';
+  if(hist.length>0){
+    var recent=hist.slice(-5);
+    prompt+='RECENT SESSIONS: '+recent.map(function(h){
+      var vol=Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.filter(Boolean).reduce(function(b,s){return b+(s.weight||0)*(s.reps||0);},0);},0);
+      return 'Day '+h.day+' W'+h.week+' ('+Math.round(vol)+'kg)';
+    }).join(', ')+'\n';
+  }
+  if(ci.length>0){
+    var lci=ci[ci.length-1];
+    prompt+='LAST CHECK-IN: '+lci.weight+'kg | Energy '+lci.energy+'/10 | Sleep '+lci.sleep+'h'+(lci.notes?' | "'+lci.notes.slice(0,80)+'"':'')+'\n';
+  }
+  if(dc.missing.length) prompt+='MISSING: '+dc.missing.join(', ')+'\n';
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-api-key':S.apiKey||'','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:280,system:buildCoachSystemPrompt(),messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(d){
+    S.progressReport=(d.content&&d.content[0]&&d.content[0].text)||'Couldn\'t reach the server — check your connection.';
+    addCoachMemory('Progress report given: '+S.progressReport.slice(0,120));
+  }).catch(function(){
+    S.progressReport='No connection right now. Try again when you\'re online.';
+  }).finally(function(){S.progressReportLoading=false;render();});
+}
+
+// ─── COACH MEMORY — rolling insight store across all Oracle interactions ───────
+function addCoachMemory(entry){
+  if(!entry) return;
+  var mem=S.coachMemory||[];
+  mem.push({ts:Date.now(),t:entry.slice(0,200)});
+  if(mem.length>20) mem=mem.slice(-20);
+  S.coachMemory=mem;
+  try{localStorage.setItem('fitos_coach_memory',JSON.stringify(mem));}catch(e){}
+}
+function loadCoachMemory(){
+  try{var raw=localStorage.getItem('fitos_coach_memory');if(raw) S.coachMemory=JSON.parse(raw);}catch(e){S.coachMemory=[];}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORACLE ACTION SYSTEM — Oracle can modify app state via structured commands
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Parse <fitos_action>...</fitos_action> tags from Oracle reply text.
+// Returns { cleanText, actions[] }
+function parseOracleActions(text){
+  var actions=[];
+  var clean=text.replace(/<fitos_action>([\s\S]*?)<\/fitos_action>/g,function(match,json){
+    try{
+      var a=JSON.parse(json.trim());
+      if(a&&a.type) actions.push(a);
+    }catch(e){}
+    return ''; // strip tag from display text
+  }).trim();
+  return {cleanText:clean,actions:actions};
+}
+
+// Describe an action in plain English for the confirmation card
+function describeOracleAction(a){
+  switch(a.type){
+    case 'set_cal_adjust':
+      var T2=typeof getTargets==='function'?getTargets():{cal:2000};
+      var newCal=T2.cal+(a.delta||0);
+      return 'Adjust daily calories by '+(a.delta>0?'+':'')+a.delta+'kcal → new target: ~'+Math.round(newCal)+'kcal/day';
+    case 'set_protein_target':
+      return 'Set protein target to '+a.grams+'g/day';
+    case 'swap_days':
+      return 'Swap training Day '+a.day_a+' ↔ Day '+a.day_b;
+    case 'set_week':
+      return 'Move to Week '+a.week+' of your training block';
+    case 'update_weight':
+      return 'Update your logged weight to '+a.kg+'kg';
+    case 'adjust_load':
+      return 'Reduce training load to '+(Math.round((a.load_factor||0.8)*100))+'% for '+(a.weeks||1)+' week'+(a.weeks===1?'':'s')+' (recovery protocol)';
+    default:
+      return a.type;
+  }
+}
+
+// Execute an approved Oracle action against app state
+function executeOracleAction(a){
+  try{
+    switch(a.type){
+
+      case 'set_cal_adjust':
+        var cur=parseInt(localStorage.getItem('fitos_cal_adjust')||'0')||0;
+        var newAdj=cur+(parseInt(a.delta)||0);
+        // Clamp to ±800 from TDEE
+        newAdj=Math.max(-800,Math.min(800,newAdj));
+        localStorage.setItem('fitos_cal_adjust',String(newAdj));
+        addCoachMemory('Coach set calorie adjustment to '+(newAdj>0?'+':'')+newAdj+'kcal. Reason: '+( a.reason||'').slice(0,80));
+        return 'Calories updated. New daily target is now active in your Eat tab.';
+
+      case 'set_protein_target':
+        var pg=parseInt(a.grams)||0;
+        if(pg>=80&&pg<=350){
+          localStorage.setItem('fitos_protein_target',String(pg));
+          addCoachMemory('Coach set protein target to '+pg+'g. Reason: '+(a.reason||'').slice(0,80));
+          return 'Protein target set to '+pg+'g/day.';
+        }
+        return 'Protein value out of safe range — no change made.';
+
+      case 'swap_days':
+        var dA=String(a.day_a||'').toUpperCase();
+        var dB=String(a.day_b||'').toUpperCase();
+        if(WK[dA]&&WK[dB]){
+          var tmp=JSON.parse(JSON.stringify(WK[dA]));
+          WK[dA]=JSON.parse(JSON.stringify(WK[dB]));
+          WK[dB]=tmp;
+          // Persist
+          try{
+            var savedBlock=JSON.parse(localStorage.getItem('fitos_generated_block')||'{}');
+            savedBlock[dA]=WK[dA]; savedBlock[dB]=WK[dB];
+            localStorage.setItem('fitos_generated_block',JSON.stringify(savedBlock));
+          }catch(e){}
+          addCoachMemory('Coach swapped Day '+dA+' and Day '+dB+'. Reason: '+(a.reason||'').slice(0,80));
+          return 'Day '+dA+' and Day '+dB+' have been swapped in your training plan.';
+        }
+        return 'Couldn\'t find both days to swap — no change made.';
+
+      case 'set_week':
+        var wk=parseInt(a.week)||1;
+        if(wk>=1&&wk<=8){
+          S.week=wk;
+          try{localStorage.setItem('fitos_week',String(wk));}catch(e){}
+          addCoachMemory('Coach moved training to Week '+wk+'. Reason: '+(a.reason||'').slice(0,80));
+          return 'Training week set to Week '+wk+'.';
+        }
+        return 'Week must be 1–8. No change made.';
+
+      case 'update_weight':
+        var kg=parseFloat(a.kg)||0;
+        if(kg>=30&&kg<=300){
+          if(!S.profile) S.profile={};
+          S.profile.weight=kg;
+          try{localStorage.setItem('fitos_profile',JSON.stringify(S.profile));}catch(e){}
+          addCoachMemory('Client weight updated to '+kg+'kg by coach. Reason: '+(a.reason||'').slice(0,80));
+          return 'Weight updated to '+kg+'kg. Your targets have been recalculated.';
+        }
+        return 'Weight value doesn\'t look right — no change made.';
+
+      case 'adjust_load':
+        var lf=parseFloat(a.load_factor)||0.8;
+        var lw=parseInt(a.weeks)||1;
+        lf=Math.max(0.5,Math.min(1.0,lf));
+        if(!S.programOverrides) S.programOverrides={};
+        S.programOverrides.loadFactor=lf;
+        S.programOverrides.volumeFactor=lf;
+        S.programOverrides.weekApplied=S.week||1;
+        S.programOverrides.expiresWeek=(S.week||1)+lw;
+        S.programOverrides.adjustmentLog=S.programOverrides.adjustmentLog||[];
+        S.programOverrides.adjustmentLog.push({e:'⚡',t:'Coach set load to '+Math.round(lf*100)+'% for '+lw+' week(s). Reason: '+(a.reason||'')});
+        try{localStorage.setItem('fitos_prog_overrides',JSON.stringify(S.programOverrides));}catch(e){}
+        addCoachMemory('Coach set load factor to '+Math.round(lf*100)+'% for '+lw+'wk. Reason: '+(a.reason||'').slice(0,80));
+        return 'Training load set to '+Math.round(lf*100)+'% for '+lw+' week'+(lw===1?'':'s')+'. Your workouts have been adjusted.';
+
+      default:
+        return null;
+    }
+  }catch(err){
+    return 'Error applying change: '+err.message;
+  }
+}
+
+// Called when user taps Confirm on a pending Oracle action
+function confirmOracleAction(){
+  var a=S.pendingOracleAction;
+  if(!a) return;
+  var result=executeOracleAction(a);
+  S.pendingOracleAction=null;
+  S.pendingOracleActionResult=result||'Done.';
+  render();
+}
+
+function declineOracleAction(){
+  S.pendingOracleAction=null;
+  S.pendingOracleActionResult='Change declined — no edits made.';
+  render();
+}
+
+function renderOracleActionUI(){
+  var out='';
+  if(S.pendingOracleAction){
+    var a=S.pendingOracleAction;
+    var desc=describeOracleAction(a);
+    var reason=(a.reason||'').slice(0,120);
+    out+='<div style="margin:0 12px 10px;padding:14px;background:rgba(0,232,122,0.06);border:1.5px solid rgba(0,232,122,0.3);border-radius:16px">'+
+      '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:5px">Coach wants to make a change</div>'+
+      '<div style="font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:4px">'+desc+'</div>'+
+      (reason?'<div style="font-size:0.76rem;color:var(--muted);line-height:1.5;margin-bottom:12px">'+reason+'</div>':'<div style="margin-bottom:12px"></div>')+
+      '<div style="display:flex;gap:8px">'+
+        '<button onclick="confirmOracleAction()" class="btn btn-green" style="flex:1;padding:11px;font-size:0.85rem">Apply Change</button>'+
+        '<button onclick="declineOracleAction()" class="btn btn-outline" style="flex:1;padding:11px;font-size:0.85rem">Decline</button>'+
+      '</div>'+
+    '</div>';
+  }
+  if(!S.pendingOracleAction&&S.pendingOracleActionResult){
+    out+='<div style="margin:0 12px 10px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;font-size:0.8rem;color:var(--muted);display:flex;align-items:center;gap:8px">'+
+      '<span style="color:var(--green)">✓</span>'+
+      '<span>'+S.pendingOracleActionResult+'</span>'+
+    '</div>';
+  }
+  return out;
+}
+
 // Swap barbell/advanced exercises for machine/beginner alternatives
 // Only fires for experience:'never' — first-time gym-goers need guided machines, not free bars
 function swapBeginnerExercises(block,p){
@@ -2466,7 +2789,9 @@ function getTargets(){
   const p=S.profile;
   if(!p||!p.weight||!p.height||!p.age) return MEAL_TARGETS;
   const t=calcTDEE();
-  return{cal:t.targetCal,protein:t.proteinG,carbs:t.carbG,fat:t.fatG,fibre:32,water:10};
+  // Allow Oracle to override protein target
+  const proteinOverride=parseInt(localStorage.getItem('fitos_protein_target')||'0')||0;
+  return{cal:t.targetCal,protein:proteinOverride||t.proteinG,carbs:t.carbG,fat:t.fatG,fibre:32,water:10};
 }
 const MEALS=[
   {id:'m1',name:'Breakfast',time:'7:00 AM',icon:'🍳',
@@ -4367,7 +4692,17 @@ function renderToday(){
     <!-- Weekly check-in CTA -->
     ${renderCheckinCTA()}
 ${renderWeekSummary()}
-    ${S.gymHistory&&S.gymHistory.length>0?renderProgressionCard():`<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center"><div style="margin-bottom:12px;color:var(--muted)">${ico('dumbbell',36,'var(--muted)')}</div><div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Strength data appears here</div><div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session in the Train tab and your progress will show up here automatically.</div><button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab('train')">Start First Session →</button></div>`}
+    ${(function(){
+      var card=renderProgressionCard();
+      if(card) return card;
+      // No data yet — show friendly placeholder
+      return '<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center">'+
+        '<div style="margin-bottom:12px;color:var(--muted)">'+ico('target',36,'var(--muted)')+'</div>'+
+        '<div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Coach\'s Report unlocks here</div>'+
+        '<div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session and your coach will have data to work with.</div>'+
+        '<button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab(\'train\')">Start First Session →</button>'+
+      '</div>';
+    })()}
     ${(function(){
       // Only show prominent check-in card on check-in day. All other days: subtle small link only.
       if(isCheckinDay()&&!thisWeekCheckinDone()){
@@ -9456,100 +9791,183 @@ function getEffectiveWeek(){
   return sw;
 }
 function buildCoachSystemPrompt(){
+  // ── ONE BRAIN: This is the single unified system prompt used for EVERY Oracle interaction
+  // ── across Today progress report, mid-workout coaching, check-in reviews, and open chat.
+  // ── The athlete has ONE coach who knows everything about them.
   var p=S.profile||{};
   var injuries=(p.injuries&&p.injuries.length)?p.injuries.join(', '):'None';
-  var lastCI=S.checkinHistory&&S.checkinHistory.length?S.checkinHistory[S.checkinHistory.length-1]:null;
   var coachName=typeof getCoachName==='function'?getCoachName():'Coach Alex';
   var styleMap={
     tough:'Be direct and no-nonsense. Challenge them hard, push through excuses, celebrate results over effort. Australian PT energy — blunt but caring.',
     balanced:'Mix real talk with genuine encouragement. Call out what needs work but celebrate every win. Matey, warm, professional.',
     supportive:'Be warm, patient and deeply empathetic. Celebrate every win no matter how small. Normalise struggle. Make them feel completely safe to be honest about setbacks.',
-    science:'Lead with evidence and mechanisms. Explain the WHY behind every recommendation. Data-driven, precise, minimal fluff — they want to understand, not just be told.',
+    science:'Lead with evidence and mechanisms. Explain the WHY behind every recommendation. Data-driven, precise, minimal fluff.',
     hype:'Maximum energy at all times. Make every rep feel epic. Big celebrations, relentless positivity.'
   };
-  // Auto-default: beginners and weight-loss journeys get supportive by default
   var autoStyle=p.coachStyle;
   if(!autoStyle){
     if(p.experience==='beginner'||p.experience==='never') autoStyle='supportive';
     else autoStyle='balanced';
   }
   var style=styleMap[autoStyle]||styleMap.balanced;
-  var prompt='You are '+coachName+', an elite AI personal trainer. '+style+'\n\n';
-  // Gender sensitivity
-  if(p.gender==='female') prompt+='IMPORTANT: Use empowering, inclusive language. Focus on strength, capability and health — never body-shame or use language that reduces the athlete to their appearance.\n';
-  // Goal sensitivity
-  if(p.goal&&/lose|fat|weight/i.test(p.goal)&&!/muscle|strength/i.test(p.goal)) prompt+='IMPORTANT: This is a weight loss journey — emotionally loaded for many people. Lead with health and energy gains, use scale as one tool among many, never weaponise the number.\n';
-  // Beginner sensitivity
-  if(p.experience==='beginner'||p.experience==='never') prompt+='IMPORTANT: They are new to training. Explain movements simply. Normalise soreness and struggle. Celebrate showing up consistently above all else.\n';
-  prompt+='ATHLETE: '+(p.name||'Champ')+' | '+(p.age||'?')+'yr '+(p.gender||'?')+' | '+(p.height||'?')+'cm / '+(p.weight||'?')+'kg\n';
-  prompt+='GOAL: '+(p.goal||'?')+' | LEVEL: '+(p.experience||'?')+' | '+(p.daysPerWeek||'?')+' days/wk\n';
-  prompt+='INJURIES: '+injuries+'\n';
-  prompt+='CURRENT WEEK: Week '+(S.week||1)+' of their training block\n';
-  if(lastCI){
-    prompt+='\nLAST CHECK-IN (Week '+lastCI.week+'):\n';
-    prompt+='Weight: '+(lastCI.weight||'?')+'kg | Energy: '+(lastCI.energy||'?')+'/10 | Sleep: '+(lastCI.sleep||'?')+'hrs\n';
+
+  var prompt='You are '+coachName+', an elite AI personal trainer built into FitOS.\n\n';
+  prompt+='IDENTITY: You are ONE coach with ONE brain. Every message the athlete receives — progress reports, mid-workout cues, check-in reviews, open chat — comes from you. You have access to their complete history. You remember what you told them last session. You are consistent, coherent, and deeply familiar with this specific athlete. Never sound like a new AI that just met them.\n\n';
+
+  prompt+='ROLE SCOPE — CRITICAL: You are a personal trainer, sport psychologist, and nutritionist. You exist to coach this athlete across training, nutrition, recovery, body composition, and mental performance. You are NOT a general-purpose assistant. If someone asks about news, coding, recipes unrelated to nutrition, general trivia, entertainment, or anything outside your coaching domain — redirect them warmly but firmly: "That\'s outside my lane as your coach. Let\'s focus on what\'s going to move the needle for you — [relevant coaching topic]." Stay in your lane.\n\n';
+
+  prompt+='=== ORACLE ACTIONS — DIRECT APP CONTROL ===\n';
+  prompt+='You can modify the athlete\'s app directly when a change is genuinely warranted. To trigger a change, include this exact block ANYWHERE in your response:\n';
+  prompt+='<fitos_action>{"type":"ACTION_TYPE","...params...","reason":"your coaching justification"}</fitos_action>\n\n';
+  prompt+='AVAILABLE ACTIONS:\n';
+  prompt+='  set_cal_adjust  — {"type":"set_cal_adjust","delta":200,"reason":"..."} — adjust daily calories by a delta from TDEE (e.g. +200 or -200)\n';
+  prompt+='  set_protein_target — {"type":"set_protein_target","grams":170,"reason":"..."} — set absolute daily protein target in grams\n';
+  prompt+='  swap_days — {"type":"swap_days","day_a":"A","day_b":"C","reason":"..."} — swap two training days\n';
+  prompt+='  set_week — {"type":"set_week","week":3,"reason":"..."} — move athlete to a specific training week (1–8)\n';
+  prompt+='  update_weight — {"type":"update_weight","kg":84.5,"reason":"..."} — update their profile weight\n';
+  prompt+='  adjust_load — {"type":"adjust_load","load_factor":0.8,"weeks":1,"reason":"..."} — reduce training load (0.5–1.0) for N weeks\n\n';
+
+  prompt+='COACHING RULES FOR ACTIONS:\n';
+  prompt+='  • ALWAYS explain your reasoning in plain language FIRST, then include the action tag\n';
+  prompt+='  • The athlete must confirm significant changes — they\'ll see a card asking "Apply this change?"\n';
+  prompt+='  • Valid: swapping an upper/lower day, adjusting calories for a phase change, updating weight after weigh-in, deloading for high fatigue\n';
+  prompt+='  • Invalid: changes that don\'t serve their stated goal, unsafe nutrition changes, anything based on a joke or off-topic request\n';
+  prompt+='  • If a request is ambiguous, ask ONE clarifying question before acting\n';
+  prompt+='  • If a request is not in your scope (e.g. "add more sets" to a day you can\'t structurally access), explain what you can and can\'t do\n';
+  prompt+='  • Use only ONE action per response\n\n';
+
+  prompt+='COACHING STYLE: '+style+'\n';
+
+  // Sensitivity flags
+  if(p.gender==='female') prompt+='Use empowering language. Focus on strength and capability — never appearance-shame.\n';
+  if(p.goal&&/lose|fat|weight/i.test(p.goal)&&!/muscle|strength/i.test(p.goal)) prompt+='Weight loss journey — emotionally loaded. Lead with energy and health, use scale as one metric among many.\n';
+  if(p.experience==='beginner'||p.experience==='never') prompt+='New to training. Explain simply. Normalise soreness. Celebrate consistency above all.\n';
+  prompt+='\n';
+
+  // ── ATHLETE PROFILE ────────────────────────────────────────────────────────
+  prompt+='=== ATHLETE PROFILE ===\n';
+  prompt+='Name: '+(p.name||'Athlete')+' | Age: '+(p.age||'?')+'yr | Gender: '+(p.gender||'?')+'\n';
+  prompt+='Height: '+(p.height||'?')+'cm | Weight: '+(p.weight||'?')+'kg\n';
+  prompt+='Goal: '+(p.goal||'?')+' | Experience: '+(p.experience||'?')+' | '+( p.daysPerWeek||'?')+' days/wk\n';
+  prompt+='Gym type: '+(p.gymType||'?')+'\n';
+  prompt+='Injuries: '+injuries+'\n';
+  if(p.dietaryRestrictions) prompt+='Diet: '+p.dietaryRestrictions+'\n';
+  prompt+='Current training block: Week '+(S.week||1)+' of 8\n\n';
+
+  // ── FULL GYM HISTORY ──────────────────────────────────────────────────────
+  var hist=S.gymHistory||[];
+  if(hist.length>0){
+    prompt+='=== TRAINING HISTORY ('+hist.length+' sessions logged) ===\n';
+    var recent=hist.slice(-8); // last 8 sessions
+    recent.forEach(function(h){
+      var vol=Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.filter(Boolean).reduce(function(b,s){return b+(s.weight||0)*(s.reps||0);},0);},0);
+      var totalSets=Object.values(h.sets||{}).reduce(function(a,sets){return a+sets.filter(Boolean).length;},0);
+      prompt+='  Day '+h.day+' W'+h.week+' ('+new Date(h.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'})+') — '+totalSets+' sets, '+Math.round(vol)+'kg volume\n';
+    });
+    if(hist.length>8) prompt+='  ...and '+(hist.length-8)+' earlier sessions\n';
+    prompt+='\n';
   }
-  prompt+='\nAlways reference their specific data. Never give generic advice. Respect their injury limitations absolutely.';
-  // LIVE SESSION CONTEXT — injected when athlete is mid-workout
+
+  // ── ALL CHECK-IN HISTORY ───────────────────────────────────────────────────
+  var ci=S.checkinHistory||[];
+  if(ci.length>0){
+    prompt+='=== CHECK-IN HISTORY ('+ci.length+' check-ins) ===\n';
+    ci.slice(-5).forEach(function(c){
+      prompt+='  W'+c.week+': '+c.weight+'kg | Energy '+c.energy+'/10 | Sleep '+c.sleep+'h | Soreness '+c.soreness+'/10';
+      if(c.notes) prompt+=' | Notes: "'+c.notes.slice(0,80)+'"';
+      prompt+='\n';
+    });
+    if(ci.length>5) prompt+='  ...and '+(ci.length-5)+' earlier check-ins\n';
+    prompt+='\n';
+  }
+
+  // ── FOOD & HABIT ADHERENCE (last 7 days) ──────────────────────────────────
+  var T=typeof getTargets==='function'?getTargets():{cal:2000,protein:150};
+  var foodSummary=[];
+  for(var dd=0;dd<7;dd++){
+    try{
+      var dObj2=new Date(); dObj2.setDate(dObj2.getDate()-dd);
+      var ds2=dObj2.toISOString().slice(0,10);
+      var dd2=typeof getDateData==='function'?getDateData(ds2):{};
+      if(dd2.cal||dd2.protein) foodSummary.push(ds2.slice(5)+': '+Math.round(dd2.cal||0)+'kcal / '+(dd2.protein||0)+'g prot');
+    }catch(e){}
+  }
+  if(foodSummary.length>0){
+    prompt+='=== NUTRITION (last 7 days) ===\n  '+foodSummary.join('\n  ')+'\n';
+    prompt+='  Targets: '+T.cal+'kcal / '+T.protein+'g protein\n\n';
+  }
+
+  // ── CURRENT HABIT STREAK ──────────────────────────────────────────────────
+  if(S.streak){
+    prompt+='Current habit streak: '+S.streak+' day'+(S.streak===1?'':'s')+'\n';
+  }
+
+  // ── COACH MEMORY (past key insights / discussions) ─────────────────────────
+  var mem=S.coachMemory||[];
+  if(mem.length>0){
+    prompt+='\n=== COACHING MEMORY (things discussed previously) ===\n';
+    mem.slice(-8).forEach(function(m){
+      prompt+='  ['+new Date(m.ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'})+'] '+m.t+'\n';
+    });
+    prompt+='\n';
+  }
+
+  // ── DATA COMPLETENESS ─────────────────────────────────────────────────────
+  if(typeof getDataCompleteness==='function'){
+    var dc=getDataCompleteness();
+    prompt+='DATA COMPLETENESS: '+dc.pct+'%. ';
+    if(dc.pct<60) prompt+='You are working with limited data. Be honest about what you can and cannot assess, and direct the athlete to enter more data for better coaching.\n';
+    else if(dc.pct<80) prompt+='Reasonable data foundation — acknowledge areas of uncertainty where data is thin.\n';
+    else prompt+='Strong data — give confident, specific analysis.\n';
+    if(dc.missing.length) prompt+='Missing data: '+dc.missing.join(', ')+'\n';
+  }
+  prompt+='\n';
+
+  // ── LIVE SESSION CONTEXT (mid-workout) ────────────────────────────────────
   if(S.trainScreen==='workout'&&S.day){
     var dayInfo=getWorkoutDay(S.day);
     var dayName=dayInfo?dayInfo.name:('Day '+S.day);
-    var allEx=getSessionExercises()||[];
+    var allEx=typeof getSessionExercises==='function'?getSessionExercises():[];
     var ex=null;try{ex=curEx();}catch(e){}
     var exName=ex?ex.name:'Unknown';
     var exMuscles=ex&&ex.muscles?ex.muscles.join(', '):'?';
     var exCue=ex&&ex.cue?ex.cue:'';
-    var exPos=S.exIdx+1;
-    var exTotal=allEx.length;
-    // Logged sets for current exercise
     var loggedThisEx=(S.loggedSets&&ex&&S.loggedSets[ex.id])||[];
     var setLines=loggedThisEx.filter(Boolean).map(function(s,i){return 'Set '+(i+1)+': '+s.weight+'kg x '+s.reps+' reps';}).join(', ');
-    // Summary of all logged sets this session
     var sessionSummary=Object.entries(S.loggedSets||{}).map(function(e){
-      var id=e[0]; var sets=e[1];
-      var n=id;
+      var id=e[0]; var sets=e[1]; var n=id;
       allEx.forEach(function(x){if(x.id===id)n=x.name;});
       var vol=sets.filter(Boolean).reduce(function(a,s){return a+(s.weight*s.reps);},0);
-      return n+': '+sets.filter(Boolean).length+' sets, '+vol+'kg volume';
+      return n+': '+sets.filter(Boolean).length+' sets, '+vol+'kg vol';
     }).join(' | ');
-    prompt+='\n\nLIVE SESSION — '+dayName+' | Week '+(S.week||1)+'\n';
-    prompt+='CURRENT EXERCISE ('+exPos+' of '+exTotal+'): '+exName+'\n';
+    prompt+='=== LIVE SESSION — '+dayName+' | W'+(S.week||1)+' ===\n';
+    prompt+='CURRENT EXERCISE ('+( S.exIdx+1)+' of '+allEx.length+'): '+exName+'\n';
     prompt+='Target muscles: '+exMuscles+'\n';
     if(exCue) prompt+='Coaching cue: '+exCue+'\n';
-    prompt+=(setLines?'Sets logged this exercise: '+setLines:'No sets logged yet for this exercise')+'\n';
-    // Previous session data for current exercise (for weight suggestions)
+    prompt+=(setLines?'Sets logged: '+setLines:'No sets logged yet')+'\n';
     if(ex){
       var prevSets=[];
-      var history=S.gymHistory||[];
-      for(var hi=history.length-1;hi>=0;hi--){
-        var hEntry=history[hi];
-        if(hEntry.sets&&hEntry.sets[ex.id]&&hEntry.sets[ex.id].length){
-          prevSets=hEntry.sets[ex.id];
-          prompt+='LAST SESSION ('+ex.name+'): '+prevSets.filter(Boolean).map(function(s,i){return'Set '+(i+1)+': '+s.weight+'kg x '+s.reps+' reps';}).join(', ')+'\n';
+      for(var hi=(hist.length-1);hi>=0;hi--){
+        var hE=hist[hi];
+        if(hE.sets&&hE.sets[ex.id]&&hE.sets[ex.id].length){
+          prevSets=hE.sets[ex.id];
+          prompt+='LAST SESSION ('+ex.name+'): '+prevSets.filter(Boolean).map(function(s,i){return'Set '+(i+1)+': '+s.weight+'kg x '+s.reps;}).join(', ')+'\n';
           break;
         }
       }
-      if(!prevSets.length) prompt+='First time logging '+ex.name+' — no previous session data.\n';
+      if(!prevSets.length) prompt+='First time logging '+ex.name+'.\n';
     }
-    prompt+=(sessionSummary?'Session so far: '+sessionSummary:'Session just started — no exercises logged yet')+'\n';
-    prompt+='Remaining exercises: '+allEx.slice(S.exIdx+1).map(function(x){return x.name;}).join(', ')+'\n';
-    prompt+='The athlete is ACTIVELY TRAINING RIGHT NOW. Be their in-ear coach. Reference exact weights and reps. Direct, specific, no fluff.';
+    prompt+=(sessionSummary?'Session so far: '+sessionSummary:'Session just started')+'\n';
+    prompt+='The athlete is MID-WORKOUT. Be their in-ear coach. Specific, direct, reference exact weights.\n';
   }
-  // EVERYTHING COUNTS — real-world activity context (steps, rest days, recent activity)
-  var todayData=typeof getDateData==='function'?getDateData(todayStr()):null;
-  if(todayData){
-    var todaySteps=todayData.steps||0;
-    var stepsGoal=S.stepsGoal||8000;
-    if(todaySteps>5000) prompt+='\n\nREAL-WORLD ACTIVITY TODAY: '+todaySteps.toLocaleString()+' steps logged'+(todaySteps>=stepsGoal?' (goal hit — they moved well today)':' ('+Math.round(todaySteps/stepsGoal*100)+'% of step goal)')+'.\n';
-    // Recent gym sessions (last 3 days)
-    var recentGym=(S.gymHistory||[]).filter(function(h){
-      return (Date.now()-new Date(h.date).getTime())<3*24*3600*1000&&h.day!==S.day;
-    });
-    if(recentGym.length>0){
-      prompt+='RECENT TRAINING: Trained '+recentGym.length+' day'+(recentGym.length>1?'s':'')+' in the last 72 hours. Factor recovery into coaching.\n';
-    }
+
+  // ── REAL-WORLD ACTIVITY ───────────────────────────────────────────────────
+  var todayData=typeof getDateData==='function'?getDateData(typeof todayStr==='function'?todayStr():new Date().toISOString().slice(0,10)):null;
+  if(todayData&&todayData.steps>3000){
+    prompt+='Steps today: '+todayData.steps.toLocaleString()+' ('+(todayData.steps>=(S.stepsGoal||8000)?'goal hit':'in progress')+'). Factor real-world activity into recovery and coaching.\n';
   }
-  prompt+='\nEVERYTHING COUNTS: Acknowledge steps, real-world activity, and recovery when relevant. The athlete\'s life outside the gym matters.';
+
+  prompt+='\nCRITICAL: Always reference their specific data. Never give generic advice. You are one coach — consistent, knowledgeable about this exact athlete, never starting fresh.';
   return prompt;
 }
 function saveYTApiKey(k){localStorage.setItem('fitos_yt_apikey',k.trim());}
@@ -10820,12 +11238,13 @@ function initApp(){
     }
   }catch(e){}
   checkDayReset();
+  loadCoachMemory(); // restore Oracle's persistent memory
   try{render();}catch(renderErr){
     window.onerror(renderErr.message,'render',0,0,renderErr);
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v146';
+  window.APP_VERSION='v148';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -11375,8 +11794,25 @@ async function sendCoachMessage(){
     var data=await resp.json();
     S.coachTyping=false;
     if(data.content&&data.content[0]){
-      var replyText=data.content[0].text;
+      var rawReply=data.content[0].text;
+      // Parse and strip any action tags before storing/displaying
+      var parsed=parseOracleActions(rawReply);
+      var replyText=parsed.cleanText||rawReply;
       S.coachMessages.push({role:'assistant',content:replyText,ts:Date.now()});
+      if(replyText.length>40) addCoachMemory('Chat: '+replyText.slice(0,160));
+      // Handle actions from this reply
+      if(parsed.actions.length>0){
+        var action=parsed.actions[0]; // take first action
+        // Auto-apply minor actions; confirm-required for significant ones
+        var confirmRequired=['set_cal_adjust','set_protein_target','swap_days','adjust_load','update_weight'];
+        if(confirmRequired.indexOf(action.type)>-1){
+          S.pendingOracleAction=action;
+          S.pendingOracleActionResult=null;
+        } else {
+          var result=executeOracleAction(action);
+          if(result) S.pendingOracleActionResult=result;
+        }
+      }
       speakOracle(replyText);
     } else if(data.error){
       S.coachMessages.push({role:'assistant',content:'API error: '+data.error.message,ts:Date.now()});
@@ -11452,10 +11888,14 @@ function renderCoach(){
       }).join('')+
       (S.coachTyping?'<div style="display:flex;align-items:flex-start;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(220,200,255,0.9) 0%,rgba(100,70,200,0.5) 60%);display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0">🔮</div><div class="coach-bubble coach" style="background:rgba(80,60,180,0.15);border:1px solid rgba(100,80,200,0.25)"><div class="coach-typing"><div class="coach-dot"></div><div class="coach-dot"></div><div class="coach-dot"></div></div></div></div>':'')+
     '</div>'+
+
+    // ── Pending action confirmation card + result badge ───────────────────
+    renderOracleActionUI()+
+
     // Input row
     '<div class="coach-input-row" style="background:rgba(13,13,43,0.95);border-top:1px solid rgba(100,80,200,0.2)">'+
       (hasSR?'<button id="oracle-mic-btn" onclick="startVoiceInput()" style="width:42px;height:42px;border-radius:50%;border:1.5px solid;flex-shrink:0;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;'+micStyle+'">'+micIcon+'</button>':'')+
-      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Ask your Oracle anything..." '+
+      '<input class="coach-input" id="coach-input-field" type="text" placeholder="Training, nutrition, recovery..." '+
         'style="border-color:rgba(100,80,200,0.3)" '+
         'onkeydown="if(event.key===&quot;Enter&quot;&&!event.shiftKey){event.preventDefault();_primeAudio();sendCoachMessage();}"/>'+
       '<button class="coach-send" onclick="_primeAudio();sendCoachMessage()" style="background:linear-gradient(135deg,#6040c0,#8c78ff)">➤</button>'+
