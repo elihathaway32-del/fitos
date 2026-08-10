@@ -1672,15 +1672,21 @@ function generateProgressReport(){
     prompt+='LAST CHECK-IN: '+lci.weight+'kg | Energy '+lci.energy+'/10 | Sleep '+lci.sleep+'h'+(lci.notes?' | "'+lci.notes.slice(0,80)+'"':'')+'\n';
   }
   if(dc.missing.length) prompt+='MISSING: '+dc.missing.join(', ')+'\n';
-  fetch('https://api.anthropic.com/v1/messages',{
+  fetch(FITOS_WORKER_URL,{
     method:'POST',
-    headers:{'content-type':'application/json','x-api-key':S.apiKey||'','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:280,system:buildCoachSystemPrompt(),messages:[{role:'user',content:prompt}]})
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:350,system:buildCoachSystemPrompt(),messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(d){
-    S.progressReport=(d.content&&d.content[0]&&d.content[0].text)||'Couldn\'t reach the server — check your connection.';
-    addCoachMemory('Progress report given: '+S.progressReport.slice(0,120));
+    if(d.content&&d.content[0]&&d.content[0].text){
+      S.progressReport=d.content[0].text;
+      addCoachMemory('Progress report: '+S.progressReport.slice(0,120));
+    } else if(d.error){
+      S.progressReport='Coach is temporarily unavailable — '+( d.error.message||d.error.type||'try again shortly')+'.';
+    } else {
+      S.progressReport='No response from coach. Check your connection and try again.';
+    }
   }).catch(function(){
-    S.progressReport='No connection right now. Try again when you\'re online.';
+    S.progressReport='Couldn\'t reach the coach right now. Check your connection and try again.';
   }).finally(function(){S.progressReportLoading=false;render();});
 }
 
@@ -2667,45 +2673,45 @@ function getInjuryRehab(profile){
 // Day-specific warm-up protocols (muscle-group matched)
 const WARMUP_BY_DAY={
   upper_push:[
-    {id:'wu-up1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. HR to 110–120 bpm. Gets blood to the shoulder joint.'},
-    {id:'wu-up2',name:'Arm Circles (progressive)',detail:'30 sec each direction — small to large. Mobilises glenohumeral joint before loading.'},
-    {id:'wu-up3',name:'Scapular Push-Up',detail:'2×10 reps — protract/retract blades only, arms straight. Activates serratus anterior.'},
-    {id:'wu-up4',name:'Band Pull-Apart',detail:'2×20 reps, light band — activates rear delts and rhomboids. Counterbalances pressing.'},
-    {id:'wu-up5',name:'Wall Slide',detail:'10 reps — forearms on wall, slide up and down. Opens lats and thoracic spine.'},
-    {id:'wu-up6',name:'Shoulder CARs',detail:'5 slow full circles each arm — controlled articular rotations. Lubricates the joint before load.'}
+    {id:'wu-up1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. HR to 110–120 bpm. Gets blood to the shoulder joint.',yt:'rowing machine warm up technique beginners'},
+    {id:'wu-up2',name:'Arm Circles (progressive)',detail:'30 sec each direction — small to large. Mobilises glenohumeral joint before loading.',yt:'arm circles shoulder warm up exercise'},
+    {id:'wu-up3',name:'Scapular Push-Up',detail:'2×10 reps — protract/retract blades only, arms straight. Activates serratus anterior.',yt:'scapular push up how to perform'},
+    {id:'wu-up4',name:'Band Pull-Apart',detail:'2×20 reps, light band — activates rear delts and rhomboids. Counterbalances pressing.',yt:'band pull apart form tutorial shoulder warm up'},
+    {id:'wu-up5',name:'Wall Slide',detail:'10 reps — forearms on wall, slide up and down. Opens lats and thoracic spine.',yt:'wall slide shoulder mobility exercise how to'},
+    {id:'wu-up6',name:'Shoulder CARs',detail:'5 slow full circles each arm — controlled articular rotations. Lubricates the joint before load.',yt:'shoulder CARs controlled articular rotations tutorial'}
   ],
   upper_pull:[
-    {id:'wu-ul1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. Rowing specifically primes the pull pattern.'},
-    {id:'wu-ul2',name:'Cat-Cow',detail:'10 reps slow — mobilises thoracic spine. Full range, exhale on flex, inhale on extend.'},
-    {id:'wu-ul3',name:'Thoracic Rotation (Quadruped)',detail:'10 reps each side — hand behind head, rotate and open to ceiling. Unlocks mid-back.'},
-    {id:'wu-ul4',name:'Band Pull-Apart',detail:'2×20 reps — activates rear delts and rhomboids. Prime the pulling muscles.'},
-    {id:'wu-ul5',name:'Dead Hang / Shoulder Flexion',detail:'20–30 sec hang — decompresses spine, opens lats. If no bar, reach overhead and breathe.'},
-    {id:'wu-ul6',name:'Face Pull (light band)',detail:'2×15 reps — external rotation activation. Shoulder health before any pulling load.'}
+    {id:'wu-ul1',name:'Cardio warm-up',detail:'Row or bike — 5 min easy. Rowing specifically primes the pull pattern.',yt:'rowing machine warm up technique beginners'},
+    {id:'wu-ul2',name:'Cat-Cow',detail:'10 reps slow — mobilises thoracic spine. Full range, exhale on flex, inhale on extend.',yt:'cat cow stretch how to tutorial spine mobility'},
+    {id:'wu-ul3',name:'Thoracic Rotation (Quadruped)',detail:'10 reps each side — hand behind head, rotate and open to ceiling. Unlocks mid-back.',yt:'quadruped thoracic rotation exercise tutorial'},
+    {id:'wu-ul4',name:'Band Pull-Apart',detail:'2×20 reps — activates rear delts and rhomboids. Prime the pulling muscles.',yt:'band pull apart form tutorial shoulder warm up'},
+    {id:'wu-ul5',name:'Dead Hang / Shoulder Flexion',detail:'20–30 sec hang — decompresses spine, opens lats. If no bar, reach overhead and breathe.',yt:'dead hang benefits how to perform lat stretch'},
+    {id:'wu-ul6',name:'Face Pull (light band)',detail:'2×15 reps — external rotation activation. Shoulder health before any pulling load.',yt:'face pull exercise form tutorial band'}
   ],
   lower_quad:[
-    {id:'wu-lq1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. HR to 110–120 bpm. Warms knee joint specifically.'},
-    {id:'wu-lq2',name:'90/90 Hip Stretch',detail:'60 sec each side — opens hip flexors and external rotators. Non-negotiable pre-squat.'},
-    {id:'wu-lq3',name:'Leg Swing (front/back)',detail:'10 reps each leg — dynamic hamstring and hip flexor warm-up. Hold wall for balance.'},
-    {id:'wu-lq4',name:'Leg Swing (side to side)',detail:'10 reps each leg — opens hip abductors and adductors. Improves squat depth.'},
-    {id:'wu-lq5',name:'Goblet Squat (bodyweight)',detail:'2×10 reps — heels elevated if needed. Hold bottom 2 sec. Ankle and hip mobility check.'},
-    {id:'wu-lq6',name:'Glute Bridge (bodyweight)',detail:'15 reps, 2 sec hold at top — activates glutes before quad-dominant work. Protects knees.'}
+    {id:'wu-lq1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. HR to 110–120 bpm. Warms knee joint specifically.',yt:'stationary bike warm up leg day'},
+    {id:'wu-lq2',name:'90/90 Hip Stretch',detail:'60 sec each side — opens hip flexors and external rotators. Non-negotiable pre-squat.',yt:'90 90 hip stretch how to tutorial'},
+    {id:'wu-lq3',name:'Leg Swing (front/back)',detail:'10 reps each leg — dynamic hamstring and hip flexor warm-up. Hold wall for balance.',yt:'leg swings warm up exercise tutorial'},
+    {id:'wu-lq4',name:'Leg Swing (side to side)',detail:'10 reps each leg — opens hip abductors and adductors. Improves squat depth.',yt:'lateral leg swings hip mobility warm up'},
+    {id:'wu-lq5',name:'Goblet Squat (bodyweight)',detail:'2×10 reps — heels elevated if needed. Hold bottom 2 sec. Ankle and hip mobility check.',yt:'goblet squat form tutorial bodyweight'},
+    {id:'wu-lq6',name:'Glute Bridge (bodyweight)',detail:'15 reps, 2 sec hold at top — activates glutes before quad-dominant work. Protects knees.',yt:'glute bridge exercise how to form tutorial'}
   ],
   lower_post:[
-    {id:'wu-lp1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. Get blood moving before any hinge loading.'},
-    {id:'wu-lp2',name:'Cat-Cow',detail:'10 reps slow — mobilises lumbar spine. Essential before any hinge or posterior loading.'},
-    {id:'wu-lp3',name:'Bird-Dog',detail:'10 reps each side — activates deep lumbar stabilisers. Slow and deliberate.'},
-    {id:'wu-lp4',name:'Hip Hinge Drill (dowel/wall)',detail:'10 reps — dowel along spine (or butt to wall). Teaches neutral hinge, no lumbar rounding.'},
-    {id:'wu-lp5',name:'Glute Bridge (bodyweight)',detail:'2×15 reps, 2 sec hold — fires glutes before loading the posterior chain.'},
-    {id:'wu-lp6',name:'Standing Hip Circle',detail:'10 each direction per leg — full hip joint mobilisation through range before loading.'}
+    {id:'wu-lp1',name:'Cardio warm-up',detail:'Bike or treadmill — 5 min easy. Get blood moving before any hinge loading.',yt:'stationary bike warm up leg day'},
+    {id:'wu-lp2',name:'Cat-Cow',detail:'10 reps slow — mobilises lumbar spine. Essential before any hinge or posterior loading.',yt:'cat cow stretch how to tutorial spine mobility'},
+    {id:'wu-lp3',name:'Bird-Dog',detail:'10 reps each side — activates deep lumbar stabilisers. Slow and deliberate.',yt:'bird dog exercise how to form lower back'},
+    {id:'wu-lp4',name:'Hip Hinge Drill (dowel/wall)',detail:'10 reps — dowel along spine (or butt to wall). Teaches neutral hinge, no lumbar rounding.',yt:'hip hinge drill wall tutorial deadlift pattern'},
+    {id:'wu-lp5',name:'Glute Bridge (bodyweight)',detail:'2×15 reps, 2 sec hold — fires glutes before loading the posterior chain.',yt:'glute bridge exercise how to form tutorial'},
+    {id:'wu-lp6',name:'Standing Hip Circle',detail:'10 each direction per leg — full hip joint mobilisation through range before loading.',yt:'hip circles mobility warm up exercise tutorial'}
   ]
 };
 // Legacy alias for injury rehab sections (used by getInjuryRehab)
 const WARMUP_GENERAL=WARMUP_BY_DAY.upper_push;
 const WARMUP_REHAB=[
-  {id:'wr1',name:'Dead Bug',detail:'3×10 each side — core anti-extension. Lower back pressed to floor. Lumbar safe.'},
-  {id:'wr2',name:"Child's Pose",detail:'60 sec hold — decompresses the lumbar spine. Breathe deep into lower back.'},
-  {id:'wr3',name:'Pigeon Stretch',detail:'60 sec each side — releases piriformis and glute tightness.'},
-  {id:'wr4',name:'Knee-to-Chest',detail:'30 sec each side — gentle lumbar flexion mobilisation. Never force.'}
+  {id:'wr1',name:'Dead Bug',detail:'3×10 each side — core anti-extension. Lower back pressed to floor. Lumbar safe.',yt:'dead bug exercise how to lower back safe'},
+  {id:'wr2',name:"Child's Pose",detail:'60 sec hold — decompresses the lumbar spine. Breathe deep into lower back.',yt:"child's pose how to yoga stretch lower back"},
+  {id:'wr3',name:'Pigeon Stretch',detail:'60 sec each side — releases piriformis and glute tightness.',yt:'pigeon pose stretch how to hip flexor glute'},
+  {id:'wr4',name:'Knee-to-Chest',detail:'30 sec each side — gentle lumbar flexion mobilisation. Never force.',yt:'knee to chest stretch lower back mobility'}
 ];
 const COOLDOWN={
   upper_push:[
@@ -4619,17 +4625,6 @@ function renderToday(){
         <div style="width:72px;height:5px;background:var(--ring-track);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
-    <!-- Water compact row -->
-    <div style="padding:14px 0;display:flex;align-items:center;gap:12px">
-      <span style="font-size:1.2rem">💧</span>
-      <div style="flex:1">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:0.78rem;color:var(--muted)">${waterPct>=100?'Water — done':'Water to go'}</span>
-          <span style="font-size:0.78rem;font-weight:700">${(data.water*0.25).toFixed(1)} / ${(T.water*0.25).toFixed(1)}L</span>
-        </div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.min(100,waterPct)}%;background:var(--blue)"></div></div>
-      </div>
-    </div>
   </div>
 
   <!-- Today's Training + Habits -->
@@ -4938,9 +4933,15 @@ function renderWarmup(){
   const pct2=Math.round(checked/total*100);
   const mkItem=item=>{
     const done=S.warmupChecked.has(item.id);
+    const ytSearch=item.yt?encodeURIComponent(item.yt):'';
+    const ytBtn=ytSearch?`<a href="https://www.youtube.com/results?search_query=${ytSearch}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:0.7rem;color:var(--muted);background:var(--glass-card);border:1px solid var(--glass-border);border-radius:8px;padding:4px 9px;text-decoration:none;cursor:pointer">▶ How to</a>`:'';
     return`<div class="check-item${done?' checked':''}" onclick="toggleWarmup('${item.id}')">
       <div class="check-circle">${done?'✓':''}</div>
-      <div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div>
+      <div class="check-info">
+        <div class="check-name">${item.name}</div>
+        <div class="check-detail">${item.detail}</div>
+        ${ytBtn}
+      </div>
     </div>`;
   };
   return`<div class="top-bar">
@@ -4949,7 +4950,7 @@ function renderWarmup(){
   <button class="btn btn-outline btn-sm" onclick="skipWarmup()">Skip →</button>
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
-<div class="phase-screen">
+<div class="phase-screen" style="padding-bottom:100px">
   ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   <div class="phase-section">
     <div class="phase-section-title"><span>${day.name} Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${dayItems.filter(i=>S.warmupChecked.has(i.id)).length}/${dayItems.length}</span></div>
@@ -4959,10 +4960,10 @@ function renderWarmup(){
     <div class="phase-section-title"><span>${p.title} <span style="color:${p.color}">${p.time}</span></span><span style="color:var(--muted)">${p.items.filter(i=>S.warmupChecked.has(i.id)).length}/${p.items.length}</span></div>
     ${p.items.map(mkItem).join('')}
   </div>`).join('')}
-  <div style="position:sticky;bottom:var(--tab-h);background:var(--bg);border-top:1px solid var(--border);padding:12px 16px">
-    <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'All Done — Start Workout →':'▶ Start Workout'}</button>
-    ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — ${injuryRehab.length?'injury prehab is important, don\'t skip it':'get to it'}</p>`:''}
-  </div>
+</div>
+<div style="position:fixed;bottom:var(--tab-h);left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;z-index:50">
+  <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'All Done — Start Workout →':'▶ Start Workout'}</button>
+  ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — ${injuryRehab.length?'injury prehab is important, don\'t skip it':'tick them off first'}</p>`:''}
 </div>`;
 }
 
@@ -11244,7 +11245,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v148';
+  window.APP_VERSION='v150';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
