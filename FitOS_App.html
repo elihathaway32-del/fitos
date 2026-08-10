@@ -17,22 +17,31 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root,[data-theme="dark-electric"]{
-  --bg:#08080F;--s1:#121218;--s2:#1a1a24;--s3:#22222e;
-  --border:rgba(255,255,255,0.08);--text:#f0efed;--muted:#777;
+  --bg:#08080F;--s1:#141420;--s2:#1c1c2a;--s3:#242434;
+  --border:rgba(255,255,255,0.09);--text:#f0efed;--muted:#6e6e80;
   --green:#00E87A;--blue:#4a90d9;--amber:#f0a030;--red:#ff4757;--purple:#9b59b6;
-  --tab-h:64px;
+  --tab-h:80px;
+  --glass-card:rgba(255,255,255,0.045);
+  --glass-border:rgba(255,255,255,0.1);
+  --glass-hi:rgba(255,255,255,0.08);
 }
 [data-theme="dark-adrenaline"]{
   --bg:#070d1a;--s1:#0c1528;--s2:#111d38;--s3:#162348;
   --border:#1c2d52;--text:#f0f4ff;--muted:#7a8fa6;
   --green:#FF8C00;--blue:#4a90d9;--amber:#FF8C00;--red:#ff4757;--purple:#c471ed;
-  --tab-h:64px;
+  --tab-h:80px;
+  --glass-card:rgba(255,255,255,0.03);
+  --glass-border:rgba(255,255,255,0.08);
+  --glass-hi:rgba(255,255,255,0.06);
 }
 [data-theme="light-clean"]{
-  --bg:#f2f2f7;--s1:#ffffff;--s2:#f5f5fa;--s3:#ebebf0;
-  --border:#d8d8e0;--text:#1c1c1e;--muted:#6e6e73;
+  --bg:#f0f0f7;--s1:#ffffff;--s2:#f5f5fc;--s3:#e8e8f0;
+  --border:rgba(0,0,0,0.09);--text:#1c1c1e;--muted:#636370;
   --green:#00a86b;--blue:#2979d5;--amber:#c07700;--red:#c02020;--purple:#8b4dc8;
-  --tab-h:64px;
+  --tab-h:80px;
+  --glass-card:rgba(255,255,255,0.82);
+  --glass-border:rgba(0,0,0,0.08);
+  --glass-hi:rgba(255,255,255,0.95);
 }
 /* THEME OVERRIDES */
 /* GLASS MORPHISM - dark-electric */
@@ -77,16 +86,16 @@
   box-shadow:0 2px 10px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05);
 }
 [data-theme="dark-electric"] .tab-bar{
-  background:rgba(9,9,9,0.75)!important;
-  border-top:1px solid rgba(255,255,255,0.07)!important;
-  backdrop-filter:blur(24px) saturate(180%);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  background:rgba(6,6,16,0.82)!important;
+  border:1px solid rgba(255,255,255,0.14)!important;
+  backdrop-filter:blur(48px) saturate(200%);
+  -webkit-backdrop-filter:blur(48px) saturate(200%);
 }
 [data-theme="dark-electric"] .top-bar{
-  background:rgba(9,9,9,0.7)!important;
-  border-bottom:1px solid rgba(255,255,255,0.06)!important;
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
+  background:rgba(8,8,15,0.8)!important;
+  border-bottom:1px solid rgba(255,255,255,0.07)!important;
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
 }
 [data-theme="dark-electric"] .food-panel,[data-theme="dark-electric"] .rest-sheet{
   background:rgba(12,12,12,0.92)!important;
@@ -115,18 +124,31 @@
 [data-theme="dark-adrenaline"] .today-hero{background:linear-gradient(135deg,#0d2040 0%,#070d1a 100%)!important}
 [data-theme="dark-adrenaline"] .streak-card{background:linear-gradient(135deg,#1a1200 0%,#0c1528 100%)!important;border-color:rgba(255,140,0,0.3)}
 [data-theme="dark-adrenaline"] .consequence-card{background:linear-gradient(135deg,#1a0a0a 0%,#0c1528 100%)!important}
-[data-theme="light-clean"] .today-hero{background:linear-gradient(135deg,#e8f8f1 0%,#f0faf6 100%)!important}
-[data-theme="light-clean"] .streak-card{background:linear-gradient(135deg,#fff8e6 0%,#ffffff 100%)!important;border-color:rgba(192,119,0,0.3)}
-[data-theme="light-clean"] .consequence-card{background:linear-gradient(135deg,#fef0f0 0%,#ffffff 100%)!important}
-[data-theme="light-clean"] .card{box-shadow:0 1px 4px rgba(0,0,0,0.08)}
-[data-theme="light-clean"] .day-btn{background:var(--s1)!important;border-color:var(--border)!important}
-[data-theme="light-clean"] .cue-box{background:rgba(0,168,107,0.08)!important;border-color:rgba(0,168,107,0.25)!important;color:var(--text)!important}
-[data-theme="light-clean"] .set-input{background:var(--s2)!important;border-color:var(--border)!important;color:var(--text)!important}
-[data-theme="light-clean"] .tab-bar{background:var(--s1)!important;border-top-color:var(--border)!important}
-[data-theme="light-clean"] .top-bar{background:var(--bg)!important}
-[data-theme="light-clean"] .check-item{background:var(--s1)!important;border-color:var(--border)!important}
+/* ── LIGHT CLEAN — full glass/bright overhaul ── */
+[data-theme="light-clean"] .today-hero{background:linear-gradient(135deg,#e4f5ed 0%,#f0f8ff 100%)!important}
+[data-theme="light-clean"] .streak-card{background:linear-gradient(135deg,#fffbef 0%,rgba(255,255,255,0.95) 100%)!important;border-color:rgba(192,119,0,0.25)!important}
+[data-theme="light-clean"] .consequence-card{background:linear-gradient(135deg,#fff0f0 0%,rgba(255,255,255,0.95) 100%)!important}
+/* Cards — white frosted glass in light mode */
+[data-theme="light-clean"] .card{background:rgba(255,255,255,0.88)!important;border:1px solid rgba(0,0,0,0.07)!important;box-shadow:0 2px 16px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.95)!important;backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%)}
+[data-theme="light-clean"] .day-btn{background:rgba(255,255,255,0.88)!important;border:1px solid rgba(0,0,0,0.07)!important;box-shadow:0 2px 12px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,0.95)!important}
+[data-theme="light-clean"] .habit-item{background:rgba(255,255,255,0.88)!important;border:1px solid rgba(0,0,0,0.07)!important;box-shadow:0 1px 8px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,0.95)!important}
+[data-theme="light-clean"] .cue-box{background:rgba(0,168,107,0.07)!important;border-color:rgba(0,168,107,0.22)!important;color:var(--text)!important}
+[data-theme="light-clean"] .set-input{background:rgba(255,255,255,0.9)!important;border-color:rgba(0,0,0,0.1)!important;color:var(--text)!important}
+/* Tab bar — white frosted glass pill */
+[data-theme="light-clean"] .tab-bar{background:rgba(255,255,255,0.82)!important;border:1px solid rgba(0,0,0,0.1)!important;box-shadow:0 4px 24px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.98)!important}
+[data-theme="light-clean"] .tab-item{color:rgba(0,0,0,0.4)}
+[data-theme="light-clean"] .tab-item.active{color:var(--green)}
+[data-theme="light-clean"] .tab-item.active::before{background:rgba(0,168,107,0.12);border-color:rgba(0,168,107,0.25)}
+[data-theme="light-clean"] .top-bar{background:rgba(240,240,247,0.85)!important;border-bottom-color:rgba(0,0,0,0.07)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
+[data-theme="light-clean"] .check-item{background:rgba(255,255,255,0.88)!important;border-color:rgba(0,0,0,0.07)!important}
 [data-theme="light-clean"] .wizard-overlay{background:var(--bg)!important}
-[data-theme="light-clean"] .wizard-input,[data-theme="light-clean"] .wizard-select{color:var(--text)!important}
+[data-theme="light-clean"] .wizard-input,[data-theme="light-clean"] .wizard-select{background:rgba(255,255,255,0.92)!important;border-color:rgba(0,0,0,0.1)!important;color:var(--text)!important}
+[data-theme="light-clean"] .chip{background:rgba(255,255,255,0.9)!important;border-color:rgba(0,0,0,0.1)!important;color:var(--text)!important}
+[data-theme="light-clean"] .btn-outline{background:rgba(0,0,0,0.05)!important;border-color:rgba(0,0,0,0.15)!important;color:var(--text)!important;backdrop-filter:none!important}
+[data-theme="light-clean"] .btn-green{color:#003020!important}
+[data-theme="light-clean"] .stat-bar{background:rgba(0,0,0,0.08)!important}
+[data-theme="light-clean"] .week-pill{background:rgba(255,255,255,0.88)!important;border-color:rgba(0,0,0,0.08)!important}
+[data-theme="light-clean"] .rating-btn{background:rgba(255,255,255,0.88)!important;border-color:rgba(0,0,0,0.08)!important;color:var(--text)!important}
 /* THEMED CARDS */
 .devo-card{background:linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%);border-radius:16px;padding:16px;margin-top:12px}
 .targets-card{background:linear-gradient(135deg,#0a1a10 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;margin:12px 16px 0}
@@ -146,16 +168,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
 .screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:calc(var(--tab-h) + 8px)}
 
-/* ── TAB BAR ── */
-.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--tab-h);background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;padding-bottom:env(safe-area-inset-bottom,12px);overflow:visible}
-.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:6px 4px 4px;position:relative}
+/* ── TAB BAR — floating glass pill (iOS 27) ── */
+.tab-bar{
+  position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  width:calc(100% - 28px);max-width:454px;
+  height:62px;
+  background:rgba(10,10,20,0.78);
+  border:1px solid rgba(255,255,255,0.13);
+  border-radius:32px;
+  display:flex;align-items:center;
+  z-index:200;
+  padding:0 6px;
+  overflow:visible;
+  backdrop-filter:blur(40px) saturate(200%);
+  -webkit-backdrop-filter:blur(40px) saturate(200%);
+  box-shadow:0 4px 32px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.1) inset,0 -1px 0 rgba(0,0,0,0.4) inset;
+}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all .15s;border:none;background:none;color:var(--muted);padding:6px 4px;position:relative;border-radius:22px}
 .tab-item.active{color:var(--green)}
-.tab-item.active::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:18px;height:3px;background:var(--green);border-radius:2px}
+.tab-item.active::before{content:"";position:absolute;inset:0;background:rgba(0,232,122,0.1);border-radius:22px;border:1px solid rgba(0,232,122,0.2)}
 .tab-item:active,.tab-item.pressed{transform:scale(0.88);opacity:0.7;transition:transform .08s,opacity .08s;}
 button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .tab-item svg{width:22px;height:22px}
-.tab-label{font-size:0.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
-.tab-orb-btn{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0;margin-top:-20px;position:relative;z-index:10}
+.tab-label{font-size:0.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.tab-orb-btn{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0;margin-top:-28px;position:relative;z-index:10}
 .tab-orb-btn:active .tab-coach-orb{transform:scale(0.88)}
 .tab-coach-orb{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(240,248,255,0.55) 0%,rgba(140,210,255,0.35) 30%,rgba(80,160,240,0.2) 60%,rgba(30,80,180,0.15) 100%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1.5px solid rgba(160,210,255,0.5);box-shadow:0 0 20px rgba(80,160,240,0.4),0 6px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;animation:orb-pulse 3s ease-in-out infinite;transition:transform .15s}
 .tab-coach-orb::before{content:"";position:absolute;top:8%;left:20%;width:38%;height:26%;background:radial-gradient(ellipse,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0) 100%);border-radius:50%;pointer-events:none}
@@ -163,7 +200,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .tab-orb-label{font-size:0.58rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,255,0.85);margin-top:3px;margin-bottom:6px}
 
 /* ── TOP BAR ── */
-.top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar{position:sticky;top:0;z-index:100;background:rgba(8,8,15,0.78);border-bottom:1px solid rgba(255,255,255,0.07);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%)}
 .top-title{font-size:1.1rem;font-weight:700}
 .top-sub{font-size:0.72rem;color:var(--muted);margin-top:1px}
 
@@ -171,18 +208,18 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .prog-wrap{height:3px;background:var(--s3);position:sticky;top:49px;z-index:99}
 .prog-fill{height:100%;background:var(--green);transition:width .4s ease}
 
-/* ── BUTTONS — sunken press effect only, no permanent shadow change ── */
-.btn{display:block;width:100%;padding:14px 20px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;
+/* ── BUTTONS — iOS 27 pill style ── */
+.btn{display:block;width:100%;padding:15px 20px;border-radius:50px;border:none;font-size:1rem;font-weight:700;cursor:pointer;text-align:center;
   transition:transform .12s cubic-bezier(.22,1,.36,1),box-shadow .12s,filter .1s;}
 .btn:active,.btn.pressed{transform:scale(0.97) translateY(1px);box-shadow:inset 0 2px 6px rgba(0,0,0,0.28),inset 0 1px 2px rgba(0,0,0,0.18);filter:brightness(0.88);}
-.btn-green{background:var(--green);color:#fff}
-.btn-blue{background:var(--blue);color:#fff}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
-.btn-sm{padding:8px 14px;font-size:0.82rem;border-radius:8px;display:inline-block;width:auto}
+.btn-green{background:linear-gradient(135deg,#00E87A 0%,#00C468 100%);color:#002b12;box-shadow:0 4px 20px rgba(0,232,122,0.35),inset 0 1px 0 rgba(255,255,255,0.35)}
+.btn-blue{background:var(--blue);color:#fff;box-shadow:0 4px 16px rgba(74,144,217,0.3)}
+.btn-outline{background:rgba(255,255,255,0.07);color:var(--text);border:1px solid rgba(255,255,255,0.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.btn-sm{padding:8px 16px;font-size:0.82rem;border-radius:50px;display:inline-block;width:auto}
 
-/* ── CARDS ── */
-.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
-.card-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+/* ── CARDS — glass morphism ── */
+.card{background:var(--glass-card,rgba(255,255,255,0.045));border:1px solid var(--glass-border,rgba(255,255,255,0.1));border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:0 2px 20px rgba(0,0,0,0.25),inset 0 1px 0 var(--glass-hi,rgba(255,255,255,0.08))}
+.card-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:8px}
 
 /* ── INTAKE WIZARD OVERLAY ── */
 .wizard-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 20px 40px}
@@ -212,8 +249,8 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .stat-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px}
 .stat-val{font-size:1.6rem;font-weight:700;line-height:1}
 .stat-lbl{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
-.stat-bar{height:4px;background:var(--s3);border-radius:2px;margin-top:8px;overflow:hidden}
-.stat-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.stat-bar{height:7px;background:rgba(255,255,255,0.07);border-radius:4px;margin-top:8px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
 .today-section{padding:0 16px 12px}
 
 /* ── STREAK ── */
@@ -232,7 +269,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 .step-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-weight:600;cursor:pointer}
 
 /* ── HABITS ── */
-.habit-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s}
+.habit-item{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--glass-card,rgba(255,255,255,0.045));border:1px solid var(--glass-border,rgba(255,255,255,0.1));border-radius:18px;margin-bottom:8px;cursor:pointer;transition:transform .1s,box-shadow .1s,filter .08s;box-shadow:0 1px 8px rgba(0,0,0,0.2),inset 0 1px 0 var(--glass-hi,rgba(255,255,255,0.08))}
 .habit-item:active,.habit-item.pressed{transform:scale(0.98);box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);filter:brightness(0.9);}
 .habit-item.done{background:#1D9E7510;border-color:#1D9E7530}
 .habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
@@ -251,7 +288,7 @@ button,a,[onclick]{-webkit-tap-highlight-color:transparent;touch-action:manipula
 
 /* ── TRAIN TAB (GYM TRACKER) ── */
 .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.day-btn{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left}
+.day-btn{background:var(--glass-card,rgba(255,255,255,0.045));border:1px solid var(--glass-border,rgba(255,255,255,0.1));border-radius:22px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:left;box-shadow:0 2px 12px rgba(0,0,0,0.2),inset 0 1px 0 var(--glass-hi,rgba(255,255,255,0.07))}
 .day-btn:active,.day-btn.pressed{transform:scale(0.97);box-shadow:inset 0 2px 8px rgba(0,0,0,0.25),inset 0 1px 3px rgba(0,0,0,0.15) !important;filter:brightness(0.88);}
 .day-btn.selected{border-color:var(--green);background:#1D9E7520}
 .day-letter{font-size:1.6rem;font-weight:700;line-height:1}
@@ -4063,15 +4100,15 @@ function renderToday(){
   const trainTarget=parseInt((S.profile||{}).daysPerWeek)||4;
   const trainPct=Math.min(1,weekSessions/trainTarget);
   const trainRingColor=trainPct>=1?'#00E87A':'#4a90d9';
-  const trainDash=(188.5*(1-trainPct)).toFixed(1);
+  const trainDash=(226.2*(1-trainPct)).toFixed(1);
   let fuelHit=0;
   for(let _fi=0;_fi<7;_fi++){let _fd=new Date();_fd.setDate(_fd.getDate()-_fi);let _fds=_fd.toISOString().split('T')[0];let _fdd=getDateData(_fds);if((_fdd.protein||0)>=T.protein*0.9)fuelHit++;}
   const fuelPct=Math.min(1,fuelHit/7);
-  const fuelRingColor=fuelPct>=0.7?'#00E87A':fuelPct>=0.3?'#4a90d9':'rgba(255,255,255,0.2)';
-  const fuelDash=(188.5*(1-fuelPct)).toFixed(1);
+  const fuelRingColor=fuelPct>=0.7?'#00E87A':fuelPct>=0.3?'#4a90d9':'#f0a030';
+  const fuelDash=(226.2*(1-fuelPct)).toFixed(1);
   const recoverPct=Math.min(1,(S.streak||0)/7);
   const recoverRingColor=recoverPct>=1?'#00E87A':'#f0a030';
-  const recoverDash=(188.5*(1-recoverPct)).toFixed(1);
+  const recoverDash=(226.2*(1-recoverPct)).toFixed(1);
   const todayWorkout=data.workout;
   const _todayHabits=getPersonalisedHabits();
   const habitsTotal=_todayHabits.length;
@@ -4124,45 +4161,45 @@ function renderToday(){
   </div></div>`:''}
 
   <!-- Achievement rings: TRAIN · FUEL · HABITS -->
-  <div style="padding:18px 16px 14px;display:flex;justify-content:space-around;align-items:flex-start;border-bottom:1px solid var(--border)">
+  <div style="padding:20px 16px 16px;display:flex;justify-content:space-around;align-items:flex-start;border-bottom:1px solid var(--border)">
     <div style="text-align:center">
-      <div style="position:relative;width:80px;height:80px;margin:0 auto 8px">
-        <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
-          <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
-          <circle cx="40" cy="40" r="30" fill="none" stroke="${trainRingColor}" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="${trainDash}" stroke-linecap="round"/>
+      <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
+        <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
+          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="${trainRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${trainDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.2rem;font-weight:900;line-height:1;color:#fff">${weekSessions}</div>
-          <div style="font-size:0.5rem;color:var(--muted);margin-top:1px">/ ${trainTarget}</div>
+          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${weekSessions}</div>
+          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">/ ${trainTarget}</div>
         </div>
       </div>
-      <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:${trainRingColor};font-weight:700">TRAIN</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${trainRingColor};font-weight:700">TRAIN</div>
     </div>
     <div style="text-align:center">
-      <div style="position:relative;width:80px;height:80px;margin:0 auto 8px">
-        <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
-          <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
-          <circle cx="40" cy="40" r="30" fill="none" stroke="${fuelRingColor}" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="${fuelDash}" stroke-linecap="round"/>
+      <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
+        <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
+          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="${fuelRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${fuelDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.2rem;font-weight:900;line-height:1;color:#fff">${fuelHit}</div>
-          <div style="font-size:0.5rem;color:var(--muted);margin-top:1px">/ 7 days</div>
+          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${fuelHit}</div>
+          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">/ 7 days</div>
         </div>
       </div>
-      <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:${fuelRingColor};font-weight:700">FUEL</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${fuelRingColor};font-weight:700">FUEL</div>
     </div>
     <div style="text-align:center">
-      <div style="position:relative;width:80px;height:80px;margin:0 auto 8px">
-        <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
-          <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
-          <circle cx="40" cy="40" r="30" fill="none" stroke="${recoverRingColor}" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="${recoverDash}" stroke-linecap="round"/>
+      <div style="position:relative;width:96px;height:96px;margin:0 auto 10px">
+        <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
+          <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+          <circle cx="48" cy="48" r="36" fill="none" stroke="${recoverRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${recoverDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.2rem;font-weight:900;line-height:1;color:#fff">${Math.min((S.streak||0),7)}</div>
-          <div style="font-size:0.5rem;color:var(--muted);margin-top:1px">day streak</div>
+          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:#fff">${Math.min((S.streak||0),7)}</div>
+          <div style="font-size:0.52rem;color:var(--muted);margin-top:1px">day streak</div>
         </div>
       </div>
-      <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:${recoverRingColor};font-weight:700">HABITS</div>
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${recoverRingColor};font-weight:700">HABITS</div>
     </div>
   </div>
 
@@ -4185,7 +4222,7 @@ function renderToday(){
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${calEaten}</div>
         <div style="font-size:0.65rem;color:var(--muted)">eaten of ${T.cal}</div>
-        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div style="height:100%;width:${Math.min(100,pct(calEaten,T.cal))}%;background:var(--green);border-radius:2px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(calEaten,T.cal))}%;background:var(--green);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
     <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -4196,7 +4233,7 @@ function renderToday(){
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${protEaten}g</div>
         <div style="font-size:0.65rem;color:var(--muted)">of ${T.protein}g target</div>
-        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:2px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
     <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -4207,7 +4244,7 @@ function renderToday(){
       <div style="text-align:right">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${data.steps.toLocaleString()}</div>
         <div style="font-size:0.65rem;color:var(--muted)">of ${(S.stepsGoal/1000).toFixed(0)}K</div>
-        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:2px;transition:width .6s ease"></div></div>
+        <div style="width:72px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
     <!-- Water compact row -->
@@ -10726,7 +10763,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v141';
+  window.APP_VERSION='v142';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
