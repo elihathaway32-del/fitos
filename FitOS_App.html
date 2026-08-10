@@ -2058,6 +2058,14 @@ const WK_DAY_LIBRARY={
     {id:"seated-leg-curl",name:"Seated Leg Curl (Light)",type:"Isolation",sets:3,lo:20,hi:20,rest:45,muscles:["Hamstrings"],cue:"Light load. Long eccentric (4 sec). Gets blood moving through those hammies after DOMS.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
     {id:"calf-stand",name:"Standing Calf Raise",type:"Isolation",sets:4,lo:20,hi:25,rest:45,muscles:["Gastrocnemius"],cue:"Full stretch at bottom. Full squeeze at top. Calves respond to volume. Easy to do with DOMS.",anim:"calf",yt:"standing+calf+raise+form+gastrocnemius"},
     {id:"dead-bug",name:"Dead Bug (Core Rehab)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Back flat. Breathe out as you extend. Medicine for your back. Always.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"}
+  ]},
+  "glutes-focus":{name:"Glutes & Posterior",color:"#e05050",tag:"Hip Thrust \u00b7 Glutes \u00b7 Hams \u00b7 Abductors",exercises:[
+    {id:"gf-hip-thrust",name:"Barbell Hip Thrust",type:"Primary compound",sets:4,lo:8,hi:12,rest:120,muscles:["Glutes","Hamstrings"],cue:"Bar across hip crease, padded. Back on bench. Drive hips to full extension. Squeeze glutes HARD at top. This is the #1 glute mass builder \u2014 progressive overload it every week.",anim:"hip-thrust",yt:"barbell+hip+thrust+glute+form+tutorial"},
+    {id:"gf-rdl",name:"Romanian Deadlift (DB)",type:"Secondary compound",sets:4,lo:10,hi:12,rest:90,muscles:["Hamstrings","Glutes","Lower Back"],cue:"Slight knee bend. Push hips BACK, not down. DBs slide down the legs. Feel the hamstring stretch at the bottom. Drive hips forward to return. Control the eccentric.",anim:"rdl",yt:"romanian+deadlift+dumbbell+form+hamstrings"},
+    {id:"gf-bss",name:"Bulgarian Split Squat",type:"Secondary compound",sets:3,lo:10,hi:12,rest:90,muscles:["Glutes","Quads","Hamstrings"],cue:"Rear foot elevated. Front foot far enough forward that front shin stays vertical. Knee tracks toes. Go deep. Loaded stretch = glute growth.",anim:"split-squat",yt:"bulgarian+split+squat+form+tutorial"},
+    {id:"gf-cable-kickback",name:"Cable Glute Kickback",type:"Isolation",sets:3,lo:15,hi:20,rest:60,muscles:["Glutes"],cue:"Ankle attachment, cable low. Lean slightly forward. Kick straight back, squeeze glute at full extension. Control the return. No swinging.",anim:"hip-thrust",yt:"cable+glute+kickback+form+isolation"},
+    {id:"gf-abductor",name:"Hip Abduction Machine",type:"Isolation",sets:4,lo:15,hi:25,rest:45,muscles:["Glutes","Hip Abductors"],cue:"Controlled outward press. Pause at end range. Slow return. Targets the gluteus medius \u2014 the side glute that gives the round shape. High reps work best here.",anim:"hip-thrust",yt:"hip+abduction+machine+glute+medius+form"},
+    {id:"gf-dead-bug",name:"Dead Bug (Core)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers"],cue:"Lower back FLAT on the floor \u2014 breathe out as you extend the opposite arm and leg. Perfect core work to finish a glute session. Keeps your spine healthy for the heavy hip thrusts.",anim:"dead-bug",yt:"dead+bug+exercise+core+rehab+lower+back"}
   ]}
 };
 
@@ -3997,6 +4005,30 @@ function renderCheckinCTA(){
   }
   return html;
 }
+function getOracleDirective(){
+  var vd=S.viewDate||todayStr();
+  var isToday=vd===todayStr();
+  if(!isToday) return 'Viewing a past day — log anything you missed.';
+  var data=getDateData(vd);
+  var T=getTargets();
+  var calEaten=data.cal||0;
+  var protEaten=data.protein||0;
+  var steps=data.steps||0;
+  var todayWorkout=data.workout;
+  var calRem=Math.max(0,T.cal-calEaten);
+  var protRem=Math.max(0,T.protein-protEaten);
+  var stepsRem=Math.max(0,(S.stepsGoal||8000)-steps);
+  var hour=new Date().getHours();
+  if(todayWorkout&&calRem<50&&protRem<10&&stepsRem<1000) return 'Locked in today. Nailed the session, the food, and the steps. That\'s what consistency looks like.';
+  if(!todayWorkout&&hour>=10&&hour<=20) return 'Training isn\'t logged yet. Open your workout and get after it.';
+  if(todayWorkout&&protRem>50) return protRem+'g of protein still to go. Get it in before you wind down tonight.';
+  if(calEaten>T.cal+100) return 'Calories are over today. Light dinner — keep the protein up, let everything else sit.';
+  if(stepsRem>3000&&hour>15) return stepsRem.toLocaleString()+' steps left. A 25-minute walk closes the gap.';
+  if(protRem>100&&hour>15) return 'Behind on protein. Hit '+T.protein+'g before the day ends — it makes or breaks the training adaptation.';
+  if(todayWorkout) return 'Session done. Nail the nutrition and get to bed early tonight.';
+  return 'Log your food as you go — it keeps you dialled in all day.';
+}
+
 function renderToday(){
   const now=new Date();
   const hour=now.getHours();
@@ -4009,6 +4041,9 @@ function renderToday(){
   const T=getTargets();
   const stepPct=pct(data.steps,S.stepsGoal);
   const waterPct=pct(data.water,T.water);
+  const calRem=Math.max(0,T.cal-calEaten);
+  const protRem=Math.max(0,T.protein-protEaten);
+  const stepsRem=Math.max(0,(S.stepsGoal||8000)-data.steps);
   const todayWorkout=data.workout;
   const _todayHabits=getPersonalisedHabits();
   const habitsTotal=_todayHabits.length;
@@ -4060,27 +4095,60 @@ function renderToday(){
     </div>
   </div></div>`:''}
 
-  <!-- Quick stats -->
-  <div class="stat-row">
-    <div class="stat-card">
-      <div class="stat-val" style="color:var(--green)">${calEaten}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${T.cal}</span></div>
-      <div class="stat-lbl">Calories today</div>
-      <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct(calEaten,T.cal)}%;background:var(--green)"></div></div>
+  <!-- Oracle directive card -->
+  <div style="padding:12px 16px 0">
+    <div style="background:linear-gradient(120deg,rgba(0,232,122,0.1) 0%,rgba(0,232,122,0.03) 100%);border:1px solid rgba(0,232,122,0.2);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden">
+      <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--green);font-weight:700;margin-bottom:5px">TODAY'S FOCUS</div>
+      <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.92);line-height:1.5">${getOracleDirective()}</div>
+      <div style="position:absolute;right:-10px;top:-10px;width:80px;height:80px;background:radial-gradient(circle,rgba(0,232,122,0.08) 0%,transparent 70%);pointer-events:none"></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-val" style="color:var(--blue)">${protEaten}g<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${T.protein}g</span></div>
-      <div class="stat-lbl">Protein today</div>
-      <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct(protEaten,T.protein)}%;background:var(--blue)"></div></div>
+  </div>
+
+  <!-- Big 3 numbers (Step.co style) -->
+  <div style="padding:0 16px">
+    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:3rem;font-weight:900;line-height:1;color:${calRem>0?'#ffffff':'var(--green)'};letter-spacing:-2px">${calRem>0?calRem:'✓'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${calRem>0?'calories to go':'calories — nailed it'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${calEaten}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">eaten of ${T.cal}</div>
+        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div style="height:100%;width:${Math.min(100,pct(calEaten,T.cal))}%;background:var(--green);border-radius:2px;transition:width .6s ease"></div></div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-val" style="color:var(--amber)">${(data.water*0.25).toFixed(1)}<span style="font-size:1rem;font-weight:400;color:var(--muted)"> / ${(T.water*0.25).toFixed(1)}L</span></div>
-      <div class="stat-lbl">Water (litres)</div>
-      <div class="stat-bar"><div class="stat-bar-fill" style="width:${waterPct}%;background:var(--amber)"></div></div>
+    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:3rem;font-weight:900;line-height:1;color:${protRem>0?'var(--blue)':'var(--green)'};letter-spacing:-2px">${protRem>0?protRem+'g':'✓'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${protRem>0?'protein to go':'protein — target hit'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${protEaten}g</div>
+        <div style="font-size:0.65rem;color:var(--muted)">of ${T.protein}g target</div>
+        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:2px;transition:width .6s ease"></div></div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-val" id="step-val" style="color:var(--purple)">${data.steps.toLocaleString()}</div>
-      <div class="stat-lbl">Steps / ${(S.stepsGoal/1000).toFixed(0)}K goal</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="step-bar" style="width:${stepPct}%;background:var(--purple)"></div></div>
+    <div style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:3rem;font-weight:900;line-height:1;color:${stepsRem>0?'#ffffff':'var(--green)'};letter-spacing:-2px" id="step-val">${stepsRem>0?stepsRem.toLocaleString():'✓'}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:5px">${stepsRem>0?'steps to go':'steps goal — smashed'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text)">${data.steps.toLocaleString()}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">of ${(S.stepsGoal/1000).toFixed(0)}K</div>
+        <div style="width:64px;height:3px;background:var(--s3);border-radius:2px;margin-top:6px;margin-left:auto"><div id="step-bar" style="height:100%;width:${Math.min(100,stepPct)}%;background:var(--amber);border-radius:2px;transition:width .6s ease"></div></div>
+      </div>
+    </div>
+    <!-- Water compact row -->
+    <div style="padding:14px 0;display:flex;align-items:center;gap:12px">
+      <span style="font-size:1.2rem">💧</span>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:0.78rem;color:var(--muted)">${waterPct>=100?'Water — done':'Water to go'}</span>
+          <span style="font-size:0.78rem;font-weight:700">${(data.water*0.25).toFixed(1)} / ${(T.water*0.25).toFixed(1)}L</span>
+        </div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.min(100,waterPct)}%;background:var(--blue)"></div></div>
+      </div>
     </div>
   </div>
 
@@ -6007,9 +6075,8 @@ ${hasProfile&&tdeeData?`
   </div>
   ${(()=>{
     var _adj=parseInt(localStorage.getItem('fitos_cal_adjust')||'0')||0;
-    var _isLoss=tdeeData.deficit<=0;
-    var _min=_isLoss?-300:0;
-    var _max=_isLoss?0:300;
+    var _min=-500;
+    var _max=500;
     var _col=_adj<0?'var(--amber)':_adj>0?'var(--green)':'var(--muted)';
     var _sign=_adj>0?'+':'';
     return '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'+
@@ -6021,7 +6088,7 @@ ${hasProfile&&tdeeData?`
         'style="width:100%;accent-color:var(--green);cursor:pointer" '+
         'oninput="localStorage.setItem(&quot;fitos_cal_adjust&quot;,this.value);render()"/>'+
       '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted);margin-top:2px">'+
-        '<span>'+_min+' kcal</span><span>0</span><span>+'+_max+' kcal</span>'+
+        '<span>-500 kcal</span><span>0</span><span>+500 kcal</span>'+
       '</div>'+
     '</div>';
   })()}
@@ -10473,7 +10540,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v136';
+  window.APP_VERSION='v138';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
