@@ -175,6 +175,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:calc(var(--tab-h) + 8px)}
 
 /* ── TAB BAR — floating glass pill (iOS 27) ── */
+.tab-bar:empty{display:none!important}
+.tour-hl{outline:2px solid var(--green)!important;outline-offset:4px!important;border-radius:14px!important;box-shadow:0 0 0 5px rgba(29,158,117,0.15)!important;transition:all .2s!important;position:relative!important;z-index:2!important}
 .tab-bar{
   position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));
   left:50%;transform:translateX(-50%);
@@ -1621,17 +1623,17 @@ function renderProgressionCard(){
     '<button onclick="S.progressReport=null;render()" style="font-size:0.72rem;color:var(--muted);background:none;border:none;cursor:pointer;margin-top:6px;padding:0">↺ Refresh</button>';
   }
 
-  return '<div class="card" style="margin:0 16px 12px;padding:14px">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
-      '<div style="display:flex;align-items:center;gap:7px">'+
-        ico('target',15,'var(--green)')+
-        '<span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--text)">Coach\'s Report</span>'+
+  return '<div style="margin:0 0 16px;padding:18px 16px 16px;background:linear-gradient(135deg,rgba(29,158,117,0.13) 0%,rgba(29,158,117,0.04) 100%);border:2px solid rgba(29,158,117,0.35);border-radius:20px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div style="width:32px;height:32px;background:rgba(29,158,117,0.18);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ico('target',16,'var(--green)')+'</div>'+
+        '<span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--green)">Coach\'s Report</span>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;gap:5px">'+
-        '<div style="width:44px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden">'+
-          '<div style="height:100%;width:'+dc.pct+'%;background:'+barCol+';transition:width .6s"></div>'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<div style="width:52px;height:4px;background:var(--ring-track);border-radius:2px;overflow:hidden">'+
+          '<div style="height:100%;width:'+dc.pct+'%;background:'+barCol+';transition:width .6s;border-radius:2px"></div>'+
         '</div>'+
-        '<span style="font-size:0.62rem;color:var(--muted)">'+dc.pct+'% data</span>'+
+        '<span style="font-size:0.62rem;color:var(--muted)">'+dc.pct+'%</span>'+
       '</div>'+
     '</div>'+
     rows+
@@ -2941,7 +2943,7 @@ function checkDayReset(){
     var dayLog=S.foodLog.filter(function(f){return f.date===S.habitDate;});
     var snapCal=dayLog.reduce(function(a,f){return a+(f.cal||0);},0);
     var snapProt=dayLog.reduce(function(a,f){return a+(f.p||0);},0);
-    S.snapshots[S.habitDate]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,cal:snapCal,protein:snapProt};
+    S.snapshots[S.habitDate]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,habitIds:[...S.habitsChecked],cal:snapCal,protein:snapProt};
     localStorage.setItem('fitos_snapshots',JSON.stringify(S.snapshots));
   }
   if(S.habitDate!==today){
@@ -3136,7 +3138,7 @@ function saveHabits(){
   var eaten=getPersonalisedMeals().filter(function(m){return S.mealChecked.has(m.id);});
   snapCal+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.cal;},0);},0);
   snapProt+=eaten.reduce(function(a,m){return a+m.items.reduce(function(b,i){return b+i.p;},0);},0);
-  S.snapshots[td]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,cal:snapCal,protein:snapProt};
+  S.snapshots[td]={water:S.waterDone,steps:S.stepsToday,habitsCount:[...S.habitsChecked].length,habitIds:[...S.habitsChecked],cal:snapCal,protein:snapProt};
   localStorage.setItem('fitos_snapshots',JSON.stringify(S.snapshots));
 }
 function saveShop(){localStorage.setItem('fitos_shop_ticked',JSON.stringify([...S.shopTicked]));}
@@ -3512,7 +3514,7 @@ function renderIntake(){
   if(step===0) body=`
     <div class="wizard-step">
       <div class="wizard-label">Your name</div>
-      <input class="wizard-input" type="text" placeholder="e.g. Eli" value="${p.name}" oninput="S.profile.name=this.value" autocomplete="given-name"/>
+      <input class="wizard-input" type="text" placeholder="e.g. Alex" value="${p.name}" oninput="S.profile.name=this.value" autocomplete="given-name"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
       <div class="wizard-step">
@@ -4523,7 +4525,7 @@ function renderToday(){
   </div></div>`:''}
 
   <!-- Achievement rings: TRAIN · FUEL · HABITS — tappable pill cards -->
-  <div style="padding:14px 12px 16px;display:flex;gap:8px;align-items:stretch;border-bottom:1px solid var(--border)">
+  <div class="ring-row-section" style="padding:14px 12px 16px;display:flex;gap:8px;align-items:stretch;border-bottom:1px solid var(--border)">
 
     <!-- TRAIN ring pill -->
     <div onclick="switchTab('train')" onpointerdown="this.style.transform='scale(0.95)';this.style.opacity='0.8'" onpointerup="this.style.transform='';this.style.opacity=''" onpointercancel="this.style.transform='';this.style.opacity=''"
@@ -4588,7 +4590,7 @@ function renderToday(){
   </div>
 
   <!-- Big 3 numbers (Step.co style) — tappable rows -->
-  <div style="padding:0 16px">
+  <div class="big-num-row" style="padding:0 16px">
     <div onclick="switchTab('eat')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
       style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .1s">
       <div>
@@ -4613,7 +4615,7 @@ function renderToday(){
         <div style="width:72px;height:5px;background:var(--ring-track);border-radius:3px;margin-top:7px;margin-left:auto;overflow:hidden"><div style="height:100%;width:${Math.min(100,pct(protEaten,T.protein))}%;background:var(--blue);border-radius:3px;transition:width .6s ease"></div></div>
       </div>
     </div>
-    <div onclick="switchTab('habits')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
+    <div class="steps-row" onclick="switchTab('habits')" onpointerdown="this.style.opacity='0.7'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
       style="padding:18px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .1s">
       <div>
         <div style="font-size:3rem;font-weight:900;line-height:1;color:${stepsRem>0?'var(--num-primary)':'var(--green)'};letter-spacing:-2px" id="step-val">${stepsRem>0?stepsRem.toLocaleString():'✓'}</div>
@@ -4627,45 +4629,73 @@ function renderToday(){
     </div>
   </div>
 
-  <!-- Today's Training + Habits -->
-  <div class="today-section">
+  <!-- Coach's Report — promoted to top, full width, prominent -->
+  <div class="today-section coach-report-section" style="padding-bottom:4px">
+    ${(function(){
+      var card=renderProgressionCard();
+      if(card) return card;
+      return '<div style="margin:0 0 12px;padding:18px 16px;background:linear-gradient(135deg,rgba(29,158,117,0.12) 0%,rgba(29,158,117,0.04) 100%);border:1.5px solid rgba(29,158,117,0.28);border-radius:18px;text-align:center">'+
+        '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--green);font-weight:800;margin-bottom:8px">Coach\'s Report</div>'+
+        '<div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Unlocks after your first session</div>'+
+        '<div style="font-size:0.78rem;color:var(--muted);line-height:1.5;margin-bottom:12px">Log a workout and your coach will have real data to work with.</div>'+
+        '<button class="btn btn-green" style="padding:10px 20px;font-size:0.85rem" onclick="switchTab(\'train\')">Start First Session →</button>'+
+      '</div>';
+    })()}
+  </div>
 
-    <!-- Training block -->
-    ${todayWorkout?
-      `<div class="card" style="border-color:rgba(0,232,122,0.35);background:rgba(0,232,122,0.05);cursor:pointer" onclick="switchTab('train')">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:800;margin-bottom:4px">Training Done ✓</div>
-            <div style="font-size:1rem;font-weight:800;color:var(--text)">Day ${todayWorkout.day} — ${WK[todayWorkout.day].name}</div>
-            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Week ${todayWorkout.week} · ${Object.values(todayWorkout.sets).reduce((a,s)=>a+s.length,0)} sets logged</div>
-          </div>
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,232,122,0.15);border:1.5px solid rgba(0,232,122,0.35);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">✓</div>
-        </div>
-      </div>`
-    :
-      `<button class="btn btn-green" onclick="switchTab('train')" style="width:100%;margin-bottom:10px;font-size:1rem;letter-spacing:0.02em">
-        ▶ Train — Day ${S.day||'A'} · Week ${S.week||1}
-      </button>`
-    }
-
-    <!-- Habits block -->
-    <div class="card" onclick="switchTab('habits')" onpointerdown="this.style.opacity='0.75'" onpointerup="this.style.opacity=''" onpointercancel="this.style.opacity=''"
-      style="cursor:pointer;transition:opacity .1s${habitsDone===habitsTotal?';border-color:rgba(0,232,122,0.3);background:rgba(0,232,122,0.04)':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700">Habits</div>
-          <div style="font-size:1.4rem;font-weight:900;line-height:1;margin-top:3px;color:${habitsDone===habitsTotal?'var(--green)':'var(--text)'}">${habitsDone}<span style="font-size:0.9rem;font-weight:600;color:var(--muted)"> / ${habitsTotal}</span></div>
-        </div>
-        <div style="font-size:0.8rem;color:var(--muted);opacity:0.6">›</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${_todayHabits.slice(0,6).map((h,i)=>`<div style="width:38px;height:38px;border-radius:10px;background:${i<habitsDone?'var(--green)':'var(--s3)'};border:1px solid ${i<habitsDone?'transparent':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:background .3s,border .3s">${h.icon}</div>`).join('')}
-      </div>
-      ${habitsDone===habitsTotal
-        ?`<div style="font-size:0.72rem;color:var(--green);font-weight:700;margin-top:10px">All done today ✓</div>`
-        :`<div style="font-size:0.72rem;color:var(--muted);margin-top:10px">${habitsTotal-habitsDone} remaining — tap to log</div>`
+  <!-- Habits weekly bar graph -->
+  <div class="today-section habits-graph-section">
+    ${(function(){
+      // Build last 7 days
+      var days7=[];
+      for(var dd=6;dd>=0;dd--){
+        var dt2=new Date();dt2.setDate(dt2.getDate()-dd);
+        var ds2=dt2.toDateString();
+        var snap2=S.snapshots[ds2]||{};
+        days7.push({label:['Su','Mo','Tu','We','Th','Fr','Sa'][dt2.getDay()],isToday:dd===0,snap:snap2});
       }
-    </div>
+      var urgent=isToday&&hour>=18&&habitsDone<habitsTotal;
+      var urgentRem=habitsTotal-habitsDone;
+      var urgentBanner=urgent?('<div style="margin-bottom:10px;padding:9px 12px;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:1rem">⚠️</span><span style="font-size:0.78rem;font-weight:700;color:var(--red)">'+urgentRem+' habit'+(urgentRem>1?'s':'')+' still unchecked — it\'s after 6pm. Get it done.</span></div>'):'';
+
+
+      var habitRows=_todayHabits.map(function(h){
+        var isDoneToday=S.habitsChecked.has(h.id);
+        // 7-day bar per habit
+        var bars=days7.map(function(day){
+          var done=day.isToday?S.habitsChecked.has(h.id):(day.snap.habitIds&&day.snap.habitIds.indexOf(h.id)>-1);
+          var barH=done?22:5;
+          var barCol=done?'var(--green)':day.isToday?'rgba(255,255,255,0.08)':'rgba(255,255,255,0.04)';
+          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'+
+            '<div style="width:100%;border-radius:3px;background:'+barCol+';height:'+barH+'px;transition:height .3s,background .3s;min-height:4px"></div>'+
+            '<div style="font-size:0.5rem;color:'+(day.isToday?'var(--text)':'var(--muted)')+'">'+day.label+'</div>'+
+          '</div>';
+        }).join('');
+
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);last-child{border:none}">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+            '<span style="font-size:1rem;flex-shrink:0">'+h.icon+'</span>'+
+            '<span style="font-size:0.78rem;font-weight:600;color:'+(isDoneToday?'var(--muted)':'var(--text)')+';flex:1;'+(isDoneToday?'text-decoration:line-through':'')+'">'+h.name+'</span>'+
+            '<span style="font-size:0.72rem;font-weight:700;color:'+(isDoneToday?'var(--green)':'var(--muted)')+'">'+( isDoneToday?'✓':'—')+'</span>'+
+          '</div>'+
+          '<div style="display:flex;gap:3px;align-items:flex-end;height:30px">'+bars+'</div>'+
+        '</div>';
+      }).join('');
+
+      return '<div class="card" onclick="switchTab(\'habits\')" onpointerdown="this.style.opacity=\'0.85\'" onpointerup="this.style.opacity=\'\'" onpointercancel="this.style.opacity=\'\'" style="cursor:pointer;transition:opacity .1s;padding:14px 14px 10px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+          '<div>'+
+            '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700">Habits This Week</div>'+
+            '<div style="font-size:1.1rem;font-weight:900;color:'+(habitsDone===habitsTotal?'var(--green)':'var(--text)')+'">'+habitsDone+' <span style="font-size:0.75rem;font-weight:600;color:var(--muted)">/ '+habitsTotal+' today</span></div>'+
+          '</div>'+
+          '<div style="font-size:0.75rem;color:var(--muted)">› Habits</div>'+
+        '</div>'+
+        urgentBanner+
+        habitRows+
+        (habitsDone===habitsTotal?'<div style="margin-top:10px;font-size:0.72rem;color:var(--green);font-weight:700;text-align:center">All habits done today ✓</div>':'')+
+      '</div>';
+    })()}
+  </div>
 
     <!-- Active coach adjustments banner -->
     ${(function(){
@@ -4687,17 +4717,6 @@ function renderToday(){
     <!-- Weekly check-in CTA -->
     ${renderCheckinCTA()}
 ${renderWeekSummary()}
-    ${(function(){
-      var card=renderProgressionCard();
-      if(card) return card;
-      // No data yet — show friendly placeholder
-      return '<div style="margin:0 16px 12px;padding:16px;background:var(--s2);border:1px dashed var(--border);border-radius:14px;text-align:center">'+
-        '<div style="margin-bottom:12px;color:var(--muted)">'+ico('target',36,'var(--muted)')+'</div>'+
-        '<div style="font-size:0.9rem;font-weight:700;margin-bottom:4px">Coach\'s Report unlocks here</div>'+
-        '<div style="font-size:0.78rem;color:var(--muted);line-height:1.5">Log your first session and your coach will have data to work with.</div>'+
-        '<button class="btn btn-green" style="margin-top:12px;padding:10px 20px;font-size:0.85rem" onclick="switchTab(\'train\')">Start First Session →</button>'+
-      '</div>';
-    })()}
     ${(function(){
       // Only show prominent check-in card on check-in day. All other days: subtle small link only.
       if(isCheckinDay()&&!thisWeekCheckinDone()){
@@ -4770,9 +4789,9 @@ ${S.day?`<div id="day-preview-section">`+renderDayPreviewCard(S.day)+`<button cl
 <div style="margin-top:16px">
   <div class="card-title">Rest Day / Recovery</div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-    <div class="day-btn" onclick="openRestDay('wed')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">🔄</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Wednesday</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Back rehab</div></div>
-    <div class="day-btn" onclick="openRestDay('sat')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">🚶</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Saturday</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Walk + rehab</div></div>
-    <div class="day-btn" onclick="openRestDay('sun')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">😴</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Sunday</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Full rest</div></div>
+    <div class="day-btn" onclick="openRestDay('mon')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">🧘</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Active Rest</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Mobility + walk</div></div>
+    <div class="day-btn" onclick="openRestDay('sat')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">🚶</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Light Day</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Walk + stretch</div></div>
+    <div class="day-btn" onclick="openRestDay('sun')" style="text-align:center;padding:12px 8px"><div style="font-size:1.1rem">😴</div><div style="font-size:0.78rem;font-weight:600;margin-top:4px">Full Rest</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Sleep + nutrition</div></div>
   </div>
 </div>
 ${hist.length?`<div class="card-title" style="margin-top:16px">Recent Sessions</div>
@@ -11043,7 +11062,9 @@ function stepUp(){S.stepsToday+=500;localStorage.setItem('fitos_steps',S.stepsTo
 
 // ─── INTAKE WIZARD ───────────────────────────────────────────────────────
 function wizNext(){
-  if(S.intakeStep<INTAKE_STEPS.length-1){S.intakeStep++;render();}
+  // Dismiss keyboard before re-rendering — prevents iOS scroll bounce between steps
+  if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  if(S.intakeStep<INTAKE_STEPS.length-1){S.intakeStep++;render();document.getElementById('screen').scrollTop=0;}
   else if(!S.profile.waiverAccepted){alert('Please read and accept the Health & Liability Disclaimer to continue.');return;}
   else if(!S.supaUser){alert('Please create your account above to save your progress and start your free trial.');return;}
   else{
@@ -11070,7 +11091,7 @@ function wizNext(){
     },4200);
   }
 }
-function wizBack(){if(S.intakeStep>0){S.intakeStep--;render();}}
+function wizBack(){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();if(S.intakeStep>0){S.intakeStep--;render();document.getElementById('screen').scrollTop=0;}}
 
 async function wizSignup(){
   var email=(S.wizEmail||'').trim();
@@ -11245,7 +11266,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v150';
+  window.APP_VERSION='v151';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -11364,41 +11385,153 @@ function checkPhotoReminder(){
   }
   return true;
 }
-function renderTour(){
-  var steps=[
-    {icon:'📊',tab:'TODAY',title:'Your Daily HQ',body:'Every morning starts here. Track calories, protein, water, steps, and your streak. Your Oracle greets you here with a daily game plan.'},
-    {icon:'🏋️',tab:'TRAIN',title:'Your Training Block',body:'8-week progressive overload program, personalised to you. Pick your day, watch the form animation, log your sets. Swap out any exercise or entire day split.'},
-    {icon:'🥗',tab:'EAT',title:'Meal Plan + Food Log',body:'Your custom calorie and macro targets, with a weekly meal plan and barcode scanner. Tap any meal to log it or swap it out.'},
-    {icon:'✅',tab:'HABITS',title:'Habits + Lifestyle',body:'Daily habit checklist, step counter, water tracker, and sleep log. Your streak keeps you accountable — don\'t break the chain.'},
-    {icon:'🔮',tab:'ORACLE',title:'Your Fit Oracle',body:'This is the main event. Ask your Oracle anything — form, food, how to break a plateau. It knows your program, your history, your goals. Use it constantly.'}
+function tourAdvance(dir){
+  var steps=getTourSteps();
+  var next=(S.tourStep||0)+dir;
+  if(next<0) next=0;
+  if(next>=steps.length){S.showTour=false;localStorage.setItem('fitos_tour_seen','1');render();return;}
+  S.tourStep=next;
+  var step=steps[next];
+  if(step.switchTab&&S.tab!==step.switchTab){S.tab=step.switchTab;}
+  render();
+  // After render, scroll target element into view + apply highlight
+  setTimeout(function(){
+    document.querySelectorAll('.tour-hl').forEach(function(el){el.classList.remove('tour-hl');});
+    if(step.sel){var el=document.querySelector(step.sel);if(el){el.classList.add('tour-hl');el.scrollIntoView({behavior:'smooth',block:'nearest'});}}
+    if(step.scrollTop) document.getElementById('screen').scrollTop=step.scrollTop;
+  },80);
+}
+function getTourSteps(){
+  return[
+    // ── TODAY TAB ──────────────────────────────────────────────────────────
+    {switchTab:'today',sel:'.today-section',pos:'top',badge:'TODAY TAB',icon:'📊',title:'Your Daily Dashboard',
+     what:'Everything you need to track in one glance — calories, protein, steps, habits, and your AI coach.',
+     why:'Momentum is built daily. This tab gives you your score for today at a glance so you always know where you stand.'},
+
+    {switchTab:'today',sel:'.ring-row-section',pos:'bottom',badge:'TODAY TAB',icon:'🔵',title:'Achievement Rings',
+     what:'Three rings — TRAIN (sessions this week), FUEL (protein days hit), HABITS (consistency score). Tap any ring to jump to that section.',
+     why:'Closing all three rings daily is the single most powerful habit you can build. Green ring = target hit.'},
+
+    {switchTab:'today',sel:'.big-num-row',pos:'bottom',badge:'TODAY TAB',icon:'🔥',title:'Calorie + Protein Tracker',
+     what:'Your personalised targets live here. Tap the row to open the food logger and log a meal.',
+     why:'Protein drives muscle growth. Calories drive body composition. Hit both numbers daily and results are inevitable.'},
+
+    {switchTab:'today',sel:'.steps-row',pos:'bottom',badge:'TODAY TAB',icon:'👟',title:'Step Counter',
+     what:'Your daily step goal — tap to update. Steps drive NEAT (non-exercise activity thermogenesis), a huge calorie burner most people ignore.',
+     why:'10,000+ steps/day can burn an extra 300–500 kcal without touching a weight. It all counts.'},
+
+    {switchTab:'today',sel:'.coach-report-section',pos:'top',badge:'TODAY TAB',icon:'🔮',title:"Coach's Report",
+     what:'Your AI coach analyses your training volume, protein adherence, weight trend, and habit streak — then gives you an honest progress read.',
+     why:'You deserve feedback that\'s specific to YOUR data, not generic advice. The more you log, the sharper this gets.'},
+
+    {switchTab:'today',sel:'.habits-graph-section',pos:'top',badge:'TODAY TAB',icon:'📈',title:'Habits Weekly Graph',
+     what:'Each habit shown as a 7-day bar chart. Gaps reveal patterns — are you consistent Monday through Thursday then falling off? Now you\'ll see it.',
+     why:'Awareness kills excuses. Seeing the gap in your bar chart is more motivating than any reminder.'},
+
+    // ── TRAIN TAB ─────────────────────────────────────────────────────────
+    {switchTab:'train',sel:'.day-grid',pos:'bottom',badge:'TRAIN TAB',icon:'🏋️',title:'Your Training Days',
+     what:'Your personalised 4-day training split — Upper Push, Lower Quad, Upper Pull, Posterior Chain. Tap a day to select it, long-press to swap the day out entirely.',
+     why:'Progressive overload across 4 movement patterns is the most evidence-based approach to building muscle and strength simultaneously.'},
+
+    {switchTab:'train',sel:'.week-row',pos:'bottom',badge:'TRAIN TAB',icon:'📅',title:'8-Week Progressive Block',
+     what:'Each week has a planned intensity — from Foundation (Week 1) to Peak (Week 8). Reps, RIR targets, and cues all adjust automatically.',
+     why:'Random training doesn\'t build elite bodies. Structured periodisation does. This is the same framework used by Built With Science.'},
+
+    {switchTab:'train',sel:'.day-preview',pos:'top',badge:'TRAIN TAB',icon:'▶',title:'Exercise Demo + Form Cues',
+     what:'Tap any exercise to see a form animation and YouTube demo. Every set has coach cues written specifically for your experience level.',
+     why:'Poor form is the #1 cause of injury and plateau. Watch the demo once. Nail the pattern. Add load from there.'},
+
+    {switchTab:'train',sel:'.log-btn',pos:'top',badge:'TRAIN TAB',icon:'📝',title:'Set Logger',
+     what:'Log weight and reps for each set. Your previous session\'s numbers appear as a reference so you always know what to beat.',
+     why:'Progressive overload means beating your last performance. The log is your receipt.'},
+
+    {switchTab:'train',sel:'.swap-ex-btn',pos:'top',badge:'TRAIN TAB',icon:'⇄',title:'Swap Any Exercise',
+     what:'Not feeling an exercise? Tap Swap to pick an equivalent from the library. Your coach remembers the swap.',
+     why:'Exercise selection is personal. Shoulder feels off on bench? Swap to dumbbell. Same stimulus, safer execution.'},
+
+    // ── EAT TAB ───────────────────────────────────────────────────────────
+    {switchTab:'eat',sel:'.meal-plan-section',pos:'top',badge:'EAT TAB',icon:'🥗',title:'Your Meal Plan',
+     what:'A week of meals built to hit your TDEE-calculated calorie and macro targets. Tick meals as you eat them to track daily intake.',
+     why:'Taking the guesswork out of food is the single biggest accelerator for body recomp. You can\'t out-train a bad diet.'},
+
+    {switchTab:'eat',sel:'.food-log-btn',pos:'top',badge:'EAT TAB',icon:'📷',title:'Food Logger + Barcode Scanner',
+     what:'Search any food or scan a barcode to log it. Your recent foods are remembered so logging gets faster every day.',
+     why:'Awareness of what you\'re actually eating — not what you think — is where most people find their missing progress.'},
+
+    // ── HABITS TAB ────────────────────────────────────────────────────────
+    {switchTab:'habits',sel:'.habits-list',pos:'top',badge:'HABITS TAB',icon:'✅',title:'Daily Habits Checklist',
+     what:'Your personalised habit list — tailored from your intake answers. Tick each one daily. Each habit has a consequence card if it\'s skipped.',
+     why:'Elite bodies are built by elite daily habits — not just gym sessions. Sleep, water, steps, nutrition consistency. All of it matters.'},
+
+    {switchTab:'habits',sel:'.streak-display',pos:'bottom',badge:'HABITS TAB',icon:'🔥',title:'Habit Streak',
+     what:'Your consecutive days completing all habits. Don\'t break the chain.',
+     why:'Streaks trigger identity-level change. After 21+ days you\'re not someone trying to be fit — you ARE fit. Protect the streak.'},
+
+    {switchTab:'habits',sel:'.step-counter-section',pos:'top',badge:'HABITS TAB',icon:'👟',title:'Step Counter + Goal',
+     what:'Log your steps manually or connect your phone health app. Your step goal is calculated from your activity level.',
+     why:'NEAT (Non-Exercise Activity Thermogenesis) can be the difference between losing fat and stalling. Steps are free calories burned.'},
+
+    // ── ORACLE / COACH ────────────────────────────────────────────────────
+    {switchTab:'today',sel:'.coach-orb-btn',pos:'bottom',badge:'AI COACH',icon:'🔮',title:'Your Fit Oracle — Main Event',
+     what:'Tap the Oracle button (bottom centre of the tab bar) to open your AI coach. Ask about form, nutrition, recovery, plateaus, motivation — anything coaching-related.',
+     why:'You have a world-class AI PT that knows your program, history, goals, and injuries. Available 24/7. Use it between every set if you want.'},
+
+    {switchTab:'today',sel:null,pos:'center',badge:'YOU\'RE READY',icon:'🏆',title:'That\'s FitOS',
+     what:'Every feature works together. The more you log, the smarter your coach gets. The more you check in, the better your program adapts.',
+     why:'Most people fail because they don\'t have a system. You now have one. Let\'s build.'}
   ];
+}
+function renderTour(){
+  var steps=getTourSteps();
   var n=steps.length;
   var i=Math.min(S.tourStep||0,n-1);
   var step=steps[i];
-  var dotsHtml=steps.map(function(_,j){
-    return '<div style="width:'+(j===i?'20px':'7px')+';height:7px;border-radius:4px;background:'+(j===i?'var(--green)':'rgba(255,255,255,0.2)')+';transition:all .25s"></div>';
-  }).join('');
   var isLast=i===n-1;
-  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:980;display:flex;align-items:flex-end;justify-content:center;padding:0 0 32px">'
-    +'<div style="width:100%;max-width:400px;background:linear-gradient(160deg,#1a1a2e 0%,#0d0d1a 100%);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:28px 24px;margin:0 16px;animation:slideUp 0.3s cubic-bezier(.22,1,.36,1)">'
-      // Tab badge
-      +'<div style="display:inline-block;background:rgba(29,158,117,0.2);border:1px solid rgba(29,158,117,0.4);border-radius:20px;padding:3px 12px;font-size:0.65rem;font-weight:800;letter-spacing:.1em;color:var(--green);margin-bottom:14px">'+step.tab+' TAB</div>'
+  var pct=Math.round((i/(n-1))*100);
+
+  // Dot progress row — show 6 visible dots max with condensed view
+  var dotsHtml='';
+  var windowSize=6;
+  var start=Math.max(0,Math.min(i-2,n-windowSize));
+  for(var d=start;d<Math.min(start+windowSize,n);d++){
+    var isActive=d===i;
+    dotsHtml+='<div style="width:'+(isActive?'18px':'6px')+';height:6px;border-radius:3px;background:'+(isActive?'var(--green)':'rgba(255,255,255,0.18)')+';transition:all .2s;flex-shrink:0"></div>';
+  }
+
+  // Card position — top half vs bottom half
+  var cardPos=step.pos==='top'?'align-items:flex-end;padding-bottom:calc(var(--tab-h) + 24px)':'align-items:flex-start;padding-top:24px';
+
+  return '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:980;display:flex;'+cardPos+';justify-content:center">'
+    // Progress bar at very top
+    +'<div style="position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.1)">'
+      +'<div style="height:100%;width:'+pct+'%;background:var(--green);transition:width .3s"></div>'
+    +'</div>'
+    +'<div style="width:100%;max-width:420px;background:linear-gradient(160deg,#141424 0%,#0a0a14 100%);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;margin:0 14px;animation:slideUp 0.25s cubic-bezier(.22,1,.36,1)">'
+      // Badge + step counter
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+        +'<div style="background:rgba(29,158,117,0.18);border:1px solid rgba(29,158,117,0.35);border-radius:20px;padding:3px 11px;font-size:0.6rem;font-weight:800;letter-spacing:.1em;color:var(--green)">'+step.badge+'</div>'
+        +'<div style="font-size:0.65rem;color:rgba(255,255,255,0.28);font-weight:600">'+(i+1)+' / '+n+'</div>'
+      +'</div>'
       // Icon + title
-      +'<div style="font-size:3rem;margin-bottom:8px">'+step.icon+'</div>'
-      +'<div style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:10px">'+step.title+'</div>'
-      +'<div style="font-size:0.88rem;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:22px">'+step.body+'</div>'
-      // Dots
-      +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:20px">'+dotsHtml+'</div>'
+      +'<div style="font-size:2.4rem;margin-bottom:8px;line-height:1">'+step.icon+'</div>'
+      +'<div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:12px;line-height:1.3">'+step.title+'</div>'
+      // What it is
+      +'<div style="font-size:0.82rem;color:rgba(255,255,255,0.65);line-height:1.6;margin-bottom:8px">'+step.what+'</div>'
+      // Why it matters — highlighted
+      +'<div style="background:rgba(29,158,117,0.08);border-left:2px solid var(--green);border-radius:0 8px 8px 0;padding:8px 11px;margin-bottom:18px">'
+        +'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--green);font-weight:700;margin-bottom:3px">WHY IT MATTERS</div>'
+        +'<div style="font-size:0.8rem;color:rgba(255,255,255,0.72);line-height:1.55">'+step.why+'</div>'
+      +'</div>'
+      // Dot progress
+      +'<div style="display:flex;gap:5px;align-items:center;margin-bottom:16px">'+dotsHtml+'</div>'
       // Buttons
-      +'<div style="display:flex;gap:10px">'
-        +(i>0?'<button onclick="S.tourStep=S.tourStep-1;render()" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:13px;color:rgba(255,255,255,0.6);font-size:0.9rem;font-weight:600;cursor:pointer">← Back</button>':'')
-        +'<button onclick="'+(isLast?'S.showTour=false;localStorage.setItem(\'fitos_tour_seen\',\'1\');render()':'S.tourStep=S.tourStep+1;render()')+'" '
-          +'style="flex:2;background:var(--green);border:none;border-radius:12px;padding:13px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer">'
-          +(isLast?'Let\'s Go 🔥':'Next →')
+      +'<div style="display:flex;gap:8px">'
+        +(i>0?'<button onclick="tourAdvance(-1)" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;color:rgba(255,255,255,0.5);font-size:0.88rem;font-weight:600;cursor:pointer">← Back</button>':'')
+        +'<button onclick="tourAdvance(1)" style="flex:2;background:var(--green);border:none;border-radius:12px;padding:12px;color:#fff;font-size:0.92rem;font-weight:700;cursor:pointer">'
+          +(isLast?'Start Training 🔥':'Next →')
         +'</button>'
       +'</div>'
-      // Skip
-      +(isLast?'':'<div onclick="S.showTour=false;localStorage.setItem(\'fitos_tour_seen\',\'1\');render()" style="text-align:center;margin-top:12px;font-size:0.72rem;color:rgba(255,255,255,0.25);cursor:pointer">Skip tour</div>')
+      +(isLast?'':'<div onclick="S.showTour=false;localStorage.setItem(\'fitos_tour_seen\',\'1\');render()" style="text-align:center;margin-top:10px;font-size:0.68rem;color:rgba(255,255,255,0.22);cursor:pointer">Skip tour</div>')
     +'</div>'
   +'</div>';
 }
