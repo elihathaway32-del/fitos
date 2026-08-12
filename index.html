@@ -3036,6 +3036,7 @@ let S={
 
   // Shop tab
   shopTicked: new Set(loadJSON('fitos_shop_ticked',[])),
+  shopOpenCats: new Set(),  // which category sections are expanded
 
   // Habits / Today
   habitDate: localStorage.getItem('fitos_habit_date')||'',
@@ -4630,7 +4631,7 @@ function renderToday(){
   </div>
 
   <!-- Coach's Report — promoted to top, full width, prominent -->
-  <div class="today-section coach-report-section" style="padding-bottom:4px">
+  <div class="today-section coach-report-section" style="padding-top:20px;padding-bottom:4px">
     ${(function(){
       var card=renderProgressionCard();
       if(card) return card;
@@ -4643,47 +4644,68 @@ function renderToday(){
     })()}
   </div>
 
-  <!-- Habits weekly bar graph -->
+  <!-- Habits bar chart (X=habit type, Y=daily completion) -->
   <div class="today-section habits-graph-section">
     ${(function(){
-      // Build last 7 days
+      // Build Mon–Sun of the current calendar week (resets each Monday)
       var days7=[];
-      for(var dd=6;dd>=0;dd--){
-        var dt2=new Date();dt2.setDate(dt2.getDate()-dd);
+      var today2=new Date();
+      var dow=today2.getDay(); // 0=Sun,1=Mon,...6=Sat
+      var mondayOffset=dow===0?-6:1-dow; // days back to Monday
+      var monday=new Date(today2);monday.setDate(today2.getDate()+mondayOffset);
+      for(var dd2=0;dd2<7;dd2++){
+        var dt2=new Date(monday);dt2.setDate(monday.getDate()+dd2);
         var ds2=dt2.toDateString();
         var snap2=S.snapshots[ds2]||{};
-        days7.push({label:['Su','Mo','Tu','We','Th','Fr','Sa'][dt2.getDay()],isToday:dd===0,snap:snap2});
+        var isFuture=dt2>today2;
+        var isT=dt2.toDateString()===today2.toDateString();
+        days7.push({label:['Su','Mo','Tu','We','Th','Fr','Sa'][dt2.getDay()],isToday:isT,isFuture:isFuture,snap:snap2});
       }
       var urgent=isToday&&hour>=18&&habitsDone<habitsTotal;
       var urgentRem=habitsTotal-habitsDone;
-      var urgentBanner=urgent?('<div style="margin-bottom:10px;padding:9px 12px;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:1rem">⚠️</span><span style="font-size:0.78rem;font-weight:700;color:var(--red)">'+urgentRem+' habit'+(urgentRem>1?'s':'')+' still unchecked — it\'s after 6pm. Get it done.</span></div>'):'';
+      var urgentBanner=urgent?('<div style="margin-bottom:12px;padding:9px 12px;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:1rem">⚠️</span><span style="font-size:0.78rem;font-weight:700;color:var(--red)">'+urgentRem+' habit'+(urgentRem>1?'s':'')+' still unchecked — it\'s after 6pm. Get it done.</span></div>'):'';
 
-
-      var habitRows=_todayHabits.map(function(h){
+      // Chart: each column = one habit, Y axis = Mon→Sun of current week
+      // Bar segments go from Mon (top) to Sun (bottom), filled = done
+      var BAR_MAX_H=56; // max bar height in px
+      var pastDays=days7.filter(function(d){return !d.isFuture;}).length||1;
+      var habitCols=_todayHabits.map(function(h){
+        var doneDays=0;
+        var dayDots=days7.map(function(day){
+          var done=day.isToday?S.habitsChecked.has(h.id):(day.isFuture?false:(day.snap.habitIds&&day.snap.habitIds.indexOf(h.id)>-1));
+          if(done&&!day.isFuture) doneDays++;
+          return {done:done,isToday:day.isToday,isFuture:day.isFuture};
+        });
         var isDoneToday=S.habitsChecked.has(h.id);
-        // 7-day bar per habit
-        var bars=days7.map(function(day){
-          var done=day.isToday?S.habitsChecked.has(h.id):(day.snap.habitIds&&day.snap.habitIds.indexOf(h.id)>-1);
-          var barH=done?22:5;
-          var barCol=done?'var(--green)':day.isToday?'rgba(255,255,255,0.08)':'rgba(255,255,255,0.04)';
-          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'+
-            '<div style="width:100%;border-radius:3px;background:'+barCol+';height:'+barH+'px;transition:height .3s,background .3s;min-height:4px"></div>'+
-            '<div style="font-size:0.5rem;color:'+(day.isToday?'var(--text)':'var(--muted)')+'">'+day.label+'</div>'+
-          '</div>';
+        var barCol=isDoneToday?'var(--green)':doneDays>0?'var(--amber)':'rgba(255,255,255,0.1)';
+        var fillPct=Math.round(doneDays/pastDays*100);
+        var barH=Math.max(3,Math.round(BAR_MAX_H*fillPct/100));
+        // 7 segment rows inside the track (Mon top → Sun bottom)
+        var segHTML=dayDots.map(function(d){
+          var bg=d.isFuture?'rgba(255,255,255,0.03)':d.done?(d.isToday?'rgba(255,255,255,0.55)':'rgba(255,255,255,0.3)'):'rgba(255,255,255,0.05)';
+          return '<div style="flex:1;border-radius:2px;background:'+bg+';margin-bottom:1px"></div>';
         }).join('');
-
-        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);last-child{border:none}">'+
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
-            '<span style="font-size:1rem;flex-shrink:0">'+h.icon+'</span>'+
-            '<span style="font-size:0.78rem;font-weight:600;color:'+(isDoneToday?'var(--muted)':'var(--text)')+';flex:1;'+(isDoneToday?'text-decoration:line-through':'')+'">'+h.name+'</span>'+
-            '<span style="font-size:0.72rem;font-weight:700;color:'+(isDoneToday?'var(--green)':'var(--muted)')+'">'+( isDoneToday?'✓':'—')+'</span>'+
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0">'+
+          '<div style="width:100%;height:'+BAR_MAX_H+'px;background:rgba(255,255,255,0.05);border-radius:8px;overflow:hidden;position:relative">'+
+            // Fill bar from bottom
+            '<div style="position:absolute;bottom:0;left:0;right:0;height:'+barH+'px;background:'+barCol+';border-radius:6px;transition:height .4s,background .3s"></div>'+
+            // Segment overlay
+            '<div style="position:relative;height:100%;display:flex;flex-direction:column;padding:3px 4px;box-sizing:border-box">'+segHTML+'</div>'+
           '</div>'+
-          '<div style="display:flex;gap:3px;align-items:flex-end;height:30px">'+bars+'</div>'+
+          '<div style="font-size:1.05rem;line-height:1">'+h.icon+'</div>'+
+          '<div style="font-size:0.48rem;font-weight:800;color:'+(isDoneToday?'var(--green)':'var(--muted)')+'">'+doneDays+'/'+pastDays+'</div>'+
         '</div>';
       }).join('');
 
-      return '<div class="card" onclick="switchTab(\'habits\')" onpointerdown="this.style.opacity=\'0.85\'" onpointerup="this.style.opacity=\'\'" onpointercancel="this.style.opacity=\'\'" style="cursor:pointer;transition:opacity .1s;padding:14px 14px 10px">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+      // Y-axis labels: Mon→Sun with today highlighted
+      var yLabels='<div style="display:flex;flex-direction:column;justify-content:space-between;height:'+BAR_MAX_H+'px;padding:2px 0;margin-right:6px;flex-shrink:0">'+
+        days7.map(function(d){
+          return '<div style="font-size:0.44rem;color:'+(d.isToday?'var(--green)':d.isFuture?'rgba(255,255,255,0.15)':'var(--muted)')+';font-weight:'+(d.isToday?'800':'400')+';text-align:right;line-height:1">'+d.label+'</div>';
+        }).join('')+
+      '</div>';
+
+      return '<div class="card" onclick="switchTab(\'habits\')" onpointerdown="this.style.opacity=\'0.85\'" onpointerup="this.style.opacity=\'\'" onpointercancel="this.style.opacity=\'\'" style="cursor:pointer;transition:opacity .1s;padding:14px 14px 12px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
           '<div>'+
             '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700">Habits This Week</div>'+
             '<div style="font-size:1.1rem;font-weight:900;color:'+(habitsDone===habitsTotal?'var(--green)':'var(--text)')+'">'+habitsDone+' <span style="font-size:0.75rem;font-weight:600;color:var(--muted)">/ '+habitsTotal+' today</span></div>'+
@@ -4691,7 +4713,10 @@ function renderToday(){
           '<div style="font-size:0.75rem;color:var(--muted)">› Habits</div>'+
         '</div>'+
         urgentBanner+
-        habitRows+
+        '<div style="display:flex;align-items:flex-end;gap:5px">'+
+          yLabels+
+          '<div style="display:flex;gap:5px;flex:1">'+habitCols+'</div>'+
+        '</div>'+
         (habitsDone===habitsTotal?'<div style="margin-top:10px;font-size:0.72rem;color:var(--green);font-weight:700;text-align:center">All habits done today ✓</div>':'')+
       '</div>';
     })()}
@@ -4969,7 +4994,7 @@ function renderWarmup(){
   <button class="btn btn-outline btn-sm" onclick="skipWarmup()">Skip →</button>
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
-<div class="phase-screen" style="padding-bottom:100px">
+<div class="phase-screen" style="padding-bottom:160px">
   ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   <div class="phase-section">
     <div class="phase-section-title"><span>${day.name} Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${dayItems.filter(i=>S.warmupChecked.has(i.id)).length}/${dayItems.length}</span></div>
@@ -4980,7 +5005,7 @@ function renderWarmup(){
     ${p.items.map(mkItem).join('')}
   </div>`).join('')}
 </div>
-<div style="position:fixed;bottom:var(--tab-h);left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;z-index:50">
+<div style="position:fixed;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom,0px));left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px 14px;z-index:50">
   <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'All Done — Start Workout →':'▶ Start Workout'}</button>
   ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — ${injuryRehab.length?'injury prehab is important, don\'t skip it':'tick them off first'}</p>`:''}
 </div>`;
@@ -6757,29 +6782,63 @@ function renderGrocerySection(){
   var total=ACTIVE_GROCERY.reduce(function(a,c){return a+c.items.length;},0);
   var ticked=S.shopTicked.size;
   var pctVal=total?Math.round(ticked/total*100):0;
-  var rows=ACTIVE_GROCERY.map(function(cat){
+  var allDone=total>0&&ticked>=total;
+
+  // Category sections — collapsible
+  var catSections=ACTIVE_GROCERY.map(function(cat){
+    var catName=cat.name||cat.cat||'Other';
+    var isOpen=S.shopOpenCats.has(catName);
+    var catTicked=0;
     var items=cat.items.map(function(item,idx){
-      var key=(cat.name||cat.cat||'cat')+'_'+idx;
+      var key=(catName)+'_'+idx;
       var done=S.shopTicked.has(key);
-      return '<div class="shop-item'+(done?' ticked':'')+'" onclick="toggleShop(\''+key+'\')">'  
+      if(done) catTicked++;
+      var wooliesQ=encodeURIComponent(item.name);
+      var wooliesLink='https://www.woolworths.com.au/shop/search/products?searchTerm='+wooliesQ;
+      return '<div class="shop-item'+(done?' ticked':'')+'" onclick="toggleShop(\''+key+'\')" style="position:relative">'
         +'<div class="shop-check">'+(done?'✓':'')+'</div>'
         +'<div style="flex:1"><div class="shop-name">'+item.name+'</div>'+(item.detail?'<div class="shop-detail">'+item.detail+'</div>':'')+'</div>'
+        +'<a href="'+wooliesLink+'" target="_blank" onclick="event.stopPropagation()" style="flex-shrink:0;font-size:0.6rem;color:var(--green);background:rgba(0,232,122,0.08);border:1px solid rgba(0,232,122,0.2);border-radius:6px;padding:3px 6px;text-decoration:none;white-space:nowrap">Search →</a>'
         +'</div>';
     }).join('');
-    return '<div class="shop-category"><div class="shop-cat-title">'+(cat.name||cat.cat||'')+'</div>'+items+'</div>';
+    return '<div style="margin:0 16px 8px;border:1px solid var(--border);border-radius:14px;overflow:hidden">'
+      +'<div onclick="toggleShopCat(\''+catName+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;background:var(--s1)">'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;font-weight:800;color:var(--text)">'+catName+'</span>'
+          +'<span style="font-size:0.62rem;color:var(--muted)">'+catTicked+'/'+cat.items.length+'</span>'
+          +(catTicked===cat.items.length&&cat.items.length>0?'<span style="font-size:0.6rem;color:var(--green);font-weight:700">✓ done</span>':'')
+        +'</div>'
+        +'<span style="font-size:0.8rem;color:var(--muted);transition:transform .2s;display:inline-block;transform:'+(isOpen?'rotate(180deg)':'rotate(0deg)')+'">▾</span>'
+      +'</div>'
+      +(isOpen?'<div>'+items+'</div>':'')
+      +'</div>';
   }).join('');
-  return '<div style="margin-top:8px">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px">'
-      +'<div><div style="font-size:0.95rem;font-weight:700">🛒 Shopping List</div>'
-      +'<div style="font-size:0.72rem;color:var(--muted)">'+(ticked)+' of '+total+' items ticked</div></div>'
-      +'<button class="btn btn-sm btn-outline" onclick="clearShop()">Clear ticked</button>'
+
+  return '<div style="margin-top:4px">'
+    // ── CTA header ──
+    +'<div style="margin:0 16px 16px;padding:18px 16px;background:linear-gradient(135deg,rgba(29,158,117,0.12) 0%,rgba(29,158,117,0.04) 100%);border:1.5px solid rgba(29,158,117,0.28);border-radius:18px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div>'
+          +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--green);font-weight:800;margin-bottom:4px">🛒 Shopping List</div>'
+          +'<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:2px">'+(allDone?'All picked up ✓':ticked+' of '+total+' items ticked')+'</div>'
+          +'<div style="font-size:0.72rem;color:var(--muted)">Tap a category to expand · tap an item to tick it off</div>'
+        +'</div>'
+        +'<button id="copy-list-btn" onclick="copyGroceryList()" class="btn btn-sm btn-outline" style="flex-shrink:0;font-size:0.7rem">Copy list</button>'
+      +'</div>'
+      +'<div style="height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-top:12px">'
+        +'<div style="height:100%;background:var(--green);border-radius:3px;transition:width .4s;width:'+pctVal+'%"></div>'
+      +'</div>'
     +'</div>'
-    +'<div style="margin:0 16px 10px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden">'
-      +'<div style="height:100%;background:var(--green);border-radius:2px;transition:width .4s;width:'+pctVal+'%"></div>'
+    // ── Category sections ──
+    +catSections
+    // ── Woolworths section ──
+    +'<div style="margin:12px 16px 0;padding:14px 16px;background:var(--s1);border:1px solid var(--border);border-radius:14px">'
+      +'<div style="font-size:0.7rem;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px">🛒 Shop on Woolworths</div>'
+      +'<div style="font-size:0.72rem;color:var(--muted);line-height:1.5;margin-bottom:10px">Tap "Search →" next to any item to find it directly. Or open the full store and shop from your list.</div>'
+      +'<a href="https://www.woolworths.com.au" target="_blank" style="display:block;text-align:center;background:var(--green);color:#000;font-weight:800;font-size:0.85rem;padding:12px;border-radius:10px;text-decoration:none">Open Woolworths →</a>'
+      +'<div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5">Auto-fill cart isn\'t available — Woolworths doesn\'t offer a public cart API. The "Search →" links are the next best thing.</div>'
     +'</div>'
-    +rows
-    +'<a class="woolies-btn" href="https://www.woolworths.com.au" target="_blank">🛒 Shop at Woolworths</a>'
-    +'<div style="height:8px"></div>'
+    +'<div style="height:20px"></div>'
     +'</div>';
 }
 
@@ -11038,6 +11097,26 @@ function toggleShop(key){
   render();
 }
 function clearShop(){S.shopTicked.clear();localStorage.setItem('fitos_shop','');render();}
+function toggleShopCat(cat){
+  if(S.shopOpenCats.has(cat)) S.shopOpenCats.delete(cat);
+  else S.shopOpenCats.add(cat);
+  render();
+}
+function copyGroceryList(){
+  var ACTIVE_GROCERY=getPersonalisedGrocery();
+  var lines=[];
+  ACTIVE_GROCERY.forEach(function(cat){
+    lines.push('── '+(cat.name||cat.cat||'')+ ' ──');
+    (cat.items||[]).forEach(function(item){lines.push('• '+item.name+(item.detail?' ('+item.detail+')':''));});
+  });
+  var text=lines.join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      var btn=document.getElementById('copy-list-btn');
+      if(btn){btn.textContent='✓ Copied!';setTimeout(function(){btn.textContent='Copy list';},2000);}
+    });
+  }
+}
 
 // ─── HABITS ──────────────────────────────────────────────────────────────
 function logSleepHours(h){
@@ -11266,7 +11345,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v151';
+  window.APP_VERSION='v152';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
