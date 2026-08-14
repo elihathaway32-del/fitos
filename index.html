@@ -156,7 +156,7 @@
 [data-theme="light-clean"] .week-pill{background:rgba(255,255,255,0.88)!important;border-color:rgba(0,0,0,0.08)!important}
 [data-theme="light-clean"] .rating-btn{background:rgba(255,255,255,0.88)!important;border-color:rgba(0,0,0,0.08)!important;color:var(--text)!important}
 /* THEMED CARDS */
-.devo-card{background:linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%);border-radius:16px;padding:16px;margin-top:12px}
+.devo-card{background:linear-gradient(135deg,#1a1200 0%,#0d0d0d 100%);border-radius:16px;padding:16px;margin:12px 16px 0}
 .targets-card{background:linear-gradient(135deg,#0a1a10 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;margin:12px 16px 0}
 .checkin-cta{background:linear-gradient(135deg,#0d1a2a 0%,#0d0d0d 100%);border-radius:14px;padding:16px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .checkin-cta-sunday{background:linear-gradient(135deg,#1a0a1a 0%,#0d0d0d 100%);border-radius:14px;padding:14px 16px;cursor:pointer}
@@ -7012,8 +7012,8 @@ function renderWeekSummary(){
 
   var barW=function(v,max){return Math.min(100,Math.round(v/max*100));};
 
-  return '<div class="card-title" style="margin-top:8px">This Week</div>'+
-    '<div class="card" style="padding:14px">'+
+  return '<div class="card-title" style="margin:8px 16px">This Week</div>'+
+    '<div class="card" style="padding:14px;margin-left:16px;margin-right:16px">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'+
         '<div style="text-align:center">'+
           '<div style="font-size:1.5rem;font-weight:700;color:var(--green)">'+sessionsLogged+'</div>'+
@@ -11463,7 +11463,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v154';
+  window.APP_VERSION='v155';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
