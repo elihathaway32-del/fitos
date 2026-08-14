@@ -6729,13 +6729,11 @@ ${hasProfile&&tdeeData?`
       <div class="macro-label"><span style="color:var(--red)">Fat</span><span>${totFat}g / ${T.fat}g</span></div>
       <div class="macro-bar"><div class="macro-fill" style="width:${pct(totFat,T.fat)}%;background:var(--red)"></div></div>
     </div>
-    <!-- Water — today only -->
-    ${isToday?`<div style="margin-top:12px">
-      <div class="macro-label" style="margin-bottom:8px"><span style="color:var(--blue)">💧 Water</span><span style="color:var(--muted)">${(S.waterDone*0.25).toFixed(1)}L / ${(MEAL_TARGETS.water*0.25).toFixed(1)}L</span></div>
-      <div class="water-track">
-        ${Array.from({length:MEAL_TARGETS.water},(_,i)=>`<div class="water-drop${i<S.waterDone?' filled':''}" onclick="logWater(${i})" title="${((i+1)*0.25).toFixed(2)}L">💧</div>`).join('')}
-      </div>
-    </div>`:''}
+    <!-- Action buttons — Scan/Log Food + Yesterday -->
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button onclick="openFoodPanel('${eatDate}')" style="flex:2;background:var(--green);border:none;border-radius:12px;padding:12px 10px;color:#000;font-weight:800;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">📷 Scan / Log Food</button>
+      <button onclick="copyYesterdayMeals()" style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 8px;color:var(--text);font-weight:700;font-size:0.78rem;cursor:pointer;text-align:center">Yesterday</button>
+    </div>
   </div>
 
   <!-- Food log — grouped by meal -->
@@ -8367,21 +8365,33 @@ async function doFoodSearch(type){
   var memHits=getMemoryResults(S.foodQuery);
   const qLow0=q.toLowerCase();
   const qWords0=qLow0.replace(/[^a-z0-9 ]/g,' ').split(' ').filter(w=>w.length>1);
+
+  // Detect if this looks like a restaurant query — only then show restaurant DB results
+  const RESTAURANT_TRIGGERS=['maccas','macca','kfc','subway','hungry jack','nandos','guzman','boost juice','oporto','red rooster','schnitz','dominos','pizza hut','mcdonald','hungry jacks','zambreros','chatime','rolld','grill\'d','easyway'];
+  const isRestaurantQuery=RESTAURANT_TRIGGERS.some(function(k){return qLow0.includes(k);})||
+    AU_RESTAURANT_DB.some(function(item){var brand=(item.brand||'').toLowerCase();return brand.length>4&&qLow0.includes(brand);});
+
+  // Popular DB: require ALL significant words (>3 chars) to match — prevents "burger" alone matching "Burger Buns"
   const popularHits=POPULAR_FOODS_DB.filter(function(item){
-    const n=item.name.toLowerCase();
-    return n.includes(qLow0)||qWords0.some(function(w){return w.length>2&&n.includes(w);});
+    const n=(item.name+' '+(item.brand||'')).toLowerCase();
+    if(n.includes(qLow0)) return true; // exact phrase match always wins
+    var sigWords=qWords0.filter(function(w){return w.length>3;});
+    if(sigWords.length===0) return qWords0.some(function(w){return n.includes(w);});
+    return sigWords.every(function(w){return n.includes(w);}); // ALL sig words must match
   }).sort(function(a,b){
-    // Rank: exact full match > all words match > partial word match
-    var an=a.name.toLowerCase(),bn=b.name.toLowerCase();
+    var an=(a.name+' '+(a.brand||'')).toLowerCase(),bn=(b.name+' '+(b.brand||'')).toLowerCase();
     var aExact=an.includes(qLow0)?2:0, bExact=bn.includes(qLow0)?2:0;
     var aWords=qWords0.filter(function(w){return w.length>2&&an.includes(w);}).length;
     var bWords=qWords0.filter(function(w){return w.length>2&&bn.includes(w);}).length;
     return (bExact+bWords)-(aExact+aWords);
   });
-  const auLocalMatches=qWords0.length>0?AU_RESTAURANT_DB.filter(function(item){
+
+  // Restaurant DB: only include if query explicitly targets a restaurant/chain
+  const auLocalMatches=isRestaurantQuery&&qWords0.length>0?AU_RESTAURANT_DB.filter(function(item){
     const hay=(item.name+' '+(item.brand||'')).toLowerCase().replace(/[^a-z0-9 ]/g,' ');
     return qWords0.some(function(w){return hay.includes(w);});
   }):[];
+
   var localSeen=new Set(memHits.map(function(x){return x.name.toLowerCase();}));
   var localInstant=popularHits.filter(function(x){return!localSeen.has(x.name.toLowerCase());}).slice(0,4);
   localInstant.forEach(function(x){localSeen.add(x.name.toLowerCase());});
@@ -8420,11 +8430,39 @@ async function doFoodSearch(type){
         }catch(e){}
       }
       if(!found)S.foodResults=[];
-    }catch{S.foodResults=[];}
+    }catch(e){S.foodResults=[];}
     S.foodSearching=false;refreshFoodResults();return;
   }
 
-  // ── Step 3: Always call Open Food Facts API (AU first, world fills gaps) ──
+  // ── Step 3: USDA FoodData Central + Open Food Facts in parallel ──────────
+  // USDA Foundation + SR Legacy: scientific generic food database (chicken breast,
+  // bread, rice etc.) — always per 100g, no API key needed for DEMO_KEY (1000 req/hr)
+  const parseUSDA=function(foods){
+    return(foods||[]).filter(function(f){return f.description&&(f.foodNutrients||[]).length>0;})
+    .slice(0,15).map(function(f){
+      var nuts={};
+      (f.foodNutrients||[]).forEach(function(n){
+        var id=n.nutrientId||parseInt(n.nutrientNumber||'0');
+        if(id) nuts[id]=n.value||0;
+      });
+      // USDA nutrient IDs: 1008=kcal, 1003=protein, 1005=carbs, 1004=fat, 1079=fiber, 2000=sugars, 1093=sodium, 1258=satfat
+      var cal=Math.round(nuts[1008]||nuts[208]||0);
+      if(!cal) return null;
+      return{
+        name:f.description.replace(/,\s*(RAW|COOKED|FRESH|UNPREPARED|FROZEN|CANNED|DRIED)(\s*,.*)*/i,'').trim(),
+        brand:f.brandOwner||f.brandName||'',
+        cal:cal,
+        p:Math.round(nuts[1003]||nuts[203]||0),
+        c:Math.round(nuts[1005]||nuts[205]||0),
+        f:Math.round(nuts[1004]||nuts[204]||0),
+        fiber:Math.round((nuts[1079]||nuts[291]||0)*10)/10,
+        sugars:Math.round((nuts[2000]||nuts[269]||0)*10)/10,
+        sodium:Math.round(nuts[1093]||nuts[307]||0),
+        sat_fat:Math.round((nuts[1258]||nuts[606]||0)*10)/10,
+        _src:'usda'
+      };
+    }).filter(Boolean);
+  };
   const parseProds=function(prods){
     return prods
       .filter(function(p){return p.product_name&&p.nutriments&&(p.nutriments['energy-kcal_100g']||p.nutriments['energy-kcal']||p.nutriments['energy_100g']);})
@@ -8442,37 +8480,58 @@ async function doFoodSearch(type){
         };
       });
   };
-  var apiResults=[];
+
   const qs='&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,nutriments';
   const apiHeaders={'User-Agent':'FitOS/1.0 (elihathaway32@gmail.com) fitness-app'};
-  // AU endpoint — separate try so a 503 doesn't kill the world fallback
-  try{
-    const r1=await fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders});
-    if(r1.ok){const d1=await r1.json();apiResults=parseProds(d1.products||[]);}
-  }catch(e){}
-  // World endpoint — always run if AU gave <5 results (or failed)
-  if(apiResults.length<5){
+
+  // Fire all 3 sources in parallel — fastest wins
+  var [usdaRaw,offAuRaw,offWorldRaw]=await Promise.allSettled([
+    fetch('https://api.nal.usda.gov/fdc/v1/foods/search?query='+encodeURIComponent(q)+'&pageSize=20&dataType=Foundation,SR+Legacy&api_key=DEMO_KEY')
+      .then(function(r){return r.ok?r.json():null;}),
+    fetch('https://au.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders})
+      .then(function(r){return r.ok?r.json():null;}),
+    fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders})
+      .then(function(r){return r.ok?r.json():null;})
+  ]);
+
+  // Parse USDA
+  var usdaFoods=[];
+  if(usdaRaw.status==='fulfilled'&&usdaRaw.value){
+    try{usdaFoods=parseUSDA(usdaRaw.value.foods||[]);}catch(e){}
+  }
+
+  // Parse Open Food Facts AU
+  var offAuFoods=[];
+  if(offAuRaw.status==='fulfilled'&&offAuRaw.value){
+    try{offAuFoods=parseProds(offAuRaw.value.products||[]);}catch(e){}
+  }
+
+  // Parse Open Food Facts World — deduplicated against AU
+  var offWorldFoods=[];
+  if(offWorldRaw.status==='fulfilled'&&offWorldRaw.value){
     try{
-      const r2=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+qs,{headers:apiHeaders});
-      if(r2.ok){
-        const d2=await r2.json();
-        var worldHits=parseProds(d2.products||[]);
-        var auNames=new Set(apiResults.map(function(x){return x.name.toLowerCase();}));
-        apiResults=[...apiResults,...worldHits.filter(function(x){return!auNames.has(x.name.toLowerCase());})].slice(0,15);
-      }
+      var worldHits=parseProds(offWorldRaw.value.products||[]);
+      var offAuSeen=new Set(offAuFoods.map(function(x){return x.name.toLowerCase();}));
+      offWorldFoods=worldHits.filter(function(x){return!offAuSeen.has(x.name.toLowerCase());}).slice(0,10);
     }catch(e){}
   }
+
+  // Merge: USDA generic foods first (most accurate for staples), then OFF AU + World
+  var allOff=[...offAuFoods,...offWorldFoods];
+  var usdaSeen=new Set(usdaFoods.map(function(x){return x.name.toLowerCase();}));
+  var offFinal=allOff.filter(function(x){return!usdaSeen.has(x.name.toLowerCase());});
+  var apiResults=[...usdaFoods,...offFinal].slice(0,20);
 
   // ── Step 4: Merge — memory → local DB → API, deduplicated ────────────────
   var memFinal=getMemoryResults(S.foodQuery);
   var finalSeen=new Set(memFinal.map(function(x){return x.name.toLowerCase();}));
-  var localFinal=popularHits.filter(function(x){return!finalSeen.has(x.name.toLowerCase());}).slice(0,4);
+  var localFinal=popularHits.filter(function(x){return!finalSeen.has(x.name.toLowerCase());}).slice(0,3);
   localFinal.forEach(function(x){finalSeen.add(x.name.toLowerCase());});
   var apiFinal=apiResults.filter(function(x){return!finalSeen.has(x.name.toLowerCase());});
 
   S.foodResults=[...memFinal,...localFinal,...apiFinal];
 
-  // Last resort fallback
+  // Last resort fallback — broaden POPULAR_FOODS_DB search if nothing found
   if(S.foodResults.length===0){
     const qf=q.toLowerCase();
     S.foodResults=POPULAR_FOODS_DB.filter(function(item){
@@ -11413,7 +11472,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v153';
+  window.APP_VERSION='v154';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
