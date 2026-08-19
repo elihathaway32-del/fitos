@@ -4517,28 +4517,28 @@ function renderToday(){
   const protRem=Math.max(0,T.protein-protEaten);
   const stepsRem=Math.max(0,(S.stepsGoal||8000)-data.steps);
   // Achievement rings — TRAIN (weekly) · FUEL (daily protein) · HABITS (daily)
+  const _todayHabits=getPersonalisedHabits();
+  const habitsTotal=_todayHabits.length;
+  const habitsDone=data.habitsCount;
+  const todayWorkout=data.workout;
   const _ringWeekStart=(function(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d;})();
   const weekSessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=_ringWeekStart;}).length;
   const trainTarget=parseInt((S.profile||{}).daysPerWeek)||4;
   const trainPct=Math.min(1,weekSessions/trainTarget);
   const trainRingColor=trainPct>=1?'#00E87A':'#4a90d9';
   const trainDash=(226.2*(1-trainPct)).toFixed(1);
-  // FUEL — daily protein progress (data.protein comes from getDateData which uses correct date format)
+  // FUEL — daily protein progress
   const proteinToday=data.protein||0;
   const fuelPct=Math.min(1,proteinToday/Math.max(1,T.protein));
   const fuelPctDisplay=Math.round(fuelPct*100);
   const fuelRingColor=fuelPct>=1?'#00E87A':fuelPct>=0.7?'#4a90d9':'#f0a030';
   const fuelDash=(226.2*(1-fuelPct)).toFixed(1);
-  // HABITS — daily habits done vs total
+  // HABITS — daily done vs total
   const habitsDoneToday=data.habitsCount||0;
   const habitsTotalToday=Math.max(1,habitsTotal);
   const recoverPct=Math.min(1,habitsDoneToday/habitsTotalToday);
   const recoverRingColor=recoverPct>=1?'#00E87A':recoverPct>=0.5?'#4a90d9':'#f0a030';
   const recoverDash=(226.2*(1-recoverPct)).toFixed(1);
-  const todayWorkout=data.workout;
-  const _todayHabits=getPersonalisedHabits();
-  const habitsTotal=_todayHabits.length;
-  const habitsDone=data.habitsCount;
   const isFuture=false;
   const canGoForward=new Date(vd)<new Date(new Date().toDateString());
 
@@ -11559,7 +11559,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v159';
+  window.APP_VERSION='v160';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
