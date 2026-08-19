@@ -4516,20 +4516,24 @@ function renderToday(){
   const calRem=Math.max(0,T.cal-calEaten);
   const protRem=Math.max(0,T.protein-protEaten);
   const stepsRem=Math.max(0,(S.stepsGoal||8000)-data.steps);
-  // Achievement rings — TRAIN / FUEL / HABITS
+  // Achievement rings — TRAIN (weekly) · FUEL (daily protein) · HABITS (daily)
   const _ringWeekStart=(function(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d;})();
   const weekSessions=(S.gymHistory||[]).filter(function(h){return new Date(h.date)>=_ringWeekStart;}).length;
   const trainTarget=parseInt((S.profile||{}).daysPerWeek)||4;
   const trainPct=Math.min(1,weekSessions/trainTarget);
   const trainRingColor=trainPct>=1?'#00E87A':'#4a90d9';
   const trainDash=(226.2*(1-trainPct)).toFixed(1);
-  let fuelHit=0;
-  for(let _fi=0;_fi<7;_fi++){let _fd=new Date();_fd.setDate(_fd.getDate()-_fi);let _fds=_fd.toISOString().split('T')[0];let _fdd=getDateData(_fds);if((_fdd.protein||0)>=T.protein*0.9)fuelHit++;}
-  const fuelPct=Math.min(1,fuelHit/7);
-  const fuelRingColor=fuelPct>=0.7?'#00E87A':fuelPct>=0.3?'#4a90d9':'#f0a030';
+  // FUEL — daily protein progress (data.protein comes from getDateData which uses correct date format)
+  const proteinToday=data.protein||0;
+  const fuelPct=Math.min(1,proteinToday/Math.max(1,T.protein));
+  const fuelPctDisplay=Math.round(fuelPct*100);
+  const fuelRingColor=fuelPct>=1?'#00E87A':fuelPct>=0.7?'#4a90d9':'#f0a030';
   const fuelDash=(226.2*(1-fuelPct)).toFixed(1);
-  const recoverPct=Math.min(1,(S.streak||0)/7);
-  const recoverRingColor=recoverPct>=1?'#00E87A':'#f0a030';
+  // HABITS — daily habits done vs total
+  const habitsDoneToday=data.habitsCount||0;
+  const habitsTotalToday=Math.max(1,habitsTotal);
+  const recoverPct=Math.min(1,habitsDoneToday/habitsTotalToday);
+  const recoverRingColor=recoverPct>=1?'#00E87A':recoverPct>=0.5?'#4a90d9':'#f0a030';
   const recoverDash=(226.2*(1-recoverPct)).toFixed(1);
   const todayWorkout=data.workout;
   const _todayHabits=getPersonalisedHabits();
@@ -4599,7 +4603,7 @@ function renderToday(){
         </div>
       </div>
       <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${trainRingColor};font-weight:800">TRAIN</div>
-      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">sessions</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">this week</div>
     </div>
 
     <!-- FUEL ring pill -->
@@ -4611,12 +4615,12 @@ function renderToday(){
           <circle cx="48" cy="48" r="36" fill="none" stroke="${fuelRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${fuelDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${fuelHit}</div>
-          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">/ 7 days</div>
+          <div style="font-size:1.4rem;font-weight:900;line-height:1;color:var(--text)">${fuelPctDisplay}%</div>
+          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">${Math.round(proteinToday)}g</div>
         </div>
       </div>
       <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${fuelRingColor};font-weight:800">FUEL</div>
-      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">protein days</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">protein today</div>
     </div>
 
     <!-- HABITS ring pill -->
@@ -4628,12 +4632,12 @@ function renderToday(){
           <circle cx="48" cy="48" r="36" fill="none" stroke="${recoverRingColor}" stroke-width="8" stroke-dasharray="226.2" stroke-dashoffset="${recoverDash}" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
-          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${Math.min((S.streak||0),7)}</div>
-          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">day streak</div>
+          <div style="font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)">${habitsDoneToday}</div>
+          <div style="font-size:0.5rem;color:var(--muted);margin-top:2px">/ ${habitsTotalToday}</div>
         </div>
       </div>
       <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:${recoverRingColor};font-weight:800">HABITS</div>
-      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">consistency</div>
+      <div style="font-size:0.55rem;color:var(--muted);margin-top:3px">today</div>
     </div>
 
   </div>
@@ -11555,7 +11559,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v158';
+  window.APP_VERSION='v159';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
