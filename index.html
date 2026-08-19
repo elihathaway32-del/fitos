@@ -6791,12 +6791,12 @@ ${hasProfile&&tdeeData?`
           ontouchmove="swipeMove(event,'${f.id}')"
           ontouchend="swipeEnd(event,'${f.id}')">
           <div class="food-log-inner" id="fli-inner-${f.id}">
-            <div style="flex:1;min-width:0;cursor:pointer" onclick="editFoodLog('${f.id}')">
+            <div style="flex:1;min-width:0;cursor:pointer" onclick="editFoodLog('${f.id}')" ontouchend="event.preventDefault();event.stopPropagation();editFoodLog('${f.id}')">
               <div class="food-log-name">${f.name}${f.brand?` <span style="color:var(--muted);font-weight:400;font-size:0.72rem">${f.brand}</span>`:''}</div>
               <div style="font-size:0.72rem;color:var(--muted);margin-top:1px">${f.qty&&f.qty!==100?`${f.qty}g · `:''}P:${f.p}g · C:${f.c}g · F:${f.f}g${f.fiber?` · Fib:${f.fiber}g`:''}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-left:8px;flex-shrink:0">
-              <button onclick="event.stopPropagation();editFoodLog('${f.id}')" style="background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;padding:2px 4px;line-height:1" title="Edit">✏️</button>
+              <button onclick="editFoodLog('${f.id}')" ontouchend="event.preventDefault();event.stopPropagation();editFoodLog('${f.id}')" style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;padding:4px 6px;line-height:1;transition:transform .1s,opacity .1s;-webkit-tap-highlight-color:transparent" ontouchstart="this.style.transform='scale(0.75)';this.style.opacity='0.5'" title="Edit">✏️</button>
               <div class="food-log-cal">${f.cal}</div>
               <select onchange="S.foodLog.find(x=>x.id==='${f.id}').meal=this.value;saveDailyState();render()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:3px 4px;color:var(--muted);font-size:0.65rem;cursor:pointer">
                 ${['breakfast','lunch','dinner','snack','untagged'].map(m=>`<option value="${m}"${(f.meal||'untagged')===m?' selected':''}>${m==='breakfast'?'🌅':m==='lunch'?'☀️':m==='dinner'?'🌙':m==='snack'?'🍎':'📝'}</option>`).join('')}
@@ -7479,8 +7479,8 @@ function renderFoodPanel(){
             }).join('')}
           </div>
         </div>
-        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">✅ Add to ${(()=>{var ld=S.logDate||todayStr();return ld===todayStr()?"Today's Log":new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+"'s Log";})()}</button>
-        <button onclick="S.pendingFood=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">← Back to results</button>
+        <button class="btn btn-green" onclick="confirmAddFood()" style="margin-bottom:10px">${S.editingFoodLogId?'✅ Update Entry':'✅ Add to '+(()=>{var ld=S.logDate||todayStr();return ld===todayStr()?"Today's Log":new Date(ld).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+"'s Log";})()}</button>
+        <button onclick="S.pendingFood=null;S.editingFoodLogId=null;render()" style="display:block;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);cursor:pointer;font-size:0.9rem">${S.editingFoodLogId?'← Cancel Edit':'← Back to results'}</button>
       </div>`}
     </div>
   </div>`;
@@ -8745,6 +8745,7 @@ function confirmAddFood(){
 function editFoodLog(id){
   var item=S.foodLog.find(function(f){return f.id===id;});
   if(!item) return;
+  haptic([10,5,10]);
   // Reverse-scale macros back to per-100g for the editor
   var scale=(item.qty||100)/100;
   S.pendingFood={
@@ -8762,9 +8763,15 @@ function editFoodLog(id){
     sat_fat:scale>0?Math.round((item.sat_fat||0)/scale*10)/10:(item.sat_fat||0)
   };
   S.editingFoodLogId=id;
+  S.foodResults=[];
   S.logDate=item.date;
   S.showFoodPanel=true;
   render();
+  // Scroll to the grams input field and focus it
+  setTimeout(function(){
+    var qty=document.getElementById('food-qty-field');
+    if(qty){qty.scrollIntoView({behavior:'smooth',block:'center'});qty.select();}
+  },120);
 }
 
 function saveFoodMemory(food){
@@ -11548,7 +11555,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v157';
+  window.APP_VERSION='v158';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
