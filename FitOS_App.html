@@ -5053,13 +5053,14 @@ function renderWarmup(){
       </div>
     </div>`;
   };
-  return`<div class="top-bar">
+  return`<div style="display:flex;flex-direction:column;height:calc(100svh - var(--tab-h));overflow:hidden">
+<div class="top-bar" style="flex-shrink:0">
   <button class="btn btn-outline btn-sm" onclick="abandonWorkout()" style="color:var(--muted)">← Back</button>
   <div style="text-align:center"><div style="font-size:0.88rem;font-weight:600">Warm-Up · Day ${S.day} · ${day.name}</div><div class="top-sub">${checked}/${total} complete</div></div>
   <button class="btn btn-outline btn-sm" onclick="skipWarmup()">Skip →</button>
 </div>
-<div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
-<div class="phase-screen" style="padding-bottom:160px">
+<div class="prog-wrap" style="flex-shrink:0"><div class="prog-fill" style="width:${pct2}%"></div></div>
+<div class="phase-screen" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px">
   ${injuryRehab.map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   <div class="phase-section">
     <div class="phase-section-title"><span>${day.name} Warm-Up <span style="color:var(--amber)">5–7 min</span></span><span style="color:var(--muted)">${dayItems.filter(i=>S.warmupChecked.has(i.id)).length}/${dayItems.length}</span></div>
@@ -5070,9 +5071,10 @@ function renderWarmup(){
     ${p.items.map(mkItem).join('')}
   </div>`).join('')}
 </div>
-<div style="position:fixed;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom,0px));left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px 14px;z-index:50">
+<div style="flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))">
   <button class="btn btn-green" onclick="skipWarmup()">${checked===total?'All Done — Start Workout →':'▶ Start Workout'}</button>
   ${checked<total?`<p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:8px">${total-checked} items remaining — ${injuryRehab.length?'injury prehab is important, don\'t skip it':'tick them off first'}</p>`:''}
+</div>
 </div>`;
 }
 
@@ -5591,8 +5593,24 @@ function swapExercise(altId){
   var alts=getSwapAlts(ex);
   var alt=alts.find(function(a){return a.id===altId;});
   if(!alt){alert('Couldn\'t find that one mate. Try another.');return;}
+  // Build the swap object — ensure yt is always a usable search string
+  var ytQuery=alt.yt||(alt.name.toLowerCase().replace(/\s+/g,'+').replace(/[^a-z0-9+]/g,'')+'+exercise+form+tutorial');
+  var swapObj=Object.assign({},alt,{
+    yt:ytQuery,
+    _subbedFrom:origEx.name,
+    _userSwap:true
+  });
+  // Persist to programOverrides so the swap sticks for the whole block
+  if(!S.programOverrides) S.programOverrides={swaps:{},adjustmentLog:[]};
+  if(!S.programOverrides.swaps) S.programOverrides.swaps={};
+  if(!S.programOverrides.adjustmentLog) S.programOverrides.adjustmentLog=[];
+  if(!S.programOverrides.swaps[S.day]) S.programOverrides.swaps[S.day]={};
+  S.programOverrides.swaps[S.day][origEx.id]=swapObj;
+  S.programOverrides.adjustmentLog.push({type:'swap',day:S.day,from:origEx.name,to:alt.name,week:S.week,ts:Date.now()});
+  localStorage.setItem('fitos_prog_overrides',JSON.stringify(S.programOverrides));
+  // Also set session-level so curEx() resolves immediately (no re-read needed)
   var k=S.day+'_'+S.exIdx;
-  S.exSwaps[k]=Object.assign({},origEx,{id:origEx.id+'_sub',name:alt.name,muscles:alt.muscles||[],cue:alt.cue||'',anim:alt.anim||origEx.anim,yt:alt.yt||origEx.yt,_subbedFrom:origEx.name});
+  S.exSwaps[k]=swapObj;
   S.showSwapSheet=false;
   render();
 }
@@ -5884,9 +5902,15 @@ function renderComplete(){
   const totalSets=Object.values(sess.sets).reduce((a,s)=>a+s.length,0);
   const totalVol=Object.values(sess.sets).reduce((a,s)=>a+s.reduce((b,x)=>b+(x?x.weight*x.reps:0),0),0);
   let dispatch=`DISPATCH | Day ${sess.day} | Week ${sess.week} | ${fmt(sess.date)}\n`;
-  WK[sess.day].exercises.forEach(e=>{
-    const sets=sess.sets[e.id]||[];
-    dispatch+=`${e.name}: ${sets.length?sets.filter(Boolean).map(s=>`${s.weight}kg×${s.reps}`).join(', '):'skipped'}\n`;
+  const sessDay=getWorkoutDay(sess.day);
+  const sessOv=S.programOverrides;
+  (sessDay?sessDay.exercises:[]).forEach(e=>{
+    // Use swapped exercise if one exists for this day
+    const swapped=sessOv&&sessOv.swaps&&sessOv.swaps[sess.day]&&sessOv.swaps[sess.day][e.id];
+    const usedEx=swapped||e;
+    const sets=sess.sets[usedEx.id]||[];
+    const label=swapped?`${usedEx.name} (was ${e.name})`:`${e.name}`;
+    dispatch+=`${label}: ${sets.length?sets.filter(Boolean).map(s=>`${s.weight}kg×${s.reps}`).join(', '):'skipped'}\n`;
   });
   dispatch+=`\nTotal volume: ${totalVol.toLocaleString()}kg | Sets: ${totalSets}\nEnergy: _/10 | Back pain: _/10 | Notes: ___`;
   return`<div class="top-bar"><div class="top-title">Session Complete</div></div>
@@ -6767,11 +6791,12 @@ ${hasProfile&&tdeeData?`
           ontouchmove="swipeMove(event,'${f.id}')"
           ontouchend="swipeEnd(event,'${f.id}')">
           <div class="food-log-inner" id="fli-inner-${f.id}">
-            <div style="flex:1;min-width:0">
+            <div style="flex:1;min-width:0;cursor:pointer" onclick="editFoodLog('${f.id}')">
               <div class="food-log-name">${f.name}${f.brand?` <span style="color:var(--muted);font-weight:400;font-size:0.72rem">${f.brand}</span>`:''}</div>
               <div style="font-size:0.72rem;color:var(--muted);margin-top:1px">${f.qty&&f.qty!==100?`${f.qty}g · `:''}P:${f.p}g · C:${f.c}g · F:${f.f}g${f.fiber?` · Fib:${f.fiber}g`:''}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-left:8px;flex-shrink:0">
+              <button onclick="event.stopPropagation();editFoodLog('${f.id}')" style="background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;padding:2px 4px;line-height:1" title="Edit">✏️</button>
               <div class="food-log-cal">${f.cal}</div>
               <select onchange="S.foodLog.find(x=>x.id==='${f.id}').meal=this.value;saveDailyState();render()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:3px 4px;color:var(--muted);font-size:0.65rem;cursor:pointer">
                 ${['breakfast','lunch','dinner','snack','untagged'].map(m=>`<option value="${m}"${(f.meal||'untagged')===m?' selected':''}>${m==='breakfast'?'🌅':m==='lunch'?'☀️':m==='dinner'?'🌙':m==='snack'?'🍎':'📝'}</option>`).join('')}
@@ -8686,8 +8711,8 @@ function confirmAddFood(){
   const f=S.pendingFood;
   const qty=f.servingQty||100;
   const scale=qty/100;
-  S.foodLog.push({
-    id:Date.now().toString(),
+  const entry={
+    id:S.editingFoodLogId||Date.now().toString(),
     date:S.logDate||todayStr(),
     meal:f.meal||'untagged',
     name:f.name,
@@ -8701,12 +8726,44 @@ function confirmAddFood(){
     sugars:Math.round((f.sugars||0)*scale*10)/10,
     sodium:Math.round((f.sodium||0)*scale),
     sat_fat:Math.round((f.sat_fat||0)*scale*10)/10
-  });
+  };
+  if(S.editingFoodLogId){
+    // Update existing entry in place
+    var idx=S.foodLog.findIndex(function(x){return x.id===S.editingFoodLogId;});
+    if(idx>-1) S.foodLog[idx]=entry;
+    else S.foodLog.push(entry);
+    S.editingFoodLogId=null;
+  } else {
+    S.foodLog.push(entry);
+    saveFoodMemory(f);
+  }
   saveDailyState();
   autoTickHabits();
-  // ── Save to food memory ──
-  saveFoodMemory(f);
   S.showFoodPanel=false;S.pendingFood=null;S.foodResults=[];
+  render();
+}
+function editFoodLog(id){
+  var item=S.foodLog.find(function(f){return f.id===id;});
+  if(!item) return;
+  // Reverse-scale macros back to per-100g for the editor
+  var scale=(item.qty||100)/100;
+  S.pendingFood={
+    name:item.name,
+    brand:item.brand||'',
+    meal:item.meal||'untagged',
+    servingQty:item.qty||100,
+    cal:scale>0?Math.round(item.cal/scale):item.cal,
+    p:scale>0?Math.round(item.p/scale):item.p,
+    c:scale>0?Math.round(item.c/scale):item.c,
+    f:scale>0?Math.round(item.f/scale):item.f,
+    fiber:scale>0?Math.round((item.fiber||0)/scale*10)/10:(item.fiber||0),
+    sugars:scale>0?Math.round((item.sugars||0)/scale*10)/10:(item.sugars||0),
+    sodium:scale>0?Math.round((item.sodium||0)/scale):(item.sodium||0),
+    sat_fat:scale>0?Math.round((item.sat_fat||0)/scale*10)/10:(item.sat_fat||0)
+  };
+  S.editingFoodLogId=id;
+  S.logDate=item.date;
+  S.showFoodPanel=true;
   render();
 }
 
@@ -11463,7 +11520,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v155';
+  window.APP_VERSION='v156';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
@@ -12027,6 +12084,22 @@ function buildCoachContext(){
   var todayLog=S.foodLog?S.foodLog.filter(function(f){return f.date===todayStr();}):[];
   var calToday=todayLog.reduce(function(a,f){return a+f.cal;},0);
   var protToday=todayLog.reduce(function(a,f){return a+(f.p||0);},0);
+  var fatToday=todayLog.reduce(function(a,f){return a+(f.f||0);},0);
+  var carbToday=todayLog.reduce(function(a,f){return a+(f.c||0);},0);
+  // Build per-meal food log summary
+  var mealOrder=['breakfast','lunch','dinner','snack','untagged'];
+  var mealMap={};
+  mealOrder.forEach(function(m){mealMap[m]=[];});
+  todayLog.forEach(function(f){var m=f.meal||'untagged';if(mealMap[m])mealMap[m].push(f);});
+  var foodLogCtx='';
+  mealOrder.forEach(function(m){
+    if(mealMap[m].length){
+      foodLogCtx+='  '+m+':\n';
+      mealMap[m].forEach(function(f){
+        foodLogCtx+='    - '+f.name+(f.qty&&f.qty!==100?' ('+f.qty+'g)':'')+': '+f.cal+'cal | P:'+f.p+'g C:'+f.c+'g F:'+f.f+'g\n';
+      });
+    }
+  });
 
   // This week's performance
   var today=new Date(); var weekSessions=0; var weekCalTotal=0; var weekDays=0;
@@ -12092,10 +12165,14 @@ function buildCoachContext(){
     '- Recent sessions: '+recentSessions+'\n'+
     '- Top lifts logged: '+topLifts+'\n'+
     '\nTODAY:\n'+
-    '- Calories: '+calToday+' / '+t.targetCal+'\n'+
-    '- Protein: '+protToday+'g / '+t.proteinG+'g\n'+
-    '- Water: '+(S.waterDone*0.25).toFixed(1)+'L\n'+
+    '- Calories logged: '+calToday+' / '+t.targetCal+' target | Remaining: '+(t.targetCal-calToday)+'\n'+
+    '- Protein: '+protToday+'g / '+t.proteinG+'g target | Remaining: '+(t.proteinG-protToday)+'g\n'+
+    '- Fat: '+fatToday+'g / '+(t.fatG||'?')+'g target | Remaining: '+((t.fatG||0)-fatToday)+'g\n'+
+    '- Carbs: '+carbToday+'g / '+(t.carbG||'?')+'g target | Remaining: '+((t.carbG||0)-carbToday)+'g\n'+
+    '- Water: '+(S.waterDone*0.25).toFixed(1)+'L / '+(((S.waterGoal||8)*0.25).toFixed(1))+'L goal\n'+
+    '- Steps: '+((S.stepsToday||0).toLocaleString())+' / '+((S.stepsGoal||10000).toLocaleString())+' goal\n'+
     '- Habits done: '+(S.habitsChecked?[...S.habitsChecked].length:0)+'\n'+
+    (foodLogCtx?'- Food logged today:\n'+foodLogCtx:'- No food logged yet today.\n')+
     (ex?'- Currently mid-workout doing: '+ex.name+' | Coach cue: '+ex.cue+'\n':'')+
     '\nRESPONSE RULES: Be concise — 2–4 sentences unless detail is asked for. Use their first name '+(p.name?'('+p.name+') ':'')+' occasionally. Never recommend exercises that conflict with their listed injuries. If they ask about something medical, give fitness guidance but recommend they consult a professional.';
 
