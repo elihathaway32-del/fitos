@@ -10149,6 +10149,34 @@ function buildCoachSystemPrompt(){
     prompt+='  Targets: '+T.cal+'kcal / '+T.protein+'g protein\n\n';
   }
 
+  // ── TODAY'S FOOD LOG — individual items ──────────────────────────────────
+  var tdee=typeof calcTDEE==='function'?calcTDEE():{targetCal:2000,proteinG:150,fatG:60,carbG:220};
+  var todayFoodLog=(S.foodLog||[]).filter(function(f){return f.date===(typeof todayStr==='function'?todayStr():new Date().toDateString());});
+  var todCal=todayFoodLog.reduce(function(a,f){return a+(f.cal||0);},0);
+  var todProt=todayFoodLog.reduce(function(a,f){return a+(f.p||0);},0);
+  var todFat=todayFoodLog.reduce(function(a,f){return a+(f.f||0);},0);
+  var todCarb=todayFoodLog.reduce(function(a,f){return a+(f.c||0);},0);
+  prompt+='=== TODAY\'S FOOD LOG ===\n';
+  if(todayFoodLog.length>0){
+    prompt+='TOTALS: '+todCal+'kcal (target '+tdee.targetCal+', remaining '+(tdee.targetCal-todCal)+')\n';
+    prompt+='Protein: '+todProt+'g / '+tdee.proteinG+'g (remaining '+(tdee.proteinG-todProt)+'g)\n';
+    prompt+='Fat: '+todFat+'g / '+(tdee.fatG||'?')+'g (remaining '+((tdee.fatG||0)-todFat)+'g)\n';
+    prompt+='Carbs: '+todCarb+'g / '+(tdee.carbG||'?')+'g (remaining '+((tdee.carbG||0)-todCarb)+'g)\n';
+    var tmGroups={};
+    todayFoodLog.forEach(function(f){var m=f.meal||'untagged';if(!tmGroups[m])tmGroups[m]=[];tmGroups[m].push(f);});
+    ['breakfast','lunch','dinner','snack','untagged'].forEach(function(m){
+      if(tmGroups[m]&&tmGroups[m].length){
+        prompt+='  '+m.charAt(0).toUpperCase()+m.slice(1)+':\n';
+        tmGroups[m].forEach(function(f){
+          prompt+='    • '+f.name+(f.qty&&f.qty!==100?' ('+f.qty+'g)':'')+' — '+f.cal+'kcal | P:'+f.p+'g C:'+f.c+'g F:'+f.f+'g\n';
+        });
+      }
+    });
+  } else {
+    prompt+='Nothing logged yet today.\n';
+  }
+  prompt+='\n';
+
   // ── CURRENT HABIT STREAK ──────────────────────────────────────────────────
   if(S.streak){
     prompt+='Current habit streak: '+S.streak+' day'+(S.streak===1?'':'s')+'\n';
@@ -11520,7 +11548,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v156';
+  window.APP_VERSION='v157';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
