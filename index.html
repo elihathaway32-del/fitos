@@ -5107,7 +5107,7 @@ function getAdjBadge(){
 function renderWorkout(){
   const ex=curEx();
   const day=getWorkoutDay(S.day);
-  if(!ex||!day){S.trainScreen='home';return renderTrainHome();}
+  if(!ex||!day){return`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100svh - var(--tab-h));padding:32px 20px;text-align:center"><div style="font-size:2rem;margin-bottom:16px">⚠️</div><div style="font-size:1rem;font-weight:700;color:var(--amber);margin-bottom:10px">No exercises for Day ${S.day}</div><div style="color:var(--muted);font-size:0.85rem;max-width:300px;margin:0 auto 24px">Your generated workout plan has no exercises for this day — possibly filtered by your injury or equipment settings. Regenerate your plan to fix it.</div><button class="btn btn-green" onclick="generateAndSaveBlock();S.trainScreen='home';render()" style="margin-bottom:12px">Regenerate Plan</button><button class="btn btn-outline" onclick="S.trainScreen='home';render()">← Back</button></div>`;}
   const logged=S.loggedSets[ex.id]||[];
   const prev=getPrevSets(S.day,ex.id);
   const rir=WEEK_RIR[S.week-1];
@@ -9816,6 +9816,8 @@ function goToWarmup(){
   if(!S.day){alert('Select a training day first.');return;}
   var chk=getWorkoutDay(S.day);
   if(!chk){alert('No workout found for Day '+S.day+'. Try selecting again.');return;}
+  var chkEx=getSessionExercises();
+  if(!chkEx||!chkEx.length){alert('No exercises found for Day '+S.day+'. This can happen if all exercises were filtered out by your injury settings. Please go to Settings → Profile and re-save your profile to regenerate your plan.');return;}
   S.trainScreen='warmup';
   S.warmupChecked=new Set();
   S.workoutStart=Date.now();
@@ -11624,15 +11626,26 @@ function initApp(){
   };
   // Nuclear fallback — loading screen ALWAYS removed within 3s no matter what
   setTimeout(removeSplash, 3000);
+  // Preserve hardcoded WK before any overwrite — used as fallback if generated block is empty
+  var WK_FALLBACK={};Object.keys(WK).forEach(function(k){WK_FALLBACK[k]=WK[k];});
   // Load saved personalised block (overwrites default WK if present)
   try{
     var savedBlock=localStorage.getItem('fitos_generated_block');
     if(savedBlock){
       var block=JSON.parse(savedBlock);
-      ['A','B','C','D','E','F'].forEach(function(k){delete WK[k];});
-      Object.assign(WK,block);
+      // Only apply keys where the generated day has exercises — fall back to hardcoded if empty
+      ['A','B','C','D','E','F'].forEach(function(k){
+        if(block[k]&&block[k].exercises&&block[k].exercises.length){WK[k]=block[k];}
+        else if(block[k]){
+          // Generated day exists but has no exercises — keep hardcoded day
+          // (Happens when all exercises blocked by injury filter)
+          console.warn('FitOS: generated Day '+k+' has 0 exercises — using hardcoded fallback');
+        }else{
+          delete WK[k];
+        }
+      });
     }
-  }catch(e){}
+  }catch(e){console.error('FitOS: block load error',e);}
   checkDayReset();
   loadCoachMemory(); // restore Oracle's persistent memory
   try{render();}catch(renderErr){
@@ -11640,7 +11653,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v162';
+  window.APP_VERSION='v163';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
