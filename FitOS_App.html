@@ -3393,7 +3393,8 @@ function render(){
     // Safe fallback — never leave the user with a broken screen
     try{
       var el=document.getElementById('screen');
-      if(el) el.innerHTML='<div style="padding:30px 20px;text-align:center"><div style="margin-bottom:12px;color:#f0a030">'+ico('alert',40,'#f0a030')+'</div><div style="color:#fff;font-weight:700;margin-bottom:8px">Something went wrong</div><div style="color:#888;font-size:0.85rem;margin-bottom:20px">'+err.message+'</div><button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px 24px;font-size:1rem;font-weight:700;cursor:pointer">Reload App</button></div>';
+      var _stk=(err.stack||err.message||String(err)).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if(el) el.innerHTML='<div style="padding:24px 16px;text-align:center"><div style="color:#f0a030;font-size:1.5rem;margin-bottom:10px">⚠️</div><div style="color:#fff;font-weight:700;margin-bottom:8px">Something went wrong</div><div style="color:#888;font-size:0.78rem;margin-bottom:12px;text-align:left;background:#111;border-radius:8px;padding:10px;word-break:break-all;white-space:pre-wrap;max-height:200px;overflow-y:auto">'+_stk+'</div><button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+_stk.replace(/'/g,"\\'")+'\')" style="background:#333;border:none;border-radius:8px;color:#aaa;padding:8px 16px;font-size:0.78rem;cursor:pointer;margin-bottom:10px">📋 Copy Error</button><br><button onclick="location.reload()" style="background:#1D9E75;border:none;border-radius:12px;color:#fff;padding:14px 24px;font-size:1rem;font-weight:700;cursor:pointer">Reload App</button></div>';
       document.getElementById('tab-bar').innerHTML='';
     }catch(e2){}
   }
@@ -11653,7 +11654,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v163';
+  window.APP_VERSION='v164';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
