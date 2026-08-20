@@ -2391,11 +2391,11 @@ const WK={
     {id:"ez-curl",name:"EZ-Bar or Barbell Curl",type:"Isolation",sets:3,lo:10,hi:12,rest:60,muscles:["Biceps","Brachialis"],cue:"Elbows fixed. Supinate at top. Full stretch at bottom — honour it.",anim:"curl",yt:"ez+bar+curl+bicep+form+tutorial"},
     {id:"hammer-curl",name:"Incline DB Hammer Curl",type:"Isolation",sets:2,lo:12,hi:12,rest:60,muscles:["Brachialis","Brachioradialis"],cue:"Incline bench 45–60°. Neutral grip. Long head loaded from stretch. 3-sec eccentric.",anim:"hammer-curl",yt:"incline+dumbbell+hammer+curl+form"}
   ]},
-  D:{name:"Posterior Chain",color:"#e05050",tag:"Glutes · Hamstrings · No Deadlifts",injuryNote:"",exercises:[
+  D:{name:"Posterior Chain",color:"#e05050",tag:"Glutes · Hamstrings · Hip Hinge",injuryNote:"",exercises:[
     {id:"hip-thrust",name:"Barbell Hip Thrust",type:"Primary compound",sets:4,lo:8,hi:10,rest:120,muscles:["Glutes","Hamstrings"],cue:"Upper back on bench at shoulder blade height. Drive through heels. POSTERIOR PELVIC TILT at top — squeeze glutes 2 sec. Chin tucked.",anim:"hip-thrust",yt:"barbell+hip+thrust+form+tutorial+glutes"},
     {id:"seated-leg-curl",name:"Seated Leg Curl (Machine)",type:"Hamstrings",sets:4,lo:10,hi:12,rest:90,muscles:["Hamstrings","Biceps Femoris"],cue:"Seated = more hamstring stretch. Flex foot at bottom. 3-sec eccentric.",anim:"leg-curl",yt:"seated+leg+curl+machine+form+hamstrings"},
     {id:"pull-through",name:"Cable Pull-Through",type:"Hip hinge rehab",sets:3,lo:15,hi:15,rest:90,muscles:["Glutes","Hamstrings","Erectors"],cue:"Push hips BACK (not bend forward). Feel hamstring stretch. Drive hips forward to stand.",anim:"pull-through",yt:"cable+pull+through+hip+hinge+form+tutorial"},
-    {id:"sl-rdl",name:"Single-Leg RDL — SKIP Weeks 1–2",type:"Rehab progression",sets:3,lo:10,hi:10,rest:90,muscles:["Hamstrings","Glutes"],cue:"WEEKS 3+ ONLY if pain-free. Light DB. Hinge at hip. Spine neutral throughout.",anim:"single-leg-rdl",yt:"single+leg+romanian+deadlift+form+tutorial"},
+    {id:"sl-rdl",name:"Single-Leg Romanian Deadlift",type:"Unilateral hinge",sets:3,lo:10,hi:10,rest:90,muscles:["Hamstrings","Glutes"],cue:"Light DB. Hinge at hip — spine neutral throughout. Slight knee bend. Slow 3-sec descent, feel the hamstring load at the bottom. Control is everything on this one.",anim:"single-leg-rdl",yt:"single+leg+romanian+deadlift+form+tutorial"},
     {id:"seated-calf",name:"Seated Calf Raise",type:"Isolation",sets:4,lo:20,hi:20,rest:45,muscles:["Soleus"],cue:"Seated = soleus emphasis. Full ROM. 1-sec pause at stretch and squeeze.",anim:"calf",yt:"seated+calf+raise+form+soleus"},
     {id:"bird-dog",name:"Bird-Dog (Lumbar Rehab)",type:"Core rehab",sets:3,lo:10,hi:10,rest:60,muscles:["Deep Core","Lumbar Stabilisers","Glutes"],cue:"Opposite arm + leg extends simultaneously. DON'T rotate hips. Hold 2 sec. Motor control.",anim:"bird-dog",yt:"bird+dog+exercise+form+lumbar+back+rehab"}
   ]}
@@ -3019,6 +3019,7 @@ let S={
   restInterval:null,restLeft:0,restTotal:0,workoutStart:null,
   warmupChecked:new Set(),cooldownChecked:new Set(),
   restDayType:'wed',restDayChecked:new Set(),
+  deletedHabits: loadJSON('fitos_deleted_habits',[]),
   editingSet:null,     // {exId, idx} when editing a logged set
   gymHistory: loadJSON('fitos_gym_history',[]),
 
@@ -4861,7 +4862,7 @@ function renderTrainHome(){
 </div>
 <div style="padding:16px">
 <div class="card-title">Select Day</div>
-<div class="day-grid">${getAllDays().map(d=>{const wd=getWorkoutDay(d);return`
+<div class="day-grid">${getAllDays().map(d=>{const wd=getWorkoutDay(d);if(!wd)return'';return`
   <div class="day-btn${S.day===d?' selected':''}"
     onclick="if(!_lpFired)selectDay('${d}')"
     ontouchstart="dayLPStart(event,'${d}')"
@@ -5037,6 +5038,7 @@ function getWarmupItems(){
 }
 function renderWarmup(){
   const day=getWorkoutDay(S.day);
+  if(!day){S.trainScreen='home';return renderTrainHome();}
   const dayItems=getWarmupItems();
   const injuryRehab=getInjuryRehab(S.profile);
   const allRehab=injuryRehab.reduce(function(a,p){return a.concat(p.items);},[]);
@@ -5194,6 +5196,7 @@ ${renderAddExSheet()}`;
 
 function renderDayPreviewCard(d){
   var curDay=getWorkoutDay(d);
+  if(!curDay) return '<div class="card" style="margin-bottom:14px;color:var(--muted);text-align:center;padding:16px">Day '+d+' \u2014 split not found. Try resetting this day.</div>';
   var sw=JSON.parse(localStorage.getItem('fitos_day_swaps')||'{}');
   var lk=JSON.parse(localStorage.getItem('fitos_day_swap_locked')||'{}');
   var isSwapped=!!sw[d];
@@ -6230,7 +6233,7 @@ function generateSessionReview(){
 function renderRestDay(){
   const configs={
     wed:{emoji:'🔄',label:'Wednesday',title:'Active Recovery',desc:'No gym loading today. Blood flow and spinal mobility — nothing that taxes the CNS.'},
-    sat:{emoji:'🚶',label:'Saturday',title:'Walk + Injury Rehab',desc:'30 min easy walk + your injury prehab sequence. Recovery work, not cardio.'},
+    sat:{emoji:'🚶',label:'Saturday',title:'Walk + Mobility',desc:'30 min easy walk + your mobility sequence. Recovery work, not cardio.'},
     sun:{emoji:'😴',label:'Sunday',title:'Full Rest + Nutrition',desc:"Total rest. Your body grows on rest days. Hit protein target, sleep 8hrs. That's the job."}
   };
   const cfg=configs[S.restDayType];
@@ -6238,7 +6241,7 @@ function renderRestDay(){
   const items=showRehab?REST_DAY_REHAB:[];
   const checked=S.restDayChecked.size;
   return`<div class="top-bar">
-  <div><div style="font-size:0.88rem;font-weight:600">${cfg.emoji} ${cfg.label} — ${cfg.title}</div><div class="top-sub">Block 1 · Recovery</div></div>
+  <div><div style="font-size:0.88rem;font-weight:600">${cfg.emoji} ${cfg.label} — ${cfg.title}</div><div class="top-sub">Block ${S.macroBlock||1} · Recovery</div></div>
   <button class="btn btn-outline btn-sm" onclick="goTrainHome()">← Home</button>
 </div>
 <div class="phase-screen">
@@ -6252,7 +6255,7 @@ function renderRestDay(){
   </div>
   ${getInjuryRehab(S.profile).map(p=>`<div class="injury-rehab-note" style="border-color:${p.color};display:flex;align-items:flex-start;gap:8px">${ico('alert',15,p.color)}<span>${p.note.replace('⚠️ ','')}</span></div>`).join('')}
   ${showRehab?`<div class="phase-section">
-    <div class="phase-section-title"><span>Daily Back Rehab <span style="color:var(--red)">5 min — every day</span></span><span style="color:var(--muted)">${checked}/${items.length}</span></div>
+    <div class="phase-section-title"><span>Daily Mobility & Rehab <span style="color:var(--amber)">5 min — every day</span></span><span style="color:var(--muted)">${checked}/${items.length}</span></div>
     ${items.map(item=>{const done=S.restDayChecked.has(item.id);return`<div class="check-item${done?' checked':''}" onclick="toggleRestDay('${item.id}')"><div class="check-circle">${done?'✓':''}</div><div class="check-info"><div class="check-name">${item.name}</div><div class="check-detail">${item.detail}</div></div></div>`;}).join('')}
   </div>`:`<div class="card" style="margin-bottom:12px">
     <div class="card-title">Sunday Checklist</div>
@@ -7157,6 +7160,10 @@ function getPersonalisedHabits(){
     return true;
   });
 
+  // Filter user-deleted habits
+  var deleted=S.deletedHabits||[];
+  if(deleted.length) habits=habits.filter(function(h){return deleted.indexOf(h.id)===-1;});
+
   return habits;
 }
 // ═══════════════════════════════════════════════════════════════════════════
@@ -7203,14 +7210,25 @@ ${S.streak>0?`<div style="padding:12px 16px 0"><div class="streak-card">
 </div>
 <div style="padding:12px 16px">
   <div class="card-title">Daily Habits</div>
+  ${(S.deletedHabits||[]).length<3?'<div style="font-size:0.7rem;color:var(--muted);margin-bottom:8px;text-align:right">Swipe right to remove · '+(3-(S.deletedHabits||[]).length)+' removals left</div>':'<div style="font-size:0.7rem;color:var(--muted);margin-bottom:8px;text-align:right">Max habit removals reached</div>'}
   ${habits.map(h=>{
     const isDone=S.habitsChecked.has(h.id);
-    return`<div class="habit-item${isDone?' done':''}" onclick="toggleHabit('${h.id}')">
-      <div class="habit-check">${isDone?'✓':''}</div>
-      <div class="habit-info">
-        <div class="habit-name">${h.icon} ${h.name}</div>
-        <div class="habit-detail">${h.detail}</div>
+    const canDelete=(S.deletedHabits||[]).length<3;
+    return`<div class="hist-swipe-wrap" id="hsw-h-${h.id}">
+      <div class="hist-item" id="hi-h-${h.id}"
+        ontouchstart="swipeHabitStart(event,'${h.id}')"
+        ontouchmove="swipeHabitMove(event,'${h.id}')"
+        ontouchend="swipeHabitEnd(event,'${h.id}')"
+        style="padding:0;background:transparent;border:none">
+        <div class="habit-item${isDone?' done':''}" onclick="toggleHabit('${h.id}')" style="margin:0;border-radius:12px">
+          <div class="habit-check">${isDone?'✓':''}</div>
+          <div class="habit-info">
+            <div class="habit-name">${h.icon} ${h.name}</div>
+            <div class="habit-detail">${h.detail}</div>
+          </div>
+        </div>
       </div>
+      ${canDelete?`<div style="position:absolute;right:0;top:0;bottom:0;width:80px;display:flex;align-items:center;justify-content:center;background:var(--red);border-radius:0 12px 12px 0;pointer-events:none;font-size:0.75rem;font-weight:700;color:#fff;opacity:0">🗑 Remove</div>`:''}
     </div>`;
   }).join('')}
   <div class="card-title" style="margin-top:16px">Step Count</div>
@@ -9788,9 +9806,16 @@ function startWorkout(){S.trainScreen='warmup';S.warmupChecked=new Set();S.worko
 
 function goToWarmup(){
   if(!S.day){alert('Select a training day first.');return;}
+  var chk=getWorkoutDay(S.day);
+  if(!chk){alert('No workout found for Day '+S.day+'. Try selecting again.');return;}
   S.trainScreen='warmup';
   S.warmupChecked=new Set();
   S.workoutStart=Date.now();
+  S.exIdx=0;
+  S.editingSet=null;
+  S.loggedSets={};
+  S.extraSets={};
+  S.exSwaps={};
   render();
   window.scrollTo(0,0);
 }
@@ -11349,6 +11374,52 @@ function toggleHabit(id){
   localStorage.setItem('fitos_habits',[...S.habitsChecked].join(','));
   render();
 }
+function deleteHabit(id){
+  if(!S.deletedHabits) S.deletedHabits=[];
+  if(S.deletedHabits.length>=3){haptic([20,10,20]);alert('You can only remove up to 3 habits.');return;}
+  S.deletedHabits.push(id);
+  localStorage.setItem('fitos_deleted_habits',JSON.stringify(S.deletedHabits));
+  S.habitsChecked.delete(id);
+  localStorage.setItem('fitos_habits',[...S.habitsChecked].join(','));
+  haptic([10,5,25]);
+  render();
+}
+var _hsd={};
+function swipeHabitStart(e,id){
+  var t=e.touches[0];
+  _hsd[id]={x:t.clientX,y:t.clientY,t:Date.now(),dx:0,dead:false,locked:false};
+}
+function swipeHabitMove(e,id){
+  var d=_hsd[id];if(!d||d.dead)return;
+  var t=e.touches[0];
+  var dx=t.clientX-d.x;
+  var dy=t.clientY-d.y;
+  if(!d.locked&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10){d.dead=true;return;}
+  if(dx<=0)return; // right-swipe only
+  d.locked=true;d.dx=dx;
+  e.preventDefault();
+  var el=document.getElementById('hi-h-'+id);
+  if(el){
+    var tx=Math.min(dx*0.85,100);
+    el.style.transition='none';
+    el.style.transform='translateX('+tx+'px)';
+    el.style.opacity=Math.max(0.3,1-tx/120);
+  }
+}
+function swipeHabitEnd(e,id){
+  var d=_hsd[id];if(!d)return;
+  var dx=d.dx||0;
+  var dt=Date.now()-d.t;
+  var velocity=Math.abs(dx)/Math.max(dt,1)*1000;
+  delete _hsd[id];
+  var el=document.getElementById('hi-h-'+id);
+  if(velocity>400||dx>90){
+    if(el){el.style.transition='transform .2s,opacity .2s';el.style.transform='translateX(110%)';el.style.opacity='0';}
+    setTimeout(function(){deleteHabit(id);},200);
+  } else {
+    if(el){el.style.transition='transform .25s cubic-bezier(.22,1,.36,1),opacity .2s';el.style.transform='translateX(0)';el.style.opacity='1';}
+  }
+}
 function stepUp(){S.stepsToday+=500;localStorage.setItem('fitos_steps',S.stepsToday);render();}
 
 // ─── CHECKIN ─────────────────────────────────────────────────────────────
@@ -11559,7 +11630,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v160';
+  window.APP_VERSION='v161';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
