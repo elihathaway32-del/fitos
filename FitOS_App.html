@@ -3217,7 +3217,12 @@ function curEx(){
   var ov=S.programOverrides;
   if(ov&&ov.swaps&&ov.swaps[S.day]&&ov.swaps[S.day][base.id]){
     var sw=ov.swaps[S.day][base.id];
-    return Object.assign({},sw,{_subbedFrom:base.name,_coachSwap:true});
+    // Validate swap has required fields — corrupt/stale swaps fall back to base
+    if(sw&&sw.id&&sw.name&&Array.isArray(sw.muscles)&&sw.muscles.length){
+      return Object.assign({},sw,{_subbedFrom:base.name,_coachSwap:true});
+    }
+    // Stale swap — wipe it so it doesn't crash again
+    try{var _ov=JSON.parse(JSON.stringify(ov));delete _ov.swaps[S.day][base.id];localStorage.setItem('fitos_prog_overrides',JSON.stringify(_ov));S.programOverrides=_ov;}catch(e){}
   }
   return base;
 }
@@ -5102,6 +5107,7 @@ function getAdjBadge(){
 function renderWorkout(){
   const ex=curEx();
   const day=getWorkoutDay(S.day);
+  if(!ex||!day){S.trainScreen='home';return renderTrainHome();}
   const logged=S.loggedSets[ex.id]||[];
   const prev=getPrevSets(S.day,ex.id);
   const rir=WEEK_RIR[S.week-1];
@@ -5571,6 +5577,7 @@ function getSwapAlts(ex){
 }
 function renderSwapSheet(){
   var ex=curEx();
+  if(!ex){S.showSwapSheet=false;return'';}
   var alts=getSwapAlts(ex);
   return`<div style="position:fixed;inset:0;background:#000a;z-index:910" onclick="if(event.target===this){S.showSwapSheet=false;render()}">
   <div id="sub-panel" style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(160deg,#1a1a2e 0%,#0f0f1a 100%);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:0 16px 24px;z-index:911;box-shadow:0 -8px 40px rgba(0,0,0,0.6);animation:slideUp 0.28s cubic-bezier(.22,1,.36,1)">
@@ -5767,7 +5774,8 @@ function closeSubSheet(){S.showSwapSheet=false;render();}
 function closeSettings(){S.showSettings=false;render();}
 
 function renderRestSheet(){
-  const next=S.exIdx<totalEx()-1?getWorkoutDay(S.day).exercises[S.exIdx+1]:null;
+  var _rd=getWorkoutDay(S.day);var _rdex=_rd?_rd.exercises:[];
+  const next=S.exIdx<totalEx()-1?(_rdex[S.exIdx+1]||null):null;
   const r=38;const circ=Math.PI*2*r;
   const dashOff=circ*(1-S.restLeft/Math.max(S.restTotal,1));
   const pct=Math.round(S.restLeft/Math.max(S.restTotal,1)*100);
@@ -9816,6 +9824,8 @@ function goToWarmup(){
   S.loggedSets={};
   S.extraSets={};
   S.exSwaps={};
+  S.showRestSheet=false;
+  S.showSwapSheet=false;
   render();
   window.scrollTo(0,0);
 }
@@ -11630,7 +11640,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v161';
+  window.APP_VERSION='v162';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
