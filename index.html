@@ -3219,7 +3219,15 @@ function curEx(){
     var sw=ov.swaps[S.day][base.id];
     // Validate swap has required fields — corrupt/stale swaps fall back to base
     if(sw&&sw.id&&sw.name&&Array.isArray(sw.muscles)&&sw.muscles.length){
-      return Object.assign({},sw,{_subbedFrom:base.name,_coachSwap:true});
+      // Backfill progression fields from base if missing (old swaps saved before this fix)
+      return Object.assign({},sw,{
+        _subbedFrom:base.name,_coachSwap:true,
+        sets:sw.sets||base.sets,
+        lo:sw.lo||base.lo,
+        hi:sw.hi||base.hi,
+        rest:sw.rest||base.rest,
+        tempo:sw.tempo||base.tempo||null
+      });
     }
     // Stale swap — wipe it so it doesn't crash again
     try{var _ov=JSON.parse(JSON.stringify(ov));delete _ov.swaps[S.day][base.id];localStorage.setItem('fitos_prog_overrides',JSON.stringify(_ov));S.programOverrides=_ov;}catch(e){}
@@ -5613,7 +5621,15 @@ function swapExercise(altId){
   var swapObj=Object.assign({},alt,{
     yt:ytQuery,
     _subbedFrom:origEx.name,
-    _userSwap:true
+    _userSwap:true,
+    // Inherit progression fields from the original exercise so sets/reps/rest are never undefined
+    sets:origEx.sets,
+    lo:origEx.lo,
+    hi:origEx.hi,
+    rest:origEx.rest,
+    tempo:origEx.tempo||null,
+    stalled:origEx.stalled||false,
+    startWeight:origEx.startWeight||null
   });
   // Persist to programOverrides so the swap sticks for the whole block
   if(!S.programOverrides) S.programOverrides={swaps:{},adjustmentLog:[]};
@@ -11667,7 +11683,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v165';
+  window.APP_VERSION='v166';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
