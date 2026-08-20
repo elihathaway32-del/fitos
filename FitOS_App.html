@@ -3228,7 +3228,7 @@ function curEx(){
 }
 function totalEx(){return getSessionExercises().length;}
 function fmt(d){return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}
-function badgeClass(t){return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
+function badgeClass(t){if(!t||typeof t!=='string')return 'badge-iso';return t.includes('compound')||t.includes('Unilateral')?'badge-compound':t.includes('rehab')||t.includes('hinge')||t.includes('Rotator')?'badge-rehab':'badge-iso';}
 function getPrevSession(day){return S.gymHistory.slice().reverse().find(h=>h.day===day)||null;}
 function getPrevSets(day,exId){const p=getPrevSession(day);return p&&p.sets[exId]?p.sets[exId]:[];}
 function getAllExercises(){return Object.values(WK).flatMap(d=>d.exercises);}
@@ -5127,7 +5127,7 @@ ${day.injuryNote?`<div class="injury-alert">${day.injuryNote}</div>`:''}
   <div class="ex-target"><strong>${getAdjSets(ex)} sets × ${ex.lo}${ex.lo!==ex.hi?'--'+ex.hi:''} reps</strong><span class="rir-badge">${rir} RIR</span> · ${ex.rest}s rest${getAdjBadge()}</div>
 </div>
 <div class="demo-area">
-  <div class="muscle-tags-bar">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
+  <div class="muscle-tags-bar">${(ex.muscles||[]).map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
   <button onclick="S.showSwapSheet=true;render()" class="swap-ex-btn">⇄ Swap Exercise</button>
   <div class="yt-embed-wrap" id="yt-wrap-${ex.id}">
     <div class="yt-placeholder" onclick="loadYTDemo('${ex.id}','${ex.yt}')">
@@ -11647,6 +11647,19 @@ function initApp(){
       });
     }
   }catch(e){console.error('FitOS: block load error',e);}
+  // Auto-regenerate if saved block is in old format (missing type/muscles fields)
+  try{
+    var _needRegen=false;
+    Object.keys(WK).forEach(function(k){
+      if(WK[k]&&WK[k].exercises){
+        WK[k].exercises.forEach(function(ex){if(!ex.type||!ex.muscles)_needRegen=true;});
+      }
+    });
+    if(_needRegen&&S.profile&&S.profile.goal){
+      console.warn('FitOS: stale block format — regenerating');
+      generateAndSaveBlock();
+    }
+  }catch(e){}
   checkDayReset();
   loadCoachMemory(); // restore Oracle's persistent memory
   try{render();}catch(renderErr){
@@ -11654,7 +11667,7 @@ function initApp(){
   }
   // Remove splash after render (smooth, fast)
   setTimeout(removeSplash, 800);
-  window.APP_VERSION='v164';
+  window.APP_VERSION='v165';
 
   // ── AUTO-RESTORE SUPABASE SESSION ─────────────────────────────────────────
   // Fires after deferred Supabase CDN has loaded. Silently restores auth
